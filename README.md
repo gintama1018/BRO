@@ -86,47 +86,37 @@ NovaBrowser implements the **Liquid System** visual specification: Apple-grade m
 The user transitions seamlessly between the 4 spatial canvases through deterministic gestures and security signals:
 
 ```mermaid
-stateDiagram-v2
-    [*] --> StartCanvas: Launch App / New Tab
+flowchart TD
+    Start["1. Start Canvas ('Where to?')<br/>• Hero Core Mark & Status Beacon<br/>• Glass Omnibox with AI Badge<br/>• 8 App Haven Tiles & Recent Sessions"]
     
-    state StartCanvas {
-        [*] --> HeroMark
-        HeroMark --> OmniboxInput: Tap Search Pill
-        HeroMark --> HavenTile: Tap App Haven (GitHub, arXiv...)
-        HeroMark --> SessionCard: Tap Jump-Back-In
-    }
-
-    StartCanvas --> SecurityGate: Submit URL / Tap Link
+    Gate{"Deterministic Security Gate<br/>• Punycode & Hex Normalization<br/>• URLHAUS & Threat Snapshots<br/>• Shannon & Levenshtein Check"}
     
-    state SecurityGate {
-        [*] --> VerifyPipeline
-        VerifyPipeline --> VerdictClean: Clean
-        VerifyPipeline --> VerdictSuspicious: Typosquat / High Entropy
-        VerifyPipeline --> VerdictMalware: URLHAUS Match
-    }
+    Live["2. Live Browsing Canvas<br/>• 2px Emerald Progress Indicator<br/>• Floating Secure Domain Pill<br/>• Safe-Area Clear Viewport<br/>• Bottom Nav Island"]
+    
+    Warn["4. Explainable Security Warning<br/>• Measured Crimson Optics<br/>• Threat Telemetry & Enclave Logs<br/>• Hardware Verified Breakdown"]
+    
+    History["3. Ask Browser & AI Search<br/>• Natural Language Query Pill<br/>• Category Filter Chips<br/>• FTS5 BM25 Ranked Card (98%)"]
 
-    SecurityGate --> LiveBrowsing: Verdict: Clean
-    SecurityGate --> SecurityWarning: Verdict: Suspicious / Malware
+    Start -->|"Enter URL / Tap Haven"| Gate
+    Gate -->|"Clean (ALLOW)"| Live
+    Gate -->|"Suspicious / Malware (WARN/BLOCK)"| Warn
+    
+    Warn -->|"Go Back to Safety"| Start
+    Warn -.->|"User Override (Suspicious Only)"| Live
+    
+    Live -->|"Tap 'Ask Browser'"| History
+    Live -->|"Close Tab / New Tab"| Start
+    
+    History -->|"Select Search Result"| Gate
+    History -->|"Dismiss Modal"| Live
 
-    state SecurityWarning {
-        [*] --> TelemetryBreakdown
-        TelemetryBreakdown --> StartCanvas: "Go Back to Safety" (Abort)
-        TelemetryBreakdown --> LiveBrowsing: "Proceed Anyway" (Override if Suspicious)
-        note right of TelemetryBreakdown: Malware blocks enforce STRICT NO-BYPASS
-    }
+    classDef canvas fill:#0A0D14,stroke:#3B82F6,stroke-width:2px,color:#F9FAFB;
+    classDef gate fill:#111827,stroke:#10B981,stroke-width:2px,color:#F9FAFB;
+    classDef warn fill:#1F1315,stroke:#EF4444,stroke-width:2px,color:#FCA5A5;
 
-    state LiveBrowsing {
-        [*] --> WebContent
-        WebContent --> AskBrowserModal: Tap "Ask Browser" Pill
-        WebContent --> TabSwitcher: Tap Tab Counter
-        WebContent --> StartCanvas: Close Active Tab
-    }
-
-    state AskBrowserModal {
-        [*] --> NLQueryInput
-        NLQueryInput --> FTS5Retrieval: BM25 Local Search
-        FTS5Retrieval --> LiveBrowsing: Select Result Card
-    }
+    class Start,Live,History canvas;
+    class Gate gate;
+    class Warn warn;
 ```
 
 ---
@@ -184,34 +174,34 @@ NovaBrowser uses the system-provided Android WebView to avoid the ~150MB overhea
 ```mermaid
 graph TD
     subgraph UI ["User Interface Layer (Liquid System)"]
-        A[Top Chrome / Omnibox]
-        B[Start Canvas: 'Where to?']
-        C[Bottom Floating Island Nav]
-        D[History & Ask Browser Modal]
+        A["Top Chrome / Omnibox"]
+        B["Start Canvas ('Where to?')"]
+        C["Bottom Floating Island Nav"]
+        D["History & Ask Browser Modal"]
     end
 
     subgraph Controller ["Browser Controller & Orchestration"]
-        E[TabManager & Tab Navigation State]
-        F[DownloadHandler & Quarantine]
+        E["TabManager & Navigation State"]
+        F["DownloadHandler & Quarantine"]
     end
 
     subgraph Security ["Deterministic Security Gate (Pure Kotlin :browser-core)"]
-        G[UrlCanonicalizer: Punycode / Hex]
-        H[ThreatFeedManager: SQLite Feed Snapshots]
-        I[HeuristicsEngine: Shannon / Levenshtein]
-        J[RedirectTracker: Hop Counts & SSL Downgrades]
+        G["UrlCanonicalizer: Punycode / Hex"]
+        H["ThreatFeedManager: SQLite Feed Snapshots"]
+        I["HeuristicsEngine: Shannon / Levenshtein"]
+        J["RedirectTracker: Hop Counts & SSL Downgrades"]
     end
 
     subgraph Engine ["Isolated Web Runtime"]
-        K[Android WebView Engine (Sandboxed Process)]
-        L[SecurityWarningActivity (Explainable Interstitial)]
+        K["Android WebView Engine (Sandboxed Process)"]
+        L["SecurityWarningActivity (Explainable Interstitial)"]
     end
 
     subgraph Storage ["Local Storage & Lexical Intelligence"]
-        M[(SQLite Database + WAL)]
-        N[FTS5 Full-Text Search Virtual Table]
-        O[DeviceTierDetector: RAM Budgeting]
-        P[Local Quantized LLM Runtime: Phase 3]
+        M[("SQLite Database + WAL")]
+        N["FTS5 Full-Text Search Virtual Table"]
+        O["DeviceTierDetector: RAM Budgeting"]
+        P["Local Quantized LLM Runtime: Phase 3"]
     end
 
     A --> E
@@ -220,14 +210,14 @@ graph TD
     D --> N
 
     E --> G --> H --> I --> J
-    J -->|ALLOW| K
-    J -->|WARN / BLOCK| L
-    L -.->|User Override (WARN only)| K
+    J -->|"ALLOW"| K
+    J -->|"WARN / BLOCK"| L
+    L -.->|"User Override (WARN only)"| K
 
     E <--> M
     N <--> M
-    O -.->|RAM Tier Constraints| P
-    P -->|Structured Intent| E
+    O -.->|"RAM Tier Constraints"| P
+    P -->|"Structured Intent"| E
 
     classDef secure fill:#E6F9F0,stroke:#10B981,stroke-width:2px,color:#065F46;
     classDef warning fill:#FEE2E2,stroke:#EF4444,stroke-width:2px,color:#991B1B;
@@ -264,37 +254,35 @@ When a URL is submitted by a user, an external app, or an AI tool call, it must 
 flowchart TD
     In([Raw Input URL]) --> S1[Stage 1: Canonicalization]
     
-    subgraph S1_Details [Canonicalization Subroutines]
-        S1a[Punycode / IDN Normalization]
-        S1b[Recursive Percent-Decoding]
-        S1c[Auth & Port Sanitization]
+    subgraph S1_Details ["Canonicalization Subroutines"]
+        S1 --> S1a[Punycode / IDN Normalization]
+        S1a --> S1b[Recursive Percent-Decoding]
+        S1b --> S1c[Auth & Port Sanitization]
     end
-    S1 --- S1_Details
     
-    S1 --> S2{Stage 2: Threat Feed Match?}
-    S2 -->|URLHAUS Match| BlockAction[Action: Hard BLOCK<br/>RiskState: BLOCKED]
-    S2 -->|No Feed Match| S3[Stage 3: Offline Heuristics Engine]
+    S1c --> S2{Stage 2: Threat Feed Match?}
+    S2 -->|"URLHAUS Match"| BlockAction["Action: Hard BLOCK<br/>RiskState: BLOCKED"]
+    S2 -->|"No Feed Match"| S3[Stage 3: Offline Heuristics Engine]
     
-    subgraph S3_Details [Heuristics Checks]
-        S3a[Shannon Entropy Analysis]
-        S3b[Levenshtein Distance Check]
-        S3c[Subdomain Deception Analysis]
+    subgraph S3_Details ["Heuristics Subroutines"]
+        S3 --> S3a[Shannon Entropy Analysis]
+        S3a --> S3b[Levenshtein Distance Check]
+        S3b --> S3c[Subdomain Deception Analysis]
     end
-    S3 --- S3_Details
     
-    S3 --> S4{Homoglyph / Typosquat Detected?}
-    S4 -->|Yes| WarnAction[Action: Explainable WARN<br/>RiskState: HIGH_RISK]
-    S4 -->|No| S5[Stage 4: Redirect Chain Tracker]
+    S3c --> S4{Homoglyph / Typosquat Detected?}
+    S4 -->|"Yes"| WarnAction["Action: Explainable WARN<br/>RiskState: HIGH_RISK"]
+    S4 -->|"No"| S5[Stage 4: Redirect Chain Tracker]
     
     S5 --> S6{Hops > 4 OR HTTPS->HTTP?}
-    S6 -->|Loop or Downgrade| WarnAction
-    S6 -->|Valid| S7[Stage 5: Subresource Filter]
+    S6 -->|"Loop or Downgrade"| WarnAction
+    S6 -->|"Valid"| S7[Stage 5: Subresource Filter]
     
-    S7 --> AllowAction[Action: ALLOW<br/>RiskState: KNOWN_SAFE or UNKNOWN]
+    S7 --> AllowAction["Action: ALLOW<br/>RiskState: KNOWN_SAFE or UNKNOWN"]
     
-    BlockAction --> UI_Block[SecurityWarningActivity<br/>Bypass Locked]
-    WarnAction --> UI_Warn[SecurityWarningActivity<br/>Proceed Allowed]
-    AllowAction --> WebViewLoad[WebView.loadUrl]
+    BlockAction --> UI_Block["SecurityWarningActivity<br/>(Bypass Locked)"]
+    WarnAction --> UI_Warn["SecurityWarningActivity<br/>(Proceed Allowed)"]
+    AllowAction --> WebViewLoad["WebView.loadUrl"]
 
     classDef block fill:#FEE2E2,stroke:#EF4444,stroke-width:2px,color:#991B1B;
     classDef warn fill:#FEF3C7,stroke:#F59E0B,stroke-width:2px,color:#92400E;
@@ -387,35 +375,24 @@ To maintain architectural rigor, NovaBrowser categorizes feeds by threat profile
 Automated file downloads pose significant risk on mobile devices. NovaBrowser isolates dangerous executables into an app-private quarantine sandbox before allowing them into public storage:
 
 ```mermaid
-stateDiagram-v2
-    [*] --> DownloadTriggered: User / Page Initiates Download
+flowchart TD
+    D_Start([Download Triggered]) --> D_MIME{MIME / Extension Inspection}
     
-    state DownloadTriggered {
-        [*] --> InspectMIME: Inspect Header & File Extension
-    }
+    D_MIME -->|"Safe MIME: .pdf, .png, .txt"| D_Safe[Write to Public Downloads Folder]
+    D_Safe --> D_DB_Safe[(Record Marked COMPLETED in SQLite)]
+    
+    D_MIME -->|"Executable / Script: .apk, .dex, .sh"| D_Sandbox["Isolate in App-Private Storage:<br/>context.cacheDir/quarantine/"]
+    D_Sandbox --> D_DB_Quar[(Record Marked QUARANTINED in SQLite)]
+    D_DB_Quar --> D_Prompt[Display Quarantine Warning Dialog]
+    
+    D_Prompt -->|"User Chooses Delete"| D_Purge[Purge File from Sandbox Storage]
+    D_Prompt -->|"Controlled User Override"| D_Release[Move File to Public Downloads]
 
-    InspectMIME --> SafeStorage: Safe Document / Media (.pdf, .png, .txt)
-    InspectMIME --> QuarantineSandbox: Executable / Script (.apk, .dex, .sh, .bat)
+    classDef alert fill:#FEE2E2,stroke:#EF4444,stroke-width:2px,color:#991B1B;
+    classDef safe fill:#E6F9F0,stroke:#10B981,stroke-width:2px,color:#065F46;
 
-    state SafeStorage {
-        [*] --> WritePublic: Save to Environment.DIRECTORY_DOWNLOADS
-        WritePublic --> RecordDB_Safe: Record marked COMPLETED in SQLite
-    }
-
-    state QuarantineSandbox {
-        [*] --> WritePrivateCache: Save to context.cacheDir/quarantine/
-        WritePrivateCache --> RecordDB_Quarantine: Record marked QUARANTINED in SQLite
-        RecordDB_Quarantine --> PromptWarning: Display Quarantine Warning Dialog
-    }
-
-    state PromptWarning {
-        [*] --> UserDecision
-        UserDecision --> PurgeSandbox: User selects 'Delete Immediately'
-        UserDecision --> ReleaseSandbox: User explicitly selects 'I Understand, Save File'
-    }
-
-    PurgeSandbox --> [*]: Unlink Isolated Sandbox File
-    ReleaseSandbox --> WritePublic: Move File to Public Downloads
+    class D_Sandbox,D_DB_Quar,D_Prompt,D_Purge alert;
+    class D_Safe,D_DB_Safe,D_Release safe;
 ```
 
 ---
@@ -468,9 +445,9 @@ To prevent out-of-memory (OOM) faults on diverse Android hardware, memory budget
 graph TD
     Boot[Device Boot / RAM Inspection] --> TierCheck{Available System RAM}
     
-    TierCheck -->|RAM <= 2GB| T_Min[Minimal Tier<br/>Budget: < 50MB<br/>No LLM - Lexical FTS5 Only]
-    TierCheck -->|RAM 3GB - 4GB| T_Light[Light Tier<br/>Budget: < 350MB<br/>0.5B - 1.5B Q4_K Model]
-    TierCheck -->|RAM >= 6GB| T_Std[Standard Tier<br/>Budget: < 800MB<br/>3.0B Q4_K Model + Vector RAG]
+    TierCheck -->|"RAM <= 2GB"| T_Min["Minimal Tier<br/>Budget: &lt; 50MB<br/>No LLM - Lexical FTS5 Only"]
+    TierCheck -->|"RAM 3GB - 4GB"| T_Light["Light Tier<br/>Budget: &lt; 350MB<br/>0.5B - 1.5B Q4_K Model"]
+    TierCheck -->|"RAM >= 6GB"| T_Std["Standard Tier<br/>Budget: &lt; 800MB<br/>3.0B Q4_K Model + Vector RAG"]
     
     T_Light --> Lifecycle[Lifecycle Memory Controller]
     T_Std --> Lifecycle
@@ -500,7 +477,7 @@ The SQLite database (`nova_browser.db`) implements Write-Ahead Logging (WAL) and
 
 ```mermaid
 erDiagram
-    HISTORY ||--o{ HISTORY_FTS : "indexes (full-text)"
+    HISTORY ||--o{ HISTORY_FTS : "indexes"
     HISTORY {
         int id PK
         string url
