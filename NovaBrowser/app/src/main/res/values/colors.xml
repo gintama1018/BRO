@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Liquid System Base Palette -->
+    <color name="canvas_base">#F8F9FA</color>
+    <color name="canvas_substrate">#F2F4F7</color>
+    <color name="surface">#F9F9FF</color>
+    <color name="surface_bright">#FFFFFF</color>
+    <color name="surface_container_lowest">#FFFFFF</color>
+    <color name="surface_container_low">#F0F3FF</color>
+    <color name="surface_container">#E7EEFE</color>
+    <color name="surface_container_high">#E2E8F8</color>
+    <color name="surface_container_highest">#DCE2F3</color>
+
+    <!-- Liquid Glass Optical Surfaces -->
+    <color name="glass_primary">#E6FFFFFF</color> <!-- 90% opacity white -->
+    <color name="glass_elevated">#F2FFFFFF</color> <!-- 95% opacity white -->
+    <color name="glass_subtle">#99F0F3FF</color>
+    <color name="glass_border">#15000000</color> <!-- rgba(0,0,0,0.08) -->
+    <color name="glass_border_light">#80FFFFFF</color> <!-- rgba(255,255,255,0.5) -->
+
+    <!-- Typography & Hierarchy -->
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#4B5563</color>
+    <color name="text_tertiary">#6B7280</color>
+    <color name="text_outline">#76777D</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Brand & Accent -->
+    <color name="primary">#111827</color>
+    <color name="primary_variant">#1F2937</color>
+    <color name="accent">#10B981</color>
+    <color name="accent_light">#6CF8BB</color>
+    <color name="divider">#E5E7EB</color>
+    <color name="border">#E5E7EB</color>
+    <color name="background">#F8F9FA</color>
+
+    <!-- Private / Incognito Mode -->
+    <color name="incognito_bg">#111318</color>
+    <color name="incognito_surface">#1E222B</color>
+    <color name="incognito_accent">#818CF8</color>
+    <color name="incognito_text">#F3F4F6</color>
+
+    <!-- Semantic Security Telemetry Colors -->
+    <!-- Safe / Local Verified: Muted Emerald -->
+    <color name="risk_safe">#10B981</color>
+    <color name="risk_safe_container">#D1FAE5</color>
+    <color name="risk_safe_on_container">#065F46</color>
+
+    <!-- Unknown / Unclassified: Neutral Slate -->
+    <color name="risk_unknown">#76777D</color>
+    <color name="risk_unknown_container">#E2E8F8</color>
+
+    <!-- Suspicious / Typosquatting / Advisory: Warm Solar Amber -->
+    <color name="risk_suspicious">#F59E0B</color>
+    <color name="risk_suspicious_container">#FEF3C7</color>
+    <color name="risk_suspicious_on_container">#92400E</color>
+
+    <!-- Blocked / High Risk: Controlled Crimson -->
+    <color name="risk_blocked">#EF4444</color>
+    <color name="risk_blocked_dark">#BA1A1A</color>
+    <color name="risk_blocked_container">#FEE2E2</color>
+    <color name="risk_blocked_on_container">#991B1B</color>
+</resources>

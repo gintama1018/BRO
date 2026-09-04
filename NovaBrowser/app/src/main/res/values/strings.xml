@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">NovaBrowser</string>
+    <string name="search_or_type_url">Search or type URL</string>
+    <string name="new_tab">New Tab</string>
+    <string name="new_private_tab">New Private Tab</string>
+    <string name="close_tab">Close Tab</string>
+    <string name="title_history">Browsing History</string>
+    <string name="title_bookmarks">Bookmarks</string>
+    <string name="title_settings">Settings</string>
+    <string name="clear_history">Clear Browsing History</string>
+    <string name="no_history">No history yet</string>
+    <string name="no_bookmarks">No bookmarks saved</string>
+    <string name="bookmark_added">Bookmark added</string>
+    <string name="bookmark_removed">Bookmark removed</string>
+    <string name="private_mode_notice">Private Mode: History and session data are not saved.</string>
+    <string name="low_memory_mode">Low Memory Mode</string>
+    <string name="low_memory_desc">Optimizes memory footprint for 2GB-class devices</string>
+    <string name="device_tier">Device Capability Tier</string>
+    <string name="about_nova">About NovaBrowser</string>
+    <string name="about_nova_desc">Security-first, local-first browser built for speed, privacy, and low-resource devices.</string>
+</resources>

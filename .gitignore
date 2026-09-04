@@ -1,0 +1,19 @@
+# Gradle & Build caches
+**/.gradle/
+**/build/
+**/.kotlin/
+**/local.properties
+**/.idea/
+*.iml
+.DS_Store
+**/captures/
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+
+# Local models directory explicitly kept OUTSIDE git repo per ARCHITECTURE.md
+LocalModels/
+models/
+*.gguf
+*.bin

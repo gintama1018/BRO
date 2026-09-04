@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas_base">
+
+    <!-- Top Floating Chrome Header -->
+    <LinearLayout
+        android:id="@+id/historyHeader"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnHistoryBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_primary" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginHorizontal="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_glass_pill"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ask Browser &amp; History"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnClearHistory"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Clear"
+            android:src="@drawable/ic_refresh"
+            app:tint="@color/text_secondary" />
+    </LinearLayout>
+
+    <!-- Query Bar Floating Island (Matches novabrowser_ai_history_search) -->
+    <LinearLayout
+        android:id="@+id/searchQueryCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/historyHeader">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_omnibox"
+            android:elevation="2dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:contentDescription="AI Search"
+                android:src="@drawable/ic_auto_awesome"
+                app:tint="@color/risk_safe" />
+
+            <EditText
+                android:id="@+id/etSearchHistory"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="Natural language or FTS5 search..."
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_tertiary"
+                android:textSize="13sp" />
+
+            <ImageButton
+                android:id="@+id/btnClearSearch"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Clear search"
+                android:src="@drawable/ic_close"
+                app:tint="@color/text_secondary" />
+        </LinearLayout>
+
+        <!-- Telemetry Micro-Banner -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="22dp"
+                android:background="@drawable/bg_badge_emerald"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="8dp">
+
+                <View
+                    android:layout_width="5dp"
+                    android:layout_height="5dp"
+                    android:background="@drawable/bg_dot_emerald" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Local Search • Instant"
+                    android:textColor="@color/risk_safe_on_container"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvTelemetryScan"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FTS5 query index"
+                android:textColor="@color/text_tertiary"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Filter Pill Carousel -->
+    <HorizontalScrollView
+        android:id="@+id/filterCarousel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:paddingHorizontal="16dp"
+        android:scrollbars="none"
+        app:layout_constraintTop_toBottomOf="@id/searchQueryCard">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipFilterAll"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_glass_pill_dark"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:text="All"
+                android:textColor="@color/text_on_primary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/chipFilterToday"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_glass_pill"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:text="Today"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/chipFilterYesterday"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_glass_pill"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:text="Yesterday"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/chipFilterSecurity"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_glass_pill"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:text="Security"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/chipFilterBookmarks"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_glass_pill"
+                android:gravity="center"
+                android:paddingHorizontal="14dp"
+                android:text="Bookmarks"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- History List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvHistoryList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/filterCarousel" />
+
+    <!-- Minimal Empty State -->
+    <TextView
+        android:id="@+id/tvEmptyHistory"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Your browsing history will appear here."
+        android:textColor="@color/text_tertiary"
+        android:textSize="13sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/filterCarousel" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

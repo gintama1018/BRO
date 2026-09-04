@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><title>NovaBrowser</title><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'on-background': '#151c27', 'on-primary-fixed-variant': '#404758', 'on-secondary': '#ffffff', 'surface-container-highest': '#dce2f3', 'on-secondary-fixed-variant': '#005236', 'outline-variant': '#c6c6cd', 'inverse-primary': '#c0c6db', 'background': '#f9f9ff', 'on-surface': '#151c27', 'surface-container-low': '#f0f3ff', 'error-container': '#ffdad6', 'on-tertiary-fixed': '#2a1700', 'primary-fixed': '#dce2f7', 'on-error-container': '#93000a', 'inverse-on-surface': '#ebf1ff', 'surface': '#f9f9ff', 'tertiary-fixed-dim': '#ffb95f', 'primary-fixed-dim': '#c0c6db', 'on-primary-container': '#7d8497', 'surface-tint': '#575e70', 'surface-dim': '#d3daea', 'primary-container': '#141b2b', 'on-error': '#ffffff', 'on-tertiary-fixed-variant': '#653e00', 'on-secondary-container': '#00714d', 'on-tertiary': '#ffffff', 'secondary': '#006c49', 'on-tertiary-container': '#b87500', 'secondary-fixed-dim': '#4edea3', 'primary': '#000000', 'surface-container-lowest': '#ffffff', 'surface-container-high': '#e2e8f8', 'tertiary': '#000000', 'surface-variant': '#dce2f3', 'surface-container': '#e7eefe', 'outline': '#76777d', 'secondary-container': '#6cf8bb', 'tertiary-container': '#2a1700', 'on-surface-variant': '#45464c', 'error': '#ba1a1a', 'surface-bright': '#f9f9ff', 'inverse-surface': '#2a313d', 'tertiary-fixed': '#ffddb8', 'on-primary-fixed': '#141b2b', 'secondary-fixed': '#6ffbbe', 'on-primary': '#ffffff', 'on-secondary-fixed': '#002113' }, borderRadius: { 'DEFAULT': '1rem', 'lg': '2rem', 'xl': '3rem', 'full': '9999px' }, spacing: { 'island-margin-floating': '1rem', 'space-base': '1rem', 'chrome-height-desktop': '3rem', 'space-lg': '1.25rem', 'chrome-height-mobile': '3.5rem', 'space-md': '0.75rem', 'gutter-desktop': '1.5rem', 'space-sm': '0.5rem', 'space-2xl': '2rem', 'space-2xs': '0.125rem', 'space-xs': '0.25rem', 'gutter-mobile': '1rem', 'space-xl': '1.5rem', 'space-3xl': '2.5rem' }, fontFamily: { 'label-md': ['Inter'], 'headline-lg': ['Inter'], 'body-md': ['Inter'], 'body-lg': ['Inter'], 'label-sm': ['Inter'], 'body-sm': ['Inter'], 'display-sm': ['Inter'], 'label-lg': ['Inter'], 'mono-code': ['JetBrains Mono'], 'display-lg': ['Inter'], 'headline-sm': ['Inter'] }, fontSize: { 'label-md': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em', fontWeight: '500' }], 'headline-lg': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em', fontWeight: '600' }], 'body-md': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '-0.006em', fontWeight: '400' }], 'body-lg': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.011em', fontWeight: '400' }], 'label-sm': ['0.6875rem', { lineHeight: '0.875rem', letterSpacing: '0.025em', fontWeight: '600' }], 'body-sm': ['0.8125rem', { lineHeight: '1.125rem', letterSpacing: '0em', fontWeight: '400' }], 'display-sm': ['2.25rem', { lineHeight: '2.75rem', letterSpacing: '-0.025em', fontWeight: '600' }], 'label-lg': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '-0.01em', fontWeight: '500' }], 'mono-code': ['0.75rem', { lineHeight: '1rem', letterSpacing: '-0.01em', fontWeight: '400' }], 'display-lg': ['3.5rem', { lineHeight: '4rem', letterSpacing: '-0.03em', fontWeight: '600' }], 'headline-sm': ['1.125rem', { lineHeight: '1.5rem', letterSpacing: '-0.015em', fontWeight: '600' }] } } } };</script></head><body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col antialiased selection:bg-secondary-container selection:text-on-secondary-fixed"><header class="fixed top-0 inset-x-0 z-50 pt-safe px-gutter-mobile"><div class="h-chrome-height-mobile flex items-center justify-between gap-space-xs"><div class="flex items-center gap-space-2xs"><button aria-label="Back" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[20px]">arrow_back</span></button><button aria-label="Forward" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant/40 transition-colors"><span class="material-symbols-outlined text-[20px]">arrow_forward</span></button></div><div class="flex-1 max-w-[240px] h-10 px-space-sm rounded-full bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] flex items-center gap-space-xs"><div class="flex items-center justify-center w-5 h-5 rounded-full bg-secondary-container/50 text-secondary"><span class="material-symbols-outlined text-[14px]">verified_user</span></div><div class="flex-1 min-w-0 text-center"><span class="font-label-md text-label-md text-on-surface truncate block">Browser Canvas</span></div><span class="font-mono-code text-label-sm text-secondary px-space-2xs py-0.5 rounded-full bg-secondary/10">local</span></div><div class="flex items-center gap-space-2xs"><a aria-label="Open tabs" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface relative" data-path="tabs-manager" href="#"><div class="w-5 h-5 rounded-[6px] bg-surface-container-highest flex items-center justify-center"><span class="font-mono-code text-[11px] font-semibold text-on-surface">3</span></div></a><button aria-label="Menu" class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[20px]">more_vert</span></button><img alt="Profile" class="w-8 h-8 rounded-full object-cover ml-space-2xs" src="https://lh3.googleusercontent.com/aida/AEtjO1VDzF5BHJy3z8fbsTcJOsjk47U21utXOexvefZqpLJkDjGcEJJFVOdOO5pGcy3lesA78Wm5lVbVuZFWhen7LI_QcOAFp2t6KtyFy-pLofotMq0jUcmMYPFlY1tra4ouf5q_z6kXV72KWKR7zzWrY3qUq3FeEaQaxA_h8cvSaab-amYNabQ76IVkzd13P7doZ34h5jDY4_DD5zhUvdocoFphBuVsREkayjhuYd4_Nx3gx-9wxMSfbdMmgHs"/></div></div></header><main class="flex-1 flex flex-col relative w-full pt-chrome-height-mobile pb-28 bg-surface"><div class="flex flex-col w-full px-gutter-mobile py-space-sm pb-space-3xl items-center relative select-none">
+<!-- Dynamic Ambient Refraction Background Elements (Decorative SVGs) -->
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-error-container/25 blur-3xl pointer-events-none -z-10"></div>
+<div class="absolute top-48 right-4 w-44 h-44 rounded-full bg-surface-container-high/60 blur-2xl pointer-events-none -z-10"></div>
+<!-- Shield Beacon with Measured Crimson Optics -->
+<div class="relative flex items-center justify-center mt-space-md mb-space-lg">
+<!-- Breathing Outer Halo -->
+<div class="absolute w-28 h-28 rounded-full bg-error/10 animate-ping opacity-30" style="animation-duration: 3.2s;"></div>
+<!-- Soft Glass Disc Underlay -->
+<div class="absolute w-24 h-24 rounded-full bg-error-container/40 blur-md"></div>
+<!-- Primary Shield Vessel -->
+<div class="relative w-20 h-20 rounded-full bg-surface-container-lowest/90 backdrop-blur-xl shadow-md flex items-center justify-center">
+<div class="w-14 h-14 rounded-full bg-error-container flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-[30px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<!-- Sub-pixel Local Sentinel Ping -->
+<div class="absolute top-2 right-2 w-3 h-3 rounded-full bg-error shadow-sm flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest"></div>
+</div>
+</div>
+</div>
+<!-- Title & Headline Frame -->
+<div class="flex flex-col items-center text-center max-w-xs space-y-space-2xs mb-space-base">
+<div class="flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-surface-container-high text-on-surface-variant mb-space-2xs">
+<span class="material-symbols-outlined text-[13px] text-error">gpp_maybe</span>
+<span class="font-mono-code text-label-sm">LOCAL HEURISTIC SHIELD</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Security Warning</h1>
+<p class="font-body-md text-body-md text-on-surface-variant px-space-xs">
+      NovaBrowser halted navigation to prevent potential identity compromise and unauthorized credential harvesting.
+    </p>
+</div>
+<!-- Intercepted Target URL Container -->
+<div class="w-full max-w-sm mb-space-lg">
+<div class="p-space-md rounded-lg bg-surface-container-lowest/85 backdrop-blur-xl shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center justify-between gap-space-xs">
+<span class="font-mono-code text-label-sm text-on-surface-variant uppercase tracking-wider">Intercepted Host</span>
+<span class="px-space-xs py-0.5 rounded-full bg-error-container text-on-error-container font-mono-code text-[10px] font-semibold tracking-wide">
+          BLOCKED • IMPERSONATION
+        </span>
+</div>
+<!-- Monospace Broken Domain Display -->
+<div class="flex items-center gap-space-xs bg-surface-container-low px-space-sm py-space-xs rounded">
+<span class="material-symbols-outlined text-[16px] text-error">link_off</span>
+<span class="font-mono-code text-body-sm text-on-surface truncate select-all">
+          secure-bank-login.auth-verify92.com
+        </span>
+</div>
+</div>
+</div>
+<!-- Reasons Card: Apple-grade Deterministic Telemetry Breakdown -->
+<div class="w-full max-w-sm mb-space-lg">
+<div class="p-space-base rounded-lg bg-surface-container-lowest/80 backdrop-blur-2xl shadow-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-2xs">
+<span class="font-label-md text-label-md text-on-surface">Detection Breakdown</span>
+<span class="font-mono-code text-label-sm text-secondary px-space-xs py-0.5 rounded-full bg-secondary-container/60">
+          Hardware Verified
+        </span>
+</div>
+<!-- Item 1: PhishNet Rule -->
+<div class="flex items-start gap-space-sm">
+<div class="w-7 h-7 rounded-full bg-error-container/60 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-error text-[15px]">verified</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-on-surface">Deterministic Signature</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+            Matched signature pool <span class="font-mono-code text-label-sm font-medium text-on-surface">PhishNet v4.2</span> rule #9810
+          </p>
+</div>
+</div>
+<!-- Item 2: Homoglyph Attack -->
+<div class="flex items-start gap-space-sm">
+<div class="w-7 h-7 rounded-full bg-error-container/60 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-error text-[15px]">spellcheck</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-on-surface">Visual Homoglyph Spoof</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+            Punycode spoofing impersonating international banking consortium
+          </p>
+</div>
+</div>
+<!-- Item 3: Proxy Cascade -->
+<div class="flex items-start gap-space-sm">
+<div class="w-7 h-7 rounded-full bg-error-container/60 flex items-center justify-center shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-error text-[15px]">alt_route</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-on-surface">Unsafe Redirect Topology</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+            3-stage routing trampoline through untrusted residential proxy
+          </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Local Sovereign Metadata Strip -->
+<div class="w-full max-w-sm flex items-center justify-center gap-space-xs flex-wrap mb-space-xl">
+<div class="px-space-sm py-1 rounded-full bg-surface-container-high/70 backdrop-blur flex items-center gap-space-2xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[13px]">database</span>
+<span class="font-mono-code text-label-sm">Threat DB: Dec 2024</span>
+</div>
+<div class="px-space-sm py-1 rounded-full bg-surface-container-high/70 backdrop-blur flex items-center gap-space-2xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[13px] text-secondary">check_circle</span>
+<span class="font-mono-code text-label-sm">Confidence: 100%</span>
+</div>
+<div class="px-space-sm py-1 rounded-full bg-surface-container-high/70 backdrop-blur flex items-center gap-space-2xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[13px]">memory</span>
+<span class="font-mono-code text-label-sm">Local Engine</span>
+</div>
+</div>
+<!-- Primary Authority Actions -->
+<div class="w-full max-w-sm flex flex-col gap-space-sm">
+<!-- Primary Escape Pill: Dark Dominant Apple-feel Button -->
+<button class="w-full h-12 rounded-full bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-space-xs shadow-md active:scale-[0.98] transition-transform" id="btn-return-safety">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+<span>Return to Safety</span>
+</button>
+<!-- Secondary Technical Details Trigger -->
+<button aria-expanded="false" class="w-full h-11 rounded-full bg-surface-container-lowest/70 backdrop-blur-xl text-on-surface font-label-md text-label-md flex items-center justify-center gap-space-xs hover:bg-surface-container-lowest transition-colors active:scale-[0.99]" id="btn-toggle-diagnostics">
+<span class="material-symbols-outlined text-[17px] text-on-surface-variant">terminal</span>
+<span>Advanced Technical Details</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant transition-transform duration-200" id="chevron-diagnostics">expand_more</span>
+</button>
+</div>
+<!-- Collapsible Technical Diagnostic Drawer (Zero Bypass Affordance) -->
+<div class="w-full max-w-sm overflow-hidden max-h-0 transition-all duration-300 ease-out mt-space-xs" id="technical-drawer">
+<div class="p-space-base rounded-lg bg-surface-container-lowest/90 backdrop-blur-xl shadow-inner flex flex-col gap-space-sm text-left">
+<div class="flex items-center justify-between border-none">
+<span class="font-mono-code text-label-sm font-semibold text-on-surface">TELEMETRY ENCLAVE LOG</span>
+<button class="font-mono-code text-[11px] text-secondary hover:underline flex items-center gap-1" id="btn-copy-digest">
+<span class="material-symbols-outlined text-[12px]">content_copy</span>
+<span>Copy Hex</span>
+</button>
+</div>
+<div class="p-space-sm rounded bg-surface-container font-mono-code text-[11px] text-on-surface-variant space-y-1 select-all leading-tight">
+<div>SHA256: e8b941ad2c524021efcb9...93f41</div>
+<div>CERT_ISSUER: CN=Let's Encrypt (Stolen CSR)</div>
+<div>DNS_RECORD: A 198.51.100.44 (AS9009 Rogue)</div>
+<div>DOM_SIMILARITY: 99.4% to ApexBanking v2</div>
+<div class="text-error">RISK_SCORE: CRITICAL_SEV_1</div>
+</div>
+<div class="p-space-xs rounded bg-surface-container-high/50 flex items-start gap-space-xs">
+<span class="material-symbols-outlined text-[15px] text-on-surface-variant mt-0.5">lock</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Bypass authorization is locked by policy. Unsafe proceeding has been suppressed to protect the sovereign keychain.
+        </p>
+</div>
+</div>
+</div>
+<!-- Calm Informational Footnote -->
+<div class="mt-space-lg flex items-center gap-space-2xs text-on-surface-variant/80">
+<span class="material-symbols-outlined text-[14px]">shield_moon</span>
+<span class="font-label-sm text-label-sm">Protected quietly on-device by Nova Intelligence</span>
+</div>
+</div>
+<script>
+  (function() {
+    const returnBtn = document.getElementById('btn-return-safety');
+    const toggleBtn = document.getElementById('btn-toggle-diagnostics');
+    const drawer = document.getElementById('technical-drawer');
+    const chevron = document.getElementById('chevron-diagnostics');
+    const copyBtn = document.getElementById('btn-copy-digest');
+
+    if (returnBtn) {
+      returnBtn.addEventListener('click', () => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.hash = '#home';
+        }
+      });
+    }
+
+    if (toggleBtn && drawer && chevron) {
+      toggleBtn.addEventListener('click', () => {
+        const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+        if (isExpanded) {
+          drawer.style.maxHeight = '0px';
+          chevron.style.transform = 'rotate(0deg)';
+          toggleBtn.setAttribute('aria-expanded', 'false');
+        } else {
+          drawer.style.maxHeight = drawer.scrollHeight + 'px';
+          chevron.style.transform = 'rotate(180deg)';
+          toggleBtn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<span class="material-symbols-outlined text-[12px]">check</span><span>Copied</span>';
+        setTimeout(() => {
+          copyBtn.innerHTML = originalText;
+        }, 1800);
+      });
+    }
+  })();
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe px-gutter-mobile mb-island-margin-floating pointer-events-none" data-active-classes="bg-primary text-on-primary shadow-sm"><div class="mx-auto max-w-sm h-14 p-space-xs rounded-full bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] flex items-center justify-between gap-space-xs pointer-events-auto"><a aria-current="page" class="flex items-center gap-space-xs px-space-md h-11 rounded-full transition-all bg-primary text-on-primary shadow-sm" data-path="browser-canvas" href="#"><span class="material-symbols-outlined text-[18px]">public</span><span class="font-label-md text-label-md">Browse</span></a><a class="flex-1 flex items-center justify-center gap-space-xs h-11 px-space-md rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface transition-all" data-path="ask-browser" href="#"><span class="material-symbols-outlined text-[18px] text-secondary">auto_awesome</span><span class="font-label-md text-label-md truncate">Ask Browser</span><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span></a><a class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-all" data-path="privacy-vault" href="#"><span class="material-symbols-outlined text-[18px]">shield</span></a><a class="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface transition-all" data-path="library" href="#"><span class="material-symbols-outlined text-[18px]">bookmarks</span></a></div></nav></body></html>

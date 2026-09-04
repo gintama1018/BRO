@@ -1,0 +1,199 @@
+===============================================================
+NOVABROWSER — EXECUTION PLAN
+===============================================================
+Companion docs: PRD.md / ARCHITECTURE.md / DESIGN.md / SECURITY.md
+Scope frozen per PRD.md section 6. Anything not in MVP list goes
+to BACKLOG at the bottom of this file, not into active phases.
+
+---------------------------------------------------------------
+GUIDING RULE
+---------------------------------------------------------------
+Ship in this order, and do not skip ahead:
+  1. Working browser with ZERO AI.
+  2. Working security gate with ZERO AI.
+  3. AI added ONLY on top of a working, secure browser.
+This order exists because a browser that is "smart but unsafe or
+broken" fails the core pitch. A browser that is "safe and dumb"
+still ships something real.
+
+---------------------------------------------------------------
+PHASE 0 — SETUP (Day 0)
+---------------------------------------------------------------
+[ ] Repo init (Android Studio project, Kotlin, min SDK decided
+    for low-end coverage — target API 24+ for reach, test on
+    API 26+ device/emulator)
+[ ] Folder structure:
+      NovaBrowser/
+        app/                  (Android UI)
+        browser-core/         (security gate, shared logic)
+        ai/                   (local LLM integration - added Phase 3)
+        docs/                 (this doc set)
+    LocalModels/ kept OUTSIDE the git repo (gitignored path)
+[ ] Add .gitignore for model files, build outputs, local.properties
+[ ] Decide low-end reference device for testing (2GB RAM class)
+    and keep it as the primary test target throughout, not an
+    afterthought at the end.
+
+DEFINITION OF DONE: app builds, installs, opens blank WebView on
+the reference low-end device.
+
+---------------------------------------------------------------
+PHASE 1 — CORE BROWSER MVP (no AI)
+---------------------------------------------------------------
+[ ] WebView shell: tabs, address bar, back/forward/reload
+[ ] History storage (SQLite — schema in DESIGN.md)
+[ ] Bookmarks (SQLite)
+[ ] Downloads (basic, no policy yet — policy comes Phase 2)
+[ ] Private browsing mode (no history/cookie persistence)
+[ ] Basic settings screen (incl. a "Low Memory Mode" toggle stub
+    even before AI exists, so the setting is a first-class
+    citizen, not bolted on later)
+
+DEFINITION OF DONE: a person can browse the real web, keep
+history/bookmarks, and use private mode, with no AI and no
+security layer yet. This alone should run comfortably (<150MB
+RAM above baseline) on the reference low-end device.
+
+---------------------------------------------------------------
+PHASE 2 — SECURITY ENGINE (deterministic, no AI)
+---------------------------------------------------------------
+[ ] URL normalization/canonicalization
+[ ] Local rule DB (SQLite) for blocklist entries, tagged by
+    source (URLHAUS / EASYLIST / EASYPRIVACY / LOCAL_HEURISTIC)
+[ ] Threat feed snapshot importer (download + store locally;
+    record "last updated" timestamp)
+[ ] Blocklist lookup — start simple (hashed/indexed lookup),
+    optimize to Bloom filter only if lookup latency becomes a
+    measured problem, not preemptively
+[ ] Typosquat / suspicious-pattern heuristics (risk score, not
+    binary — see SECURITY.md)
+[ ] Redirect chain tracking + policy (allow/warn/block)
+[ ] Download policy (safe vs risky classification, basic
+    quarantine flow)
+[ ] Navigation interception wired as the FIRST gate before
+    WebView loads a URL; resource interception as a second layer
+[ ] Explainable block/warning screen (per SECURITY.md UI spec —
+    never a bare "blocked", always a reason + risk state)
+
+DEFINITION OF DONE: every navigation, redirect, and download in
+the app passes through the Security Gate. Demonstrable block of
+a known-bad test URL with a clear reason shown. This works fully
+offline once a snapshot has been downloaded once.
+
+---------------------------------------------------------------
+PHASE 3 — LOCAL AI (core)
+---------------------------------------------------------------
+[ ] Integrate llama.cpp (Android NDK bindings) — DO NOT wire this
+    up until device RAM detection (below) exists
+[ ] Device capability check on first launch: detect total RAM,
+    assign a tier (see ARCHITECTURE.md §Low-Memory Strategy),
+    persist the tier choice, let user override in Settings
+[ ] Load quantized GGUF model per tier (or none, for the lowest
+    tier — lexical-only fallback, see below)
+[ ] Model load/unload lifecycle: load on first AI use, unload
+    after an idle timeout (do not keep it resident for a
+    browsing session that never uses AI)
+[ ] Basic prompt/response pipeline behind a narrow internal API
+    (not a general chat endpoint — see DESIGN.md §Tool Contracts)
+[ ] Local page summarization (via retrieval, not full-page dump —
+    see PAGE Q&A pipeline in ARCHITECTURE.md)
+[ ] Local page explanation / "ask this page" Q&A
+[ ] LOW-END FALLBACK: if device tier = lowest, AI features run on
+    lexical/rule-based search only (no LLM loaded at all). This
+    is not a degraded demo — it must still work, just without
+    natural-language phrasing.
+
+DEFINITION OF DONE: "Ask Browser" answers a question about the
+current page correctly, entirely offline, on a mid-tier reference
+device. On the low-end reference device, the app does not crash,
+does not stall, and falls back cleanly.
+
+---------------------------------------------------------------
+PHASE 4 — BROWSER INTELLIGENCE
+---------------------------------------------------------------
+[ ] History table gets summary + (optional) embedding columns
+[ ] Retrieval engine: lexical search always available; semantic
+    (embedding) search added only where the device tier supports
+    it
+[ ] Natural-language history search end-to-end (voice/text input
+    -> intent parse -> structured query -> SQLite retrieval ->
+    format result -> optional open_url action)
+[ ] Bookmark search (same pipeline)
+[ ] Structured browser tool-calling: search_history, search_page,
+    open_url, switch_tab, bookmark — all validated + permissioned
+    before execution (never raw LLM text -> browser API)
+
+DEFINITION OF DONE: the "Maine woh GitHub wali website kal dekhi
+thi..." style query (see ARCHITECTURE.md example) returns the
+correct page and can open it, on-device, offline.
+
+---------------------------------------------------------------
+PHASE 5 — DESKTOP PORT
+---------------------------------------------------------------
+[ ] Electron shell reusing the shared browser-core logic
+    (security policy + data schema + AI orchestration contracts)
+[ ] webRequest/session before-request hooks wired to the same
+    Security Gate logic used on Android
+[ ] Desktop local inference (llama.cpp directly, or via local
+    Ollama server on localhost — optional path)
+[ ] Feature parity check against Android MVP list
+
+DEFINITION OF DONE: same core security + history-search demo
+works on desktop, sharing the conceptual core, not a rewrite.
+
+---------------------------------------------------------------
+PHASE 6 — ADVANCED (post-MVP, do not start early)
+---------------------------------------------------------------
+[ ] Encrypted, opt-in cross-device sync
+[ ] Smart tab grouping (classifier/embeddings)
+[ ] Research mode / multi-page analysis
+[ ] Browser agent (multi-step tool use — still gated by Security
+    Core, agent never bypasses it)
+[ ] Advanced anti-phishing heuristics beyond MVP set
+
+---------------------------------------------------------------
+TIMELINE (rough — treat as planning input, not a promise)
+---------------------------------------------------------------
+Hackathon-scale (tight, Android-only MVP):
+  Phase 0        : few hours
+  Phase 1         : ~1 day
+  Phase 2 (core)  : ~1 day
+  Phase 3 (basic) : ~1 day
+  Phase 4 (basic) : ~0.5-1 day
+  Buffer / demo polish / explainable-UI pass : ~0.5-1 day
+  -> This is achievable ONLY if scope stays frozen to PRD §6 MVP.
+
+Polished cross-platform v1:
+  Multi-week solo effort. Phase 5 + full Phase 4 + hardening
+  from SECURITY.md "Production Checklist" should NOT be
+  compressed into hackathon time.
+
+---------------------------------------------------------------
+PRODUCTION-READINESS GATE (before calling anything "done")
+---------------------------------------------------------------
+Do not mark v1 "production ready" until ALL of these are true —
+full checklist lives in SECURITY.md, summarized here:
+[ ] Runs and stays usable on the low-end reference device
+[ ] No privileged Android API reachable from untrusted WebView JS
+[ ] Threat feed licensing reviewed for the distribution model
+    actually being used
+[ ] Explainable block screen shown for every block/warn decision
+[ ] AI failure (crash, OOM, no model loaded) never blocks or
+    breaks core browsing — AI is additive, not load-bearing
+[ ] Security Gate has test coverage for known-bad URLs, redirect
+    chains, and typosquat cases
+[ ] Storage: model files confirmed outside main repo/app bundle
+    path expectations documented (see ARCHITECTURE.md)
+
+===============================================================
+BACKLOG (explicitly NOT in active phases — park ideas here)
+===============================================================
+- Multi-page comparison / "compare these two docs" mode
+- Voice-first UI (STT integration) beyond basic text "Ask Browser"
+- Platform on-device model integration (e.g. Gemini Nano) as an
+  alternative to bundled GGUF on supported newer devices
+- Commercial redistribution terms for threat feeds
+- Extension/plugin system
+
+END OF PLAN
+===============================================================

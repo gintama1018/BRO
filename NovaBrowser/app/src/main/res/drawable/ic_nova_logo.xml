@@ -1,0 +1,40 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Squircle base -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 24,0 L 76,0 A 24,24 0 0,1 100,24 L 100,76 A 24,24 0 0,1 76,100 L 24,100 A 24,24 0 0,1 0,76 L 0,24 A 24,24 0 0,1 24,0 Z" />
+
+    <!-- Outer faint orbit ring -->
+    <path
+        android:strokeColor="#26FFFFFF"
+        android:strokeWidth="2"
+        android:pathData="M 50,18 A 32,32 0 1,1 49.9,18 Z" />
+
+    <!-- Inner orbit ring -->
+    <path
+        android:strokeColor="#4DFFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M 50,30 A 20,20 0 1,1 49.9,30 Z" />
+
+    <!-- Center core beacon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 50,42 A 8,8 0 1,1 49.9,42 Z" />
+
+    <!-- Crosshair reticles -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M 50,14 L 50,26 M 50,74 L 50,86 M 14,50 L 26,50 M 74,50 L 86,50" />
+
+    <!-- Verified Emerald Beacon Dot -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M 68,28.5 A 3.5,3.5 0 1,1 67.9,28.5 Z" />
+</vector>

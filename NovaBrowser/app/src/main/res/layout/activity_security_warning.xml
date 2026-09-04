@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas_base"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="32dp">
+
+        <!-- Ambient Crimson Refraction Background Glow -->
+        <View
+            android:id="@+id/ambientCrimsonGlow"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_marginTop="-80dp"
+            android:background="@drawable/bg_badge_red"
+            android:alpha="0.12"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Top Status Bar Minimal Header -->
+        <LinearLayout
+            android:id="@+id/warningTopHeader"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageButton
+                android:id="@+id/btnWarningBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/text_secondary" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Local Shield Capsule -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_glass_pill"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:contentDescription="Shield"
+                    android:src="@drawable/ic_security"
+                    app:tint="@color/risk_blocked" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="Local Heuristic Shield"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="Profile"
+                android:src="@drawable/ic_profile_placeholder" />
+        </LinearLayout>
+
+        <!-- Main Warning Content Vessel -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            app:layout_constraintTop_toBottomOf="@id/warningTopHeader">
+
+            <!-- Measured Crimson Shield Beacon -->
+            <FrameLayout
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                android:layout_marginTop="16dp">
+
+                <!-- Outer Soft Disc -->
+                <View
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:background="@drawable/bg_badge_red"
+                    android:alpha="0.25" />
+
+                <!-- Primary Shield Vessel -->
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_glass_pill"
+                    android:elevation="3dp">
+
+                    <ImageView
+                        android:id="@+id/ivWarningIcon"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="Threat Blocked"
+                        android:src="@drawable/ic_security"
+                        app:tint="@color/risk_blocked" />
+
+                    <!-- Sentinel Ping Dot -->
+                    <View
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_dot_red" />
+                </FrameLayout>
+            </FrameLayout>
+
+            <!-- Pill Badge -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_badge_red"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:contentDescription="Alert"
+                    android:src="@drawable/ic_security"
+                    app:tint="@color/risk_blocked" />
+
+                <TextView
+                    android:id="@+id/tvRiskLevelBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="LOCAL HEURISTIC SHIELD"
+                    android:textColor="@color/risk_blocked_on_container"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Headline & Calm Subtitle -->
+            <TextView
+                android:id="@+id/tvWarningTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Security Warning"
+                android:textColor="@color/text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="NovaBrowser halted navigation to prevent potential identity compromise and unauthorized credential harvesting."
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <!-- Intercepted Target Host Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/bg_glass_card"
+                android:elevation="1dp"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="INTERCEPTED HOST"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvInterceptedStatusBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_badge_red"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:text="BLOCKED • THREAT"
+                        android:textColor="@color/risk_blocked_on_container"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_glass_subtle"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="10dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:contentDescription="Broken Link"
+                        android:src="@drawable/ic_link_off"
+                        app:tint="@color/risk_blocked" />
+
+                    <TextView
+                        android:id="@+id/tvTargetUrl"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="https://secure-bank-login.auth-verify92.com"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Reasons Card: Detection Breakdown -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_glass_card"
+                android:elevation="1dp"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Detection Breakdown"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_badge_emerald"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="2dp"
+                        android:text="Hardware Verified"
+                        android:textColor="@color/risk_safe_on_container"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvThreatReasons"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingExtra="4dp"
+                    android:text="• Matched verified malware distribution feed\n• Suspicious domain impersonation detected"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- Sovereign Metadata Strip -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvSnapshotInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_glass_pill"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="Threat DB: Active Snapshot"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_glass_pill"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="Confidence: 100%"
+                    android:textColor="@color/risk_safe"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Primary Authority Action: Dark Apple-Grade Dominant Pill -->
+            <Button
+                android:id="@+id/btnReturnToSafety"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bg_glass_pill_dark"
+                android:text="Return to Safety"
+                android:textAllCaps="false"
+                android:textColor="@color/text_on_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:backgroundTint="@null" />
+
+            <!-- Secondary Advanced Diagnostics Trigger -->
+            <Button
+                android:id="@+id/btnToggleDiagnostics"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_glass_pill"
+                android:text="Advanced Technical Details"
+                android:textAllCaps="false"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                app:backgroundTint="@null" />
+
+            <!-- Collapsible Diagnostics Drawer -->
+            <LinearLayout
+                android:id="@+id/layoutDiagnosticsDrawer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_glass_subtle"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TELEMETRY ENCLAVE LOG"
+                    android:textColor="@color/text_primary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvDiagnosticsHex"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingExtra="2dp"
+                    android:text="ENGINE: Offline Deterministic Gate\nRULE_ID: URLHAUS_MALWARE_01\nACTION: HARD_BLOCK\nRISK_SCORE: 1.0"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Secondary Bypass Proceed Anyway (Only shown for Warnings / Typosquatting) -->
+            <Button
+                android:id="@+id/btnProceedAnyway"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="?attr/selectableItemBackground"
+                android:text="Ignore Warning &amp; Proceed"
+                android:textAllCaps="false"
+                android:textColor="@color/risk_blocked"
+                android:textSize="12sp"
+                android:visibility="gone"
+                app:backgroundTint="@null" />
+
+            <!-- Footnote -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="Protected quietly on-device by Nova Intelligence"
+                android:textColor="@color/text_tertiary"
+                android:textSize="11sp" />
+
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

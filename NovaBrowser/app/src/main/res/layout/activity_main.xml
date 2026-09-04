@@ -1,0 +1,825 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas_base"
+    android:fitsSystemWindows="true">
+
+    <!-- 1. TOP FLOATING CHROME HEADER (Clean Apple/Safari Restraint) -->
+    <LinearLayout
+        android:id="@+id/topChromeHeader"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Navigation Back Button -->
+        <ImageButton
+            android:id="@+id/btnNavBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_secondary" />
+
+        <!-- Navigation Forward Button -->
+        <ImageButton
+            android:id="@+id/btnNavForward"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Forward"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_forward"
+            app:tint="@color/text_secondary" />
+
+        <!-- Center Liquid Glass Capsule Pill (Clean, Spacious, Uncluttered) -->
+        <LinearLayout
+            android:id="@+id/headerCapsulePill"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginHorizontal="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_glass_pill"
+            android:elevation="1dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
+
+            <!-- Security State Indicator Glyph -->
+            <ImageView
+                android:id="@+id/ivSecurityIndicator"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="Security State"
+                android:src="@drawable/ic_shield_verified"
+                app:tint="@color/risk_safe" />
+
+            <ImageView
+                android:id="@+id/ivPrivateBadge"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="4dp"
+                android:contentDescription="Private Mode"
+                android:src="@drawable/ic_incognito"
+                android:visibility="gone"
+                app:tint="@color/incognito_accent" />
+
+            <!-- Clean URL / Page Title Field -->
+            <EditText
+                android:id="@+id/etUrlInput"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:ellipsize="end"
+                android:hint="@string/search_or_type_url"
+                android:imeOptions="actionGo"
+                android:inputType="textUri"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_tertiary"
+                android:textSize="13sp" />
+
+            <!-- Local Monospace Badge -->
+            <TextView
+                android:id="@+id/tvLocalBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="20dp"
+                android:background="@drawable/bg_badge_emerald"
+                android:gravity="center"
+                android:paddingHorizontal="6dp"
+                android:text="local"
+                android:textColor="@color/risk_safe_on_container"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Tab Count Squircle Badge -->
+        <FrameLayout
+            android:id="@+id/btnTabs"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_squircle_tab_count" />
+
+            <TextView
+                android:id="@+id/tvTabCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="1"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <!-- More Options Menu Button -->
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Menu"
+            android:padding="6dp"
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/text_secondary" />
+    </LinearLayout>
+
+    <!-- Reading & Loading Progress Micro-Indicator (2px Emerald) -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:max="100"
+        android:progressTint="@color/risk_safe"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/topChromeHeader" />
+
+    <!-- 2. MAIN CONTENT VIEWPORT CONTAINER -->
+    <FrameLayout
+        android:id="@+id/mainViewportContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar">
+
+        <!-- STATE A: LIVE WEBVIEW HOST CONTAINER (With bottom padding for floating island) -->
+        <FrameLayout
+            android:id="@+id/webViewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="76dp"
+            android:visibility="gone" />
+
+        <!-- STATE B: NEW TAB / BROWSER CANVAS (novabrowser_new_tab reference) -->
+        <ScrollView
+            android:id="@+id/layoutNewTabCanvas"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:paddingBottom="76dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp">
+
+                <!-- Hero Identity Anchor: Nova Core Mark + Beacon -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp">
+
+                    <ImageView
+                        android:id="@+id/ivHeroLogo"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:contentDescription="NovaBrowser Core Mark"
+                        android:src="@drawable/ic_nova_logo" />
+                </FrameLayout>
+
+                <!-- Headline & Subtext -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Where to?"
+                    android:textColor="@color/text_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Offline-first"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="4dp"
+                        android:layout_marginHorizontal="6dp"
+                        android:background="@drawable/bg_dot_emerald" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Local Neural Mesh"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Active Glass Omnibox Search Field -->
+                <LinearLayout
+                    android:id="@+id/omniboxContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="18dp"
+                    android:background="@drawable/bg_omnibox"
+                    android:elevation="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="14dp">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:contentDescription="Search"
+                        android:src="@drawable/ic_search"
+                        app:tint="@color/text_secondary" />
+
+                    <EditText
+                        android:id="@+id/etOmniboxInput"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:background="@null"
+                        android:hint="Search or ask NovaBrowser..."
+                        android:imeOptions="actionGo"
+                        android:inputType="textUri"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_tertiary"
+                        android:textSize="14sp" />
+
+                    <!-- Mic Action Button -->
+                    <ImageButton
+                        android:id="@+id/btnOmniboxMic"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Voice Input"
+                        android:src="@drawable/ic_mic"
+                        app:tint="@color/text_secondary" />
+
+                    <!-- Device AI Pulse Pill -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="22dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_badge_emerald"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="7dp">
+
+                        <View
+                            android:layout_width="5dp"
+                            android:layout_height="5dp"
+                            android:background="@drawable/bg_dot_emerald" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:text="DEVICE AI"
+                            android:textColor="@color/risk_safe_on_container"
+                            android:textSize="9sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Favorites Section Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="FAVORITES"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btnEditFavorites"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Edit"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- 8 App Tiles Grid (Row 1) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <!-- GitHub -->
+                    <LinearLayout
+                        android:id="@+id/tileGithub"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="GH"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="GitHub"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- ArXiv -->
+                    <LinearLayout
+                        android:id="@+id/tileArxiv"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="arXiv"
+                                android:textColor="@color/text_primary"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="ArXiv"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Wikipedia -->
+                    <LinearLayout
+                        android:id="@+id/tileWikipedia"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="W"
+                                android:textColor="@color/text_primary"
+                                android:textSize="15sp"
+                                android:textStyle="bold|italic" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Wikipedia"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Hacker News -->
+                    <LinearLayout
+                        android:id="@+id/tileHackerNews"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="Y"
+                                android:textColor="@color/risk_suspicious"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="HN"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 8 App Tiles Grid (Row 2) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <!-- Linear -->
+                    <LinearLayout
+                        android:id="@+id/tileLinear"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="L"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Linear"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Notion -->
+                    <LinearLayout
+                        android:id="@+id/tileNotion"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="N"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Notion"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Docs -->
+                    <LinearLayout
+                        android:id="@+id/tileDocs"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="Doc"
+                                android:textColor="@color/text_primary"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Docs"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Figma -->
+                    <LinearLayout
+                        android:id="@+id/tileFigma"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_glass_card"
+                            android:elevation="1dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:text="F"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Figma"
+                            android:textColor="@color/text_primary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Quick Synthesis Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_glass_subtle"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:contentDescription="Syntheses"
+                            android:src="@drawable/ic_auto_awesome"
+                            app:tint="@color/risk_safe" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:text="Quick Syntheses"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Zero cloud dispatch"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:scrollbars="none">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/chipSummarizeRecent"
+                                android:layout_width="wrap_content"
+                                android:layout_height="30dp"
+                                android:background="@drawable/bg_chip_synthesis"
+                                android:gravity="center"
+                                android:paddingHorizontal="12dp"
+                                android:text="Summarize recent tabs"
+                                android:textColor="@color/text_primary"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/chipAuditTrackers"
+                                android:layout_width="wrap_content"
+                                android:layout_height="30dp"
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_chip_synthesis"
+                                android:gravity="center"
+                                android:paddingHorizontal="12dp"
+                                android:text="Audit trackers on page"
+                                android:textColor="@color/text_primary"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/chipCleanLink"
+                                android:layout_width="wrap_content"
+                                android:layout_height="30dp"
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_chip_synthesis"
+                                android:gravity="center"
+                                android:paddingHorizontal="12dp"
+                                android:text="Clean clipboard link"
+                                android:textColor="@color/text_primary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </HorizontalScrollView>
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
+
+    <!-- 3. BOTTOM FLOATING ISLAND NAVIGATION (Anchored comfortably with safe area) -->
+    <LinearLayout
+        android:id="@+id/bottomFloatingIsland"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_nav_island"
+        android:elevation="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Browse Action Pill -->
+        <LinearLayout
+            android:id="@+id/btnIslandBrowse"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_glass_pill_dark"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="Browse"
+                android:src="@drawable/ic_globe"
+                app:tint="@color/text_on_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:text="Browse"
+                android:textColor="@color/text_on_primary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Ask Browser Pill Button -->
+        <LinearLayout
+            android:id="@+id/btnIslandAsk"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="Ask Browser"
+                android:src="@drawable/ic_auto_awesome"
+                app:tint="@color/risk_safe" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:text="Ask Browser"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="5dp"
+                android:layout_height="5dp"
+                android:layout_marginStart="5dp"
+                android:background="@drawable/bg_dot_emerald" />
+        </LinearLayout>
+
+        <!-- Privacy Vault / Shield Button -->
+        <ImageButton
+            android:id="@+id/btnIslandShield"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Privacy Vault"
+            android:padding="8dp"
+            android:src="@drawable/ic_security"
+            app:tint="@color/text_secondary" />
+
+        <!-- Bookmarks / Library Button -->
+        <ImageButton
+            android:id="@+id/btnIslandBookmarks"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Bookmarks"
+            android:padding="8dp"
+            android:src="@drawable/ic_bookmark_border"
+            app:tint="@color/text_secondary" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
