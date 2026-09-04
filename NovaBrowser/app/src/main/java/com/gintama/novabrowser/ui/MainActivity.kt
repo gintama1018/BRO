@@ -103,9 +103,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         if (result.resultCode == Activity.RESULT_OK) {
             val overrideUrl = result.data?.getStringExtra("override_url")
             if (!overrideUrl.isNullOrBlank()) {
+                // Execute the single bound proceed callback
                 pendingSecurityProceed?.invoke()
-                tabManager.activeTab?.webView?.loadUrl(overrideUrl)
                 etUrlInput.setText(overrideUrl)
+                showWebView()
             }
         }
         pendingSecurityProceed = null
@@ -152,12 +153,39 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun setupWindowInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout)) { _, insets ->
+        val topChrome = findViewById<View>(R.id.topChromeHeader)
+        val root = findViewById<View>(R.id.rootLayout)
+
+        // Immediate fallback so there is never a visual collision on startup
+        val fallbackStatusHeight = getStatusBarHeightFallback()
+        topChrome.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            topMargin = fallbackStatusHeight
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val statusBarInsets = insets.getInsets(
+                WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout()
+            )
             val navInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+
+            val effectiveTop = if (statusBarInsets.top > 0) statusBarInsets.top else fallbackStatusHeight
+            topChrome.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = effectiveTop
+            }
+
             bottomFloatingIsland.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 bottomMargin = navInsets.bottom + (12 * resources.displayMetrics.density).toInt()
             }
             insets
+        }
+    }
+
+    private fun getStatusBarHeightFallback(): Int {
+        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+        return if (resourceId > 0) {
+            resources.getDimensionPixelSize(resourceId)
+        } else {
+            (28 * resources.displayMetrics.density).toInt()
         }
     }
 

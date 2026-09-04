@@ -23,8 +23,8 @@ object DeviceTierDetector {
         val totalRamMb = memInfo.totalMem / (1024 * 1024)
 
         return when {
-            totalRamMb <= 2500 -> DeviceTier.MINIMAL
-            totalRamMb <= 4500 -> DeviceTier.LIGHT
+            totalRamMb <= 2200 -> DeviceTier.MINIMAL
+            totalRamMb < 5600 -> DeviceTier.LIGHT
             else -> DeviceTier.STANDARD
         }
     }

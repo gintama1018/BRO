@@ -62,9 +62,9 @@ class SecurityWarningActivity : AppCompatActivity() {
 
         tvSnapshot.text = "Threat DB: Active Snapshot | Score: ${String.format("%.2f", riskScore)}"
 
-        // Diagnostics enclave log
-        val hexHash = Integer.toHexString(targetUrl.hashCode()).uppercase()
-        tvDiagnosticsHex.text = "ENGINE: Offline Deterministic Gate\nRULE_ID: $ruleId\nACTION: $action\nRISK_SCORE: ${String.format("%.2f", riskScore)}\nDIGEST: 0x$hexHash...89F2\nHARDWARE: Verified Enclave\nPOLICY: Strict Zero-Cloud Attribution"
+        // Security diagnostics details
+        val ruleLabel = if (ruleId.isNotBlank()) ruleId else "LOCAL_HEURISTIC_RULE"
+        tvDiagnosticsHex.text = "ENGINE: Offline Deterministic Security Gate\nRULE_ID: $ruleLabel\nACTION: $action\nRISK_STATE: $riskState\nRISK_SCORE: ${String.format("%.2f", riskScore)}\nEVALUATION: Top-Level Request Filter\nSTORAGE: App-Private Database (WAL Mode)"
 
         var isDiagnosticsOpen = false
         btnDiagnostics.setOnClickListener {

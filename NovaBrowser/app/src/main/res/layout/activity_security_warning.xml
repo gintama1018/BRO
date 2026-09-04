@@ -284,7 +284,7 @@
                         android:background="@drawable/bg_badge_emerald"
                         android:paddingHorizontal="8dp"
                         android:paddingVertical="2dp"
-                        android:text="Hardware Verified"
+                        android:text="Rule Evaluation"
                         android:textColor="@color/risk_safe_on_container"
                         android:textSize="9sp"
                         android:textStyle="bold" />
@@ -321,13 +321,14 @@
                     android:textSize="11sp" />
 
                 <TextView
+                    android:id="@+id/tvEvaluationMode"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:background="@drawable/bg_glass_pill"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="4dp"
-                    android:text="Confidence: 100%"
+                    android:text="Offline Deterministic"
                     android:textColor="@color/risk_safe"
                     android:textSize="11sp"
                     android:textStyle="bold" />
@@ -374,7 +375,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TELEMETRY ENCLAVE LOG"
+                    android:text="SECURITY DIAGNOSTICS LOG"
                     android:textColor="@color/text_primary"
                     android:textSize="10sp"
                     android:textStyle="bold" />

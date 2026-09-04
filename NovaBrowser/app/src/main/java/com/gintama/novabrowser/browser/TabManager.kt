@@ -169,12 +169,13 @@ class TabManager(
     }
 
     private fun saveTabs() {
-        val sessions = tabs.map {
+        // Privacy Invariant: Private tabs must NEVER be persisted to disk/sessions table!
+        val sessions = tabs.filter { !it.isPrivate }.map {
             TabSession(
                 tabId = it.id,
                 url = it.url,
                 title = it.title,
-                isPrivate = it.isPrivate
+                isPrivate = false
             )
         }
         controller.saveSessions(sessions)

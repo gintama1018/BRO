@@ -2,7 +2,7 @@
 
 > A security-first, local-first browser architecture that keeps users safer by default and enables on-device contextual retrieval without cloud dependency.
 
-[![Platform](https://img.shields.io/badge/Platform-Android%2014%2B%20(API%2024%2B)-3DDC84?logo=android&logoColor=white)](#build--run)
+[![Platform](https://img.shields.io/badge/Platform-Android%2015%2B%20(API%2035)-3DDC84?logo=android&logoColor=white)](#build--run)
 [![Language](https://img.shields.io/badge/Language-Kotlin%202.0.21-7F52FF?logo=kotlin&logoColor=white)](#tech-stack)
 [![Storage](https://img.shields.io/badge/Storage-SQLite%203%20%2B%20FTS5-003B57?logo=sqlite&logoColor=white)](#data-model--database-er-diagram)
 [![Security](https://img.shields.io/badge/Security-Deterministic%20Gate%20(Offline)-10B981)](#deterministic-security-gate)
@@ -153,13 +153,13 @@ NovaBrowser uses the system-provided Android WebView to avoid the ~150MB overhea
 | :--- | :--- | :--- |
 | **Android Browser Shell** | **Implemented** | System WebView runtime, multi-tab lifecycle, session restore, navigation stack. |
 | **Liquid System UI/UX** | **Implemented** | Apple-grade minimal UI, Start Canvas ("Where to?"), Floating Island navigation, Safe Area Insets. |
-| **SQLite Storage & FTS5** | **Implemented** | Full relational schema matching `DESIGN.md` (`history`, `bookmarks`, `sessions`, `downloads`, `security_rules`, `snapshot_meta`). |
-| **URL Canonicalization** | **Implemented** | Punycode/IDN normalization, recursive percent-decoding, auth stripping, port normalization. |
-| **Offline Threat Feed Engine** | **Implemented** | Strict separation of feeds (`URLHAUS` malware vs `EASYLIST` ads vs `EASYPRIVACY` tracking vs `LOCAL_HEURISTIC`). |
+| **SQLite Storage & FTS5** | **Implemented** | Full relational schema matching `DESIGN.md` (`history`, `bookmarks`, `sessions`, `downloads`, `security_rules`, `snapshot_meta`). FTS5 lexical BM25 search. |
+| **URL Canonicalization** | **Implemented** | Punycode/IDN normalization, auth & port normalization, component-wise query sanitization. |
+| **Offline Threat Feed Engine** | **Prototype** | Schema & initial high-risk malware seeds active; full ABP filter rule parser & background sync in active development. |
 | **Heuristics Engine** | **Implemented** | Shannon entropy calculation, Levenshtein distance brand registry check, subdomain deception detection. |
 | **Redirect Tracker** | **Implemented** | Hop-count limit enforcement (max 4 hops) and HTTPS-to-HTTP SSL stripping downgrade interception. |
-| **Explainable Warning UI** | **Implemented** | Interstitial screen with telemetry breakdown, sentinel ping, collapsible enclave logs, and locked bypass for malware. |
-| **Download Quarantine Flow** | **Implemented** | Executable/script MIME & extension isolation into app-private sandbox storage. |
+| **Explainable Warning UI** | **Implemented** | Interstitial screen with honest telemetry breakdown, sentinel status, and locked bypass for malware. |
+| **Download Quarantine Flow** | **Prototype** | Risky executable/script MIME detection active; streaming physical storage sandbox container in development. |
 | **Device Capability Detection** | **Implemented** | Dynamic RAM inspection categorizing hardware into `MINIMAL`, `LIGHT`, and `STANDARD` tiers. |
 | **On-Device LLM Runtime** | **Planned** | Embedded `llama.cpp` NDK bindings with quantized GGUF execution. |
 | **Semantic Embedding Index** | **Planned** | Vector embeddings for history entries on Standard Tier devices. |
@@ -587,7 +587,7 @@ NovaBrowser/
 
 ### Active Core
 - **Language:** Kotlin 2.0.21
-- **Platform:** Android 14 (compileSdk 34, minSdk 24, targetSdk 34)
+- **Platform:** Android 15 (compileSdk 35, minSdk 24, targetSdk 35)
 - **Engine:** Android System WebView (`android.webkit`)
 - **Database:** SQLite 3 with FTS5 lexical indexing
 - **Build System:** Gradle 8.14.3 with Android Gradle Plugin 8.7.3

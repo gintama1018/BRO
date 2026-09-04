@@ -68,6 +68,7 @@ class NovaWebView(
             clearCache(true)
             clearFormData()
             clearSslPreferences()
+            android.webkit.WebStorage.getInstance().deleteAllData()
         }
         destroy()
     }

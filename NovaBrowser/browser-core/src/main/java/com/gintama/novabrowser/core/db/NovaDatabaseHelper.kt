@@ -203,35 +203,85 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     fun searchHistory(query: String, limit: Int = 50): List<HistoryItem> {
         val list = mutableListOf<HistoryItem>()
         val db = readableDatabase
-        val sanitized = "%${query.trim()}%"
-        val cursor = db.rawQuery(
-            """
-            SELECT id, url, title, domain, visited_at, summary 
-            FROM history 
-            WHERE title LIKE ? OR url LIKE ? OR domain LIKE ? OR summary LIKE ?
-            ORDER BY visited_at DESC LIMIT ?
-            """.trimIndent(),
-            arrayOf(sanitized, sanitized, sanitized, sanitized, limit.toString())
-        )
-        cursor.use {
-            val idCol = it.getColumnIndexOrThrow("id")
-            val urlCol = it.getColumnIndexOrThrow("url")
-            val titleCol = it.getColumnIndexOrThrow("title")
-            val domainCol = it.getColumnIndexOrThrow("domain")
-            val visitedCol = it.getColumnIndexOrThrow("visited_at")
-            val summaryCol = it.getColumnIndexOrThrow("summary")
+        val cleanQuery = query.trim()
+        if (cleanQuery.isEmpty()) return getRecentHistory(limit)
 
-            while (it.moveToNext()) {
-                list.add(
-                    HistoryItem(
-                        id = it.getLong(idCol),
-                        url = it.getString(urlCol),
-                        title = it.getString(titleCol),
-                        domain = it.getString(domainCol),
-                        visitedAt = it.getLong(visitedCol),
-                        summary = it.getString(summaryCol)
+        var usedFts = false
+        // Primary path: SQLite FTS5 lexical match with BM25 ranking
+        try {
+            val ftsQuery = cleanQuery.split("\\s+".toRegex())
+                .filter { it.isNotBlank() }
+                .joinToString(" ") { "\"${it.replace("\"", "\"\"")}\"*" }
+
+            val cursor = db.rawQuery(
+                """
+                SELECT h.id, h.url, h.title, h.domain, h.visited_at, h.summary
+                FROM history h
+                JOIN history_fts f ON h.id = f.rowid
+                WHERE history_fts MATCH ?
+                ORDER BY bm25(history_fts) ASC, h.visited_at DESC
+                LIMIT ?
+                """.trimIndent(),
+                arrayOf(ftsQuery, limit.toString())
+            )
+            cursor.use {
+                val idCol = it.getColumnIndexOrThrow("id")
+                val urlCol = it.getColumnIndexOrThrow("url")
+                val titleCol = it.getColumnIndexOrThrow("title")
+                val domainCol = it.getColumnIndexOrThrow("domain")
+                val visitedCol = it.getColumnIndexOrThrow("visited_at")
+                val summaryCol = it.getColumnIndexOrThrow("summary")
+
+                while (it.moveToNext()) {
+                    list.add(
+                        HistoryItem(
+                            id = it.getLong(idCol),
+                            url = it.getString(urlCol),
+                            title = it.getString(titleCol),
+                            domain = it.getString(domainCol),
+                            visitedAt = it.getLong(visitedCol),
+                            summary = it.getString(summaryCol)
+                        )
                     )
-                )
+                }
+            }
+            usedFts = true
+        } catch (e: Exception) {
+            // Graceful fallback to substring LIKE if query has syntax issues or FTS5 table missing
+            usedFts = false
+        }
+
+        if (!usedFts) {
+            val sanitized = "%$cleanQuery%"
+            val cursor = db.rawQuery(
+                """
+                SELECT id, url, title, domain, visited_at, summary 
+                FROM history 
+                WHERE title LIKE ? OR url LIKE ? OR domain LIKE ? OR summary LIKE ?
+                ORDER BY visited_at DESC LIMIT ?
+                """.trimIndent(),
+                arrayOf(sanitized, sanitized, sanitized, sanitized, limit.toString())
+            )
+            cursor.use {
+                val idCol = it.getColumnIndexOrThrow("id")
+                val urlCol = it.getColumnIndexOrThrow("url")
+                val titleCol = it.getColumnIndexOrThrow("title")
+                val domainCol = it.getColumnIndexOrThrow("domain")
+                val visitedCol = it.getColumnIndexOrThrow("visited_at")
+                val summaryCol = it.getColumnIndexOrThrow("summary")
+
+                while (it.moveToNext()) {
+                    list.add(
+                        HistoryItem(
+                            id = it.getLong(idCol),
+                            url = it.getString(urlCol),
+                            title = it.getString(titleCol),
+                            domain = it.getString(domainCol),
+                            visitedAt = it.getLong(visitedCol),
+                            summary = it.getString(summaryCol)
+                        )
+                    )
+                }
             }
         }
         return list
