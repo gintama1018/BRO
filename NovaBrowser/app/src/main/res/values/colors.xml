@@ -29,6 +29,7 @@
     <color name="primary">#111827</color>
     <color name="primary_variant">#1F2937</color>
     <color name="accent">#10B981</color>
+    <color name="accent_emerald">#10B981</color>
     <color name="accent_light">#6CF8BB</color>
     <color name="divider">#E5E7EB</color>
     <color name="border">#E5E7EB</color>

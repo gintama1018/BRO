@@ -60,6 +60,10 @@ class NovaWebViewClient(
         super.onPageFinished(view, url)
         if (url != null) {
             callback.onPageFinished(url, view?.title)
+            if (view != null) {
+                val siteHost = try { java.net.URI(url).host } catch (e: Exception) { null }
+                com.gintama.novabrowser.adblock.AdBlockEngine.injectCosmeticFilters(view, siteHost)
+            }
         }
     }
 }

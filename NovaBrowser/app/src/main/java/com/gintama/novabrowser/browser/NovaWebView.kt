@@ -49,7 +49,6 @@ class NovaWebView(
                 cacheMode = WebSettings.LOAD_NO_CACHE
                 saveFormData = false
             }
-            // Isolate cookies for private mode session
             val cookieManager = CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
             cookieManager.setAcceptThirdPartyCookies(this, false)
@@ -57,7 +56,17 @@ class NovaWebView(
             settings.cacheMode = WebSettings.LOAD_DEFAULT
             val cookieManager = CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
-            cookieManager.setAcceptThirdPartyCookies(this, true)
+            val blockThirdParty = com.gintama.novabrowser.adblock.AdBlockEngine.isThirdPartyCookiesBlocked()
+            cookieManager.setAcceptThirdPartyCookies(this, !blockThirdParty)
+        }
+    }
+
+    override fun loadUrl(url: String) {
+        if (com.gintama.novabrowser.adblock.AdBlockEngine.isDntEnabled()) {
+            val headers = mapOf("DNT" to "1", "Sec-GPC" to "1")
+            super.loadUrl(url, headers)
+        } else {
+            super.loadUrl(url)
         }
     }
 

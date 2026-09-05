@@ -14,7 +14,8 @@ data class BrowserTab(
     val webView: NovaWebView,
     var title: String = "New Tab",
     var url: String = "about:blank",
-    val isPrivate: Boolean = false
+    val isPrivate: Boolean = false,
+    var blockedAdsCount: Int = 0
 )
 
 interface TabChangeListener {
@@ -22,6 +23,7 @@ interface TabChangeListener {
     fun onTabsUpdated(tabs: List<BrowserTab>)
     fun onPageProgress(progress: Int)
     fun onSecurityIntervention(decision: SecurityDecision, targetUrl: String, onProceed: () -> Unit)
+    fun onBlockedAdsUpdated(tab: BrowserTab, blockedCount: Int)
 }
 
 /**
@@ -66,7 +68,9 @@ class TabManager(
         val navCallback = object : NavigationCallback {
             override fun onPageStarted(url: String) {
                 tab.url = url
+                tab.blockedAdsCount = 0
                 if (tab.id == activeTabId) {
+                    listener.onBlockedAdsUpdated(tab, 0)
                     listener.onActiveTabChanged(tab)
                 }
             }
@@ -99,7 +103,13 @@ class TabManager(
         webView.webViewClient = NovaWebViewClient(
             callback = navCallback,
             onUrlOverride = { targetUrl ->
-                val (sanitized, decision) = controller.evaluateNavigation(targetUrl, isRedirect = true)
+                val upgradedUrl = if (com.gintama.novabrowser.adblock.AdBlockEngine.isHttpsOnlyMode() && targetUrl.startsWith("http://", ignoreCase = true)) {
+                    targetUrl.replaceFirst("http://", "https://", ignoreCase = true)
+                } else {
+                    targetUrl
+                }
+
+                val (sanitized, decision) = controller.evaluateNavigation(upgradedUrl, isRedirect = true)
                 if (decision.action == GateAction.BLOCK || decision.action == GateAction.WARN) {
                     listener.onSecurityIntervention(decision, sanitized) {
                         webView.loadUrl(sanitized)
@@ -111,8 +121,34 @@ class TabManager(
                 }
             },
             onSubresourceCheck = { subresourceUri ->
-                val (_, decision) = controller.evaluateNavigation(subresourceUri)
-                decision.action == GateAction.BLOCK
+                val requestHost = try {
+                    java.net.URI(subresourceUri).host?.lowercase()
+                } catch (e: Exception) {
+                    null
+                }
+
+                val currentSiteHost = try {
+                    java.net.URI(tab.url).host?.lowercase()
+                } catch (e: Exception) {
+                    null
+                }
+
+                // Phase 1: Fast O(labels) check FIRST before heavy security gate
+                if (requestHost != null &&
+                    com.gintama.novabrowser.adblock.AdBlockEngine.isAdBlockEnabledForSite(currentSiteHost) &&
+                    com.gintama.novabrowser.adblock.AdBlockEngine.isAdOrTracker(requestHost)
+                ) {
+                    tab.blockedAdsCount++
+                    com.gintama.novabrowser.adblock.AdBlockEngine.recordBlockedAd(1)
+                    if (tab.id == activeTabId) {
+                        listener.onBlockedAdsUpdated(tab, tab.blockedAdsCount)
+                    }
+                    true // Drop resource immediately!
+                } else {
+                    // Fallback to threat feed / malware gate only for non-ad requests
+                    val (_, decision) = controller.evaluateNavigation(subresourceUri)
+                    decision.action == GateAction.BLOCK
+                }
             }
         )
         webView.webChromeClient = NovaWebChromeClient(navCallback)
@@ -145,6 +181,7 @@ class TabManager(
         webViewContainer.addView(target.webView)
 
         listener.onActiveTabChanged(target)
+        listener.onBlockedAdsUpdated(target, target.blockedAdsCount)
         saveTabs()
     }
 

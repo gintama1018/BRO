@@ -46,6 +46,8 @@ import com.gintama.novabrowser.downloads.DownloadHandler
 import com.gintama.novabrowser.history.HistoryActivity
 import com.gintama.novabrowser.settings.SettingsActivity
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.gintama.novabrowser.adblock.AdBlockEngine
+import com.google.android.material.switchmaterial.SwitchMaterial
 import kotlinx.coroutines.launch
 import java.util.ArrayList
 
@@ -64,6 +66,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var ivSecurityIndicator: ImageView
     private lateinit var ivPrivateBadge: ImageView
     private lateinit var tvLocalBadge: TextView
+    private lateinit var layoutShieldBadge: LinearLayout
+    private lateinit var tvShieldBadgeCount: TextView
     private lateinit var btnNavBack: ImageButton
     private lateinit var btnNavForward: ImageButton
 
@@ -118,6 +122,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         controller = BrowserController(this)
         downloadHandler = DownloadHandler(this)
+        AdBlockEngine.init(this)
 
         initViews()
         setupWindowInsets()
@@ -136,6 +141,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         ivSecurityIndicator = findViewById(R.id.ivSecurityIndicator)
         ivPrivateBadge = findViewById(R.id.ivPrivateBadge)
         tvLocalBadge = findViewById(R.id.tvLocalBadge)
+        layoutShieldBadge = findViewById(R.id.layoutShieldBadge)
+        tvShieldBadgeCount = findViewById(R.id.tvShieldBadgeCount)
         btnNavBack = findViewById(R.id.btnNavBack)
         btnNavForward = findViewById(R.id.btnNavForward)
 
@@ -287,7 +294,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
 
         btnIslandShield.setOnClickListener {
-            showPrivacyVaultDialog()
+            showAdBlockShieldBottomSheet()
+        }
+
+        layoutShieldBadge.setOnClickListener {
+            showAdBlockShieldBottomSheet()
+        }
+
+        ivSecurityIndicator.setOnClickListener {
+            showAdBlockShieldBottomSheet()
         }
 
         btnIslandBookmarks.setOnClickListener {
@@ -359,41 +374,66 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         webViewContainer.visibility = View.VISIBLE
     }
 
-    private fun showPrivacyVaultDialog() {
+    private fun showAdBlockShieldBottomSheet() {
         val dialog = BottomSheetDialog(this)
-        val tab = tabManager.activeTab
-        val url = tab?.url ?: "about:blank"
-        val (_, decision) = controller.evaluateNavigation(url)
-
-        val view = layoutInflater.inflate(R.layout.dialog_tabs, null)
+        val view = layoutInflater.inflate(R.layout.dialog_adblock_shield, null)
         dialog.setContentView(view)
 
-        val header = view.findViewById<TextView>(R.id.tvTabsHeader)
-        val btnAdd = view.findViewById<Button>(R.id.btnAddNewTab)
-        val btnAddPrivate = view.findViewById<Button>(R.id.btnNewPrivateTab)
-        val btnDone = view.findViewById<Button>(R.id.btnCloseDialog)
-        val rvList = view.findViewById<RecyclerView>(R.id.rvTabsList)
-
-        header.text = "Privacy Vault & Shield"
-        btnAdd.visibility = View.GONE
-        btnAddPrivate.visibility = View.GONE
-        rvList.visibility = View.GONE
-
-        btnDone.text = "Dismiss"
-        btnDone.setOnClickListener { dialog.dismiss() }
-
-        val info = TextView(this).apply {
-            text = "SECURITY & PRIVACY STATUS\n\n" +
-                    "• Host: ${if (url.isBlank() || url == "about:blank") "Local Canvas" else url}\n" +
-                    "• Risk Classification: ${decision.riskState}\n" +
-                    "• Local Protection: Deterministic Rule Gate (SQLite WAL)\n" +
-                    "• AI Runtime: Dormant (Phase 3 on-demand local execution)\n" +
-                    "• Telemetry: Zero remote analytics endpoints"
-            textSize = 13f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
-            setPadding(16, 16, 16, 24)
+        val tab = tabManager.activeTab
+        val currentUrl = tab?.url.orEmpty()
+        val siteHost = try {
+            val host = java.net.URI(currentUrl).host
+            if (host.isNullOrBlank()) "Local Canvas" else host
+        } catch (e: Exception) {
+            if (currentUrl.isBlank() || currentUrl == "about:blank") "Local Canvas" else currentUrl
         }
-        (view as LinearLayout).addView(info, 2)
+
+        val tvSiteDomain = view.findViewById<TextView>(R.id.tvShieldSiteDomain)
+        val tvStatus = view.findViewById<TextView>(R.id.tvShieldProtectionStatus)
+        val tvBlockedThisPage = view.findViewById<TextView>(R.id.tvShieldBlockedThisPage)
+        val tvLifetimeTotal = view.findViewById<TextView>(R.id.tvShieldLifetimeTotal)
+        val switchSiteAdBlock = view.findViewById<SwitchMaterial>(R.id.switchSiteAdBlock)
+        val switchSiteCosmetic = view.findViewById<SwitchMaterial>(R.id.switchSiteCosmetic)
+        val btnSettings = view.findViewById<Button>(R.id.btnOpenAdBlockSettings)
+        val btnDone = view.findViewById<Button>(R.id.btnDoneShield)
+
+        tvSiteDomain.text = siteHost
+        val blockedThisPage = tab?.blockedAdsCount ?: 0
+        tvBlockedThisPage.text = blockedThisPage.toString()
+        tvLifetimeTotal.text = AdBlockEngine.getLifetimeBlockedCount().toString()
+
+        val isLocalCanvas = siteHost == "Local Canvas"
+        if (isLocalCanvas) {
+            switchSiteAdBlock.isEnabled = false
+            switchSiteCosmetic.isEnabled = false
+            tvStatus.text = "Local Canvas • No External Trackers"
+        } else {
+            val (adBlockEnabled, cosmeticEnabled) = AdBlockEngine.getSiteRule(siteHost)
+            switchSiteAdBlock.isChecked = adBlockEnabled
+            switchSiteCosmetic.isChecked = cosmeticEnabled
+
+            tvStatus.text = if (adBlockEnabled) "Shield Active • Zero Cloud Leaks" else "Shield Paused on This Site"
+            tvStatus.setTextColor(ContextCompat.getColor(this, if (adBlockEnabled) R.color.accent_emerald else R.color.risk_suspicious))
+
+            switchSiteAdBlock.setOnCheckedChangeListener { _, isChecked ->
+                AdBlockEngine.setSiteRule(siteHost, isChecked, switchSiteCosmetic.isChecked)
+                tvStatus.text = if (isChecked) "Shield Active • Zero Cloud Leaks" else "Shield Paused on This Site"
+                tvStatus.setTextColor(ContextCompat.getColor(this, if (isChecked) R.color.accent_emerald else R.color.risk_suspicious))
+            }
+
+            switchSiteCosmetic.setOnCheckedChangeListener { _, isChecked ->
+                AdBlockEngine.setSiteRule(siteHost, switchSiteAdBlock.isChecked, isChecked)
+            }
+        }
+
+        btnSettings.setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        btnDone.setOnClickListener {
+            dialog.dismiss()
+        }
 
         dialog.show()
     }
@@ -525,6 +565,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             updateSecurityIndicator(decision.riskState)
         }
 
+        tvShieldBadgeCount.text = tab.blockedAdsCount.toString()
         updateNavigationButtons()
     }
 
@@ -539,6 +580,14 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             progressBar.progress = progress
         } else {
             progressBar.visibility = View.GONE
+        }
+    }
+
+    override fun onBlockedAdsUpdated(tab: BrowserTab, blockedCount: Int) {
+        if (tab.id == tabManager.activeTab?.id) {
+            runOnUiThread {
+                tvShieldBadgeCount.text = blockedCount.toString()
+            }
         }
     }
 

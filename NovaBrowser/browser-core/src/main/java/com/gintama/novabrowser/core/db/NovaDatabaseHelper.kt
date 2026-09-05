@@ -126,10 +126,33 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 PRIMARY KEY (history_id, chunk_index)
             );
         """.trimIndent())
+
+        // 8. Ad-Block Site Rules Table (Per-site exceptions & cosmetic toggles)
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS adblock_site_rules (
+                domain TEXT PRIMARY KEY,
+                adblock_enabled INTEGER NOT NULL DEFAULT 1,
+                cosmetic_enabled INTEGER NOT NULL DEFAULT 1,
+                updated_at INTEGER NOT NULL
+            );
+        """.trimIndent())
+    }
+
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS adblock_site_rules (
+                domain TEXT PRIMARY KEY,
+                adblock_enabled INTEGER NOT NULL DEFAULT 1,
+                cosmetic_enabled INTEGER NOT NULL DEFAULT 1,
+                updated_at INTEGER NOT NULL
+            );
+        """.trimIndent())
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // For development / early phases:
+        db.execSQL("DROP TABLE IF EXISTS adblock_site_rules")
         db.execSQL("DROP TABLE IF EXISTS ai_page_index")
         db.execSQL("DROP TABLE IF EXISTS snapshot_meta")
         db.execSQL("DROP TABLE IF EXISTS security_rules")
@@ -621,5 +644,50 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             }
         }
         return 0
+    }
+
+    // ==========================================
+    // Ad-Block Site Rules DAO (Phase 1 & Phase 4)
+    // ==========================================
+
+    fun getSiteAdBlockRule(domain: String): Pair<Boolean, Boolean>? {
+        val cleanDomain = domain.lowercase().trim().removePrefix("www.")
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT adblock_enabled, cosmetic_enabled FROM adblock_site_rules WHERE domain = ?",
+            arrayOf(cleanDomain)
+        )
+        cursor.use {
+            if (it.moveToNext()) {
+                val adBlock = it.getInt(0) == 1
+                val cosmetic = it.getInt(1) == 1
+                return Pair(adBlock, cosmetic)
+            }
+        }
+        return null
+    }
+
+    fun setSiteAdBlockRule(domain: String, adBlockEnabled: Boolean, cosmeticEnabled: Boolean) {
+        val cleanDomain = domain.lowercase().trim().removePrefix("www.")
+        val db = writableDatabase
+        val values = android.content.ContentValues().apply {
+            put("domain", cleanDomain)
+            put("adblock_enabled", if (adBlockEnabled) 1 else 0)
+            put("cosmetic_enabled", if (cosmeticEnabled) 1 else 0)
+            put("updated_at", System.currentTimeMillis())
+        }
+        db.insertWithOnConflict("adblock_site_rules", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun getAllSiteAdBlockRules(): Map<String, Pair<Boolean, Boolean>> {
+        val result = mutableMapOf<String, Pair<Boolean, Boolean>>()
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT domain, adblock_enabled, cosmetic_enabled FROM adblock_site_rules", null)
+        cursor.use {
+            while (it.moveToNext()) {
+                result[it.getString(0)] = Pair(it.getInt(1) == 1, it.getInt(2) == 1)
+            }
+        }
+        return result
     }
 }
