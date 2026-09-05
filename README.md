@@ -6,6 +6,8 @@
 [![Language](https://img.shields.io/badge/Language-Kotlin%202.0.21-7F52FF?logo=kotlin&logoColor=white)](#tech-stack)
 [![Storage](https://img.shields.io/badge/Storage-SQLite%203%20%2B%20FTS5-003B57?logo=sqlite&logoColor=white)](#data-model--database-er-diagram)
 [![Security](https://img.shields.io/badge/Security-Deterministic%20Gate%20(Offline)-10B981)](#deterministic-security-gate)
+[![AdBlock](https://img.shields.io/badge/AdBlock-O(labels)%20Offline%20Engine-06B6D4)](#network-ad--tracker-blocking-engine)
+[![Motion](https://img.shields.io/badge/Motion-NovaMotion%2060%2F120%20FPS-8B5CF6)](#novamotion-graphics--animation-framework)
 [![UI System](https://img.shields.io/badge/Design-Liquid%20System-111827)](#visual-canvases--interface-showcase)
 [![APK Size](https://img.shields.io/badge/APK%20Size-~7.0%20MB-blue)](#target-performance-metrics)
 
@@ -35,6 +37,14 @@
   - [Android JS Bridge Hard Boundary](#android-js-bridge-hard-boundary)
 - [Threat Feed Model & Categorization](#threat-feed-model--categorization)
 - [Download Security & Quarantine Lifecycle](#download-security--quarantine-lifecycle)
+- [Network Ad & Tracker Blocking Engine](#network-ad--tracker-blocking-engine)
+  - [Subresource Interception & CDN Protection](#subresource-interception--cdn-protection)
+  - [Batched Cosmetic Element Hiding](#batched-cosmetic-element-hiding)
+  - [Shield Bottom Sheet & Per-Site Rules](#shield-bottom-sheet--per-site-rules)
+- [NovaMotion Graphics & Animation Framework](#novamotion-graphics--animation-framework)
+  - [Celestial Supernova Brand Identity](#celestial-supernova-brand-identity)
+  - [Micro-Interactions & Fluid Transitions](#micro-interactions--fluid-transitions)
+- [Security Diagnostics & Privacy Controls](#security-diagnostics--privacy-controls)
 - [Local-First AI & Memory Management](#local-first-ai--memory-management)
   - [Contextual RAG Retrieval Pipeline](#contextual-rag-retrieval-pipeline)
   - [Zero-Cloud Telemetry & Prompt Injection Hardening](#zero-cloud-telemetry--prompt-injection-hardening)
@@ -153,17 +163,23 @@ NovaBrowser uses the system-provided Android WebView to avoid the ~150MB overhea
 | :--- | :--- | :--- |
 | **Android Browser Shell** | **Implemented** | System WebView runtime, multi-tab lifecycle, session restore, navigation stack. |
 | **Liquid System UI/UX** | **Implemented** | Apple-grade minimal UI, Start Canvas ("Where to?"), Floating Island navigation, Safe Area Insets. |
-| **SQLite Storage & FTS5** | **Implemented** | Full relational schema matching `DESIGN.md` (`history`, `bookmarks`, `sessions`, `downloads`, `security_rules`, `snapshot_meta`). FTS5 lexical BM25 search. |
+| **NovaMotion Framework** | **Implemented** | 60/120 FPS hardware-accelerated animations, tactile spring feedback, hero celestial breathing loop, kinetic shield pulse, smooth cross-fades. |
+| **Cyber-Celestial Logo** | **Implemented** | High-precision vector identity (`ic_nova_logo.xml`) with ambient radial glow aura and Android launcher integration. |
+| **SQLite Storage & FTS5** | **Implemented** | Full relational schema (`history`, `bookmarks`, `sessions`, `downloads`, `security_rules`, `snapshot_meta`, `adblock_site_rules`, `broken_site_reports`, `site_permissions`). FTS5 BM25 search. |
 | **URL Canonicalization** | **Implemented** | Punycode/IDN normalization, auth & port normalization, component-wise query sanitization. |
-| **Offline Threat Feed Engine** | **Prototype** | Schema & initial high-risk malware seeds active; full ABP filter rule parser & background sync in active development. |
+| **Offline Threat Feed Engine** | **Implemented** | Local ABP Filter Parser, 9,578 domain rules in memory hash index ($O(\text{labels})$ lookup), 50+ cosmetic selectors, per-site rules. |
+| **Network Ad & Tracker Blocker**| **Implemented** | Subresource interception in `shouldInterceptRequest()`, media CDN whitelist preservation, per-tab/lifetime counters, zero telemetry. |
+| **Cosmetic Element Hiding** | **Implemented** | Batched dynamic CSS injection (`display: none !important`) across 50+ selectors on `onPageFinished`. |
+| **Privacy Guardrails** | **Implemented** | Third-party cookies blocked by default, HTTPS-only auto-upgrade, DNT/Sec-GPC header injection, clean link copying. |
 | **Heuristics Engine** | **Implemented** | Shannon entropy calculation, Levenshtein distance brand registry check, subdomain deception detection. |
 | **Redirect Tracker** | **Implemented** | Hop-count limit enforcement (max 4 hops) and HTTPS-to-HTTP SSL stripping downgrade interception. |
-| **Explainable Warning UI** | **Implemented** | Interstitial screen with honest telemetry breakdown, sentinel status, and locked bypass for malware. |
-| **Download Quarantine Flow** | **Prototype** | Risky executable/script MIME detection active; streaming physical storage sandbox container in development. |
+| **Explainable Warning UI** | **Implemented** | Interstitial screen with honest telemetry breakdown, sentinel status, and non-bypassable lock for verified malware. |
+| **Download Quarantine Sandbox** | **Implemented** | Physical `.nova_quarantine/` sandbox isolation in app-private storage, streaming SHA-256 integrity digest, interactive user override release. |
+| **Security Diagnostics Runner** | **Implemented** | Native 5-vector test suite in Settings evaluating live gate decisions, homoglyph detection, and adblock rules. |
+| **Site Permissions Manager** | **Implemented** | SQLite-backed per-site permissions (camera, microphone, geolocation) with granular revocation. |
 | **Device Capability Detection** | **Implemented** | Dynamic RAM inspection categorizing hardware into `MINIMAL`, `LIGHT`, and `STANDARD` tiers. |
-| **On-Device LLM Runtime** | **Planned** | Embedded `llama.cpp` NDK bindings with quantized GGUF execution. |
-| **Semantic Embedding Index** | **Planned** | Vector embeddings for history entries on Standard Tier devices. |
-| **Desktop Implementation** | **Planned** | Electron / Chromium desktop shell sharing core architecture. |
+| **On-Device LLM Runtime** | **Planned** | Embedded `llama.cpp` NDK bindings with quantized GGUF execution (Phase 3). |
+| **Semantic Embedding Index** | **Planned** | Vector embeddings for history entries on Standard Tier devices (Phase 3). |
 
 ---
 
@@ -397,6 +413,64 @@ flowchart TD
 
 ---
 
+## Network Ad & Tracker Blocking Engine
+
+NovaBrowser integrates a high-throughput, offline network blocking engine decoupled from the navigation security gate:
+
+### Subresource Interception & CDN Protection
+- **Decoupled Architecture:** Subresource requests (scripts, images, beacons, iframes) in `TabManager.onSubresourceCheck` bypass the heavy canonicalization/heuristic pipeline and evaluate directly against `AdBlockEngine.isAdOrTracker()`.
+- **$O(\text{labels})$ Fast-Path Hash Index:** 9,578 domain rules (`blocklist_domains.txt`) loaded into an in-memory `HashSet<String>`. Checks require at most 2–4 hash lookups per subresource request.
+- **Media CDN Safe-Guard:** Essential streaming CDN hosts (such as `googlevideo.com`) are explicitly preserved so video and audio playback remain unbroken while tracking pixels and banner networks are blocked.
+- **Zero-Cloud Leak Telemetry:** All evaluation is 100% on-device. Counters (`blockedAdsCount`, lifetime totals) are maintained locally in memory and `SharedPreferences`.
+
+### Batched Cosmetic Element Hiding
+- **Dynamic CSS Injection:** Injects `<style id="nova-adblock-cosmetic">` during `onPageFinished` with 50+ curated display/visibility suppressing selectors:
+  ```css
+  .ad-banner, .adsbygoogle, [id^="google_ads_"], .sponsored-post { 
+      display: none !important; 
+      visibility: hidden !important; 
+      height: 0 !important; 
+  }
+  ```
+- **Batched Execution:** Partitioned into optimized 150-selector batches to avoid DOM parsing stalls.
+
+### Shield Bottom Sheet & Per-Site Rules
+- **Interactive Bottom Sheet (`dialog_adblock_shield.xml`):** Tapping the omnibox shield badge or bottom island shield button surfaces live per-page and lifetime blocked counters, rule telemetry, and instant per-site toggles.
+- **SQLite Rule Persistence:** Per-site allowlisting / cosmetic overrides are persisted in SQLite (`adblock_site_rules`), allowing users to toggle protection for sites with strict anti-adblock walls.
+- **Broken Site Reporting:** One-tap reporting button logs problematic site layouts to `broken_site_reports` for ruleset curation.
+
+---
+
+## NovaMotion Graphics & Animation Framework
+
+NovaBrowser features a custom motion graphics framework ([NovaMotion.kt](NovaBrowser/app/src/main/java/com/gintama/novabrowser/ui/motion/NovaMotion.kt)) engineered for fluid 60/120 FPS performance:
+
+### Celestial Supernova Brand Identity
+- **Vector Core Mark (`ic_nova_logo.xml`):** Deep space obsidian squircle base (`#090D16`), dual neon orbital rings (Neon Cyan `#06B6D4` + Electric Violet `#8B5CF6`), 8-point faceted supernova starcore with central singularity beacon (`#FFFFFF` / `#38BDF8`), and emerald security satellite (`#10B981`).
+- **Hero Breathing & Hover Loop:** Start Canvas logo continuously floats in an ambient sine cycle (`translationY: 0 -> -7dp -> 0`) while an ambient radial glow aura (`bg_hero_glow.xml`) pulses gently (`alpha: 0.30 -> 0.85`), bringing the start canvas to life.
+
+### Micro-Interactions & Fluid Transitions
+- **Tactile Spring Physics:** Physics-based scale compression on touch (`scale: 0.92x`, 90ms) and bouncy spring overshoot release (`scale: 1.0x`, `OvershootInterpolator(2.8f)`) applied to all bottom island dock buttons, toolbar buttons, and shortcut tiles.
+- **Kinetic Shield Pop:** The omnibox shield badge executes an energetic bounce pop (`scale: 1.32x`) whenever an ad or tracker is intercepted on the active page.
+- **Cinematic Canvas ↔ WebView Cross-Fade:** Abrupt visibility toggles are replaced with hardware-accelerated cross-fades with Y-translation (`FastOutSlowInInterpolator`).
+- **Smooth Progress Bar:** Web page loading is animated with `ObjectAnimator` and `FastOutSlowInInterpolator`, completing with a soft alpha fade-out at 100%.
+- **Rolling Numerical Count-Up Ticker:** Lifetime neutralized tracker stats roll up smoothly on canvas appearance (`0 -> 9,578`).
+
+---
+
+## Security Diagnostics & Privacy Controls
+
+NovaBrowser provides direct transparency and controls for user privacy:
+
+- **In-App Security Diagnostics:** Settings includes a built-in test runner evaluating 5 real vectors (Clean URLs, Homoglyph spoofing, Malware hosts, SSL stripping, and AdBlock rules) and surfaces an on-device diagnostic report dialog.
+- **Site Permissions Manager:** SQLite-backed permission manager (`site_permissions`) tracking camera, microphone, and geolocation authorizations, with an instant "Revoke All" action.
+- **Granular Browsing Data Clearing:** Interactive multi-choice dialog enabling selective erasure of History, Cookies, Cache, and Web Storage.
+- **Copy Clean Link:** One-tap action stripping tracking query parameters (`utm_*`, `fbclid`, `gclid`, `igshid`, `msclkid`, `mc_eid`).
+- **Desktop Mode Toggle:** Quick User-Agent switching between Chrome Desktop and Mobile UA.
+- **Find in Page:** Embedded native search bar connecting to WebView's `findAllAsync` with live match counters (`1/7`) and slide-down/slide-up animations.
+
+---
+
 ## Local-First AI & Memory Management
 
 The AI engine in NovaBrowser operates on the principle of **Zero-Cloud Telemetry**. 
@@ -528,6 +602,27 @@ erDiagram
         string version
         int rule_count
     }
+
+    ADBLOCK_SITE_RULES {
+        string domain PK
+        int adblock_enabled
+        int cosmetic_enabled
+        int updated_at
+    }
+
+    BROKEN_SITE_REPORTS {
+        int id PK
+        string url
+        int timestamp
+    }
+
+    SITE_PERMISSIONS {
+        int id PK
+        string origin
+        string permission_type
+        int granted
+        int updated_at
+    }
 ```
 
 *For exact data types, migration indices, and table DDL, consult [DESIGN.md](DESIGN.md).*
@@ -539,19 +634,26 @@ erDiagram
 ```text
 NovaBrowser/
 ├── app/                                 # Android Application Module
+│   ├── src/main/assets/                 # Bundled AdBlock Rules & Cosmetic Selectors
+│   │   ├── blocklist_domains.txt        # 9,578 Ad & Tracker Domain Hashes
+│   │   └── cosmetic_selectors.txt       # 50+ Cosmetic Element Hiding Selectors
 │   ├── src/main/java/com/gintama/novabrowser/
+│   │   ├── adblock/                     # AdBlockEngine ($O(labels) fast lookup & CSS generator)
 │   │   ├── bookmarks/                   # Bookmarks Activity & List Adapter
 │   │   ├── browser/                     # NovaWebView, WebChromeClient, TabManager
-│   │   ├── downloads/                   # DownloadHandler & Quarantine Isolation
+│   │   ├── downloads/                   # DownloadHandler & Physical Quarantine Sandbox
 │   │   ├── history/                     # History Activity & FTS5 Query UI
-│   │   ├── settings/                    # Settings & Low-Memory Mode Preferences
+│   │   ├── settings/                    # Settings, Diagnostics Runner, Site Permissions
 │   │   └── ui/                          # MainActivity, SecurityWarningActivity, TabsAdapter
-│   └── src/main/res/                    # Liquid System Layouts, Drawables, Styles
+│   │       └── motion/                  # NovaMotion (60/120 FPS Animation Engine)
+│   └── src/main/res/                    # Liquid System Layouts, Anim, Drawables, Styles
+│       ├── anim/                        # slide_down_in, slide_up_out, pop_in, fade_in/out
+│       └── drawable/                    # ic_nova_logo (Vector), bg_hero_glow, bg_glass_*
 │
 ├── browser-core/                        # Core Domain & Security Module (Pure Logic)
 │   ├── src/main/java/com/gintama/novabrowser/core/
 │   │   ├── controller/                  # BrowserController (Navigation Orchestration)
-│   │   ├── db/                          # NovaDatabaseHelper (SQLite Schema & FTS5)
+│   │   ├── db/                          # NovaDatabaseHelper (SQLite Schema, FTS5 & DAOs)
 │   │   ├── model/                       # Immutable Domain Data Models
 │   │   ├── navigation/                  # UrlSanitizer & NavigationState
 │   │   └── security/                    # Deterministic Security Gate:
@@ -560,10 +662,11 @@ NovaBrowser/
 │   │       ├── SecurityGate.kt          # Deterministic Gate Orchestrator
 │   │       ├── ThreatFeedManager.kt     # Threat Snapshots & Matching Engine
 │   │       ├── UrlCanonicalizer.kt      # Punycode, Port & Encoding Normalizer
+│   │       ├── abp/                     # ABP Filter Rule Parser & Rule Set
 │   │       └── SecurityVerificationRunner.kt # Test Contract Verification
 │   └── src/test/java/                   # JUnit Unit Tests for Security Gate
 │
-├── ai/                                  # Local Intelligence Module
+├── ai/                                  # Local Intelligence Module (Dormant Phase 3)
 │   └── src/main/java/com/gintama/novabrowser/ai/
 │       ├── AiEngine.kt                  # Model Ingestion & RAG Orchestration Stub
 │       └── DeviceTier.kt                # Hardware RAM Inspection & Tiering Rules
@@ -634,11 +737,16 @@ cmd.exe /c "set JAVA_HOME=C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot&& gra
 
 ## Test Suite & Verification
 
-The security subroutines in `:browser-core` are verified through direct unit tests and contract runners:
+The security subroutines and adblock filters across `:browser-core`, `:app`, and `:ai` are verified through automated test runners:
 
 ```powershell
-# Run security test suite via PowerShell runner
-powershell -ExecutionPolicy Bypass -File .\NovaBrowser\run_tests.ps1
+# Run full test suite across all modules
+$env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot"
+cd NovaBrowser
+.\gradlew.bat test
+
+# Or run standalone CLI verification runner
+powershell -ExecutionPolicy Bypass -File .\run_tests.ps1
 ```
 
 ### Verified Test Assertions
@@ -650,6 +758,8 @@ powershell -ExecutionPolicy Bypass -File .\NovaBrowser\run_tests.ps1
 - **Redirect Loops:** Chains exceeding 4 hops are terminated.
 - **Feed Authority Separation:** `URLHAUS` triggers hard `BLOCK`; `EASYLIST` filters silently; `LOCAL_HEURISTIC` emits `WARN`.
 - **Axiom Check:** Unlisted domains emit `RiskState.UNKNOWN`, never `KNOWN_SAFE`.
+- **AdBlock Fast-Path Check:** Subresources evaluate in $O(\text{labels})$ hash lookups; CDN media streams are preserved.
+- **In-App Self-Diagnostics:** 5 live vectors validated via `SettingsActivity` diagnostic runner.
 
 ---
 
