@@ -56,10 +56,26 @@
             android:parentActivityName=".ui.MainActivity" />
 
         <activity
+            android:name=".downloads.DownloadsActivity"
+            android:exported="false"
+            android:label="Downloads"
+            android:parentActivityName=".ui.MainActivity" />
+
+        <activity
             android:name=".ui.SecurityWarningActivity"
             android:exported="false"
             android:label="Security Alert"
             android:theme="@style/Theme.NovaBrowser" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

@@ -30,6 +30,12 @@ interface TabChangeListener {
         onAllow: () -> Unit,
         onDeny: () -> Unit
     )
+    fun onShowFileChooser(
+        filePathCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?,
+        fileChooserParams: android.webkit.WebChromeClient.FileChooserParams?
+    ): Boolean
+    fun onShowCustomView(view: android.view.View, callback: android.webkit.WebChromeClient.CustomViewCallback)
+    fun onHideCustomView()
 }
 
 /**
@@ -235,6 +241,15 @@ class TabManager(
                         )
                     }
                 }
+            },
+            onShowFileChooserCallback = { filePathCallback, fileChooserParams ->
+                listener.onShowFileChooser(filePathCallback, fileChooserParams)
+            },
+            onShowCustomViewCallback = { view, callback ->
+                listener.onShowCustomView(view, callback)
+            },
+            onHideCustomViewCallback = {
+                listener.onHideCustomView()
             }
         )
 

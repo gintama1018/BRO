@@ -555,6 +555,16 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         return list
     }
 
+    fun deleteDownload(id: Long): Int {
+        val db = writableDatabase
+        return db.delete("downloads", "id = ?", arrayOf(id.toString()))
+    }
+
+    fun clearDownloads(): Int {
+        val db = writableDatabase
+        return db.delete("downloads", null, null)
+    }
+
     // ==========================================
     // Security Rules DAO Operations (Phase 2)
     // ==========================================

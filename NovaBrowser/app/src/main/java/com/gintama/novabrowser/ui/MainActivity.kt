@@ -48,6 +48,10 @@ import com.gintama.novabrowser.history.HistoryActivity
 import com.gintama.novabrowser.settings.SettingsActivity
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import android.speech.RecognizerIntent
+import android.content.pm.ActivityInfo
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import com.gintama.novabrowser.downloads.DownloadsActivity
 import android.content.ActivityNotFoundException
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -65,6 +69,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var downloadHandler: DownloadHandler
 
     // Header Controls
+    private lateinit var topChromeHeader: LinearLayout
     private lateinit var etUrlInput: EditText
     private lateinit var btnReloadPage: ImageButton
     private lateinit var btnTabs: FrameLayout
@@ -78,8 +83,44 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var btnNavBack: ImageButton
 
     // Viewport Containers
+    private lateinit var mainViewportContainer: FrameLayout
     private lateinit var webViewContainer: FrameLayout
     private lateinit var layoutNewTabCanvas: ScrollView
+    private lateinit var fullscreenCustomViewContainer: FrameLayout
+
+    // Fullscreen Video State
+    private var customView: View? = null
+    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
+    private var originalSystemUiVisibility: Int = 0
+    private var originalOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+    // Web Uploads State
+    private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
+
+    // Activity Result Launcher for HTML5 File Chooser / Web Uploads
+    private val fileUploadLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (fileUploadCallback == null) return@registerForActivityResult
+        val uris: Array<Uri>? = if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data
+            val parsed = WebChromeClient.FileChooserParams.parseResult(result.resultCode, data)
+            if (!parsed.isNullOrEmpty()) {
+                parsed
+            } else if (data?.data != null) {
+                arrayOf(data.data!!)
+            } else if (data?.clipData != null) {
+                val clipData = data.clipData!!
+                Array(clipData.itemCount) { i -> clipData.getItemAt(i).uri }
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+        fileUploadCallback?.onReceiveValue(uris)
+        fileUploadCallback = null
+    }
 
     // Omnibox & Search Engine Switcher
     private lateinit var etOmniboxInput: EditText
@@ -167,6 +208,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun initViews() {
+        topChromeHeader = findViewById(R.id.topChromeHeader)
         etUrlInput = findViewById(R.id.etUrlInput)
         btnReloadPage = findViewById(R.id.btnReloadPage)
         btnTabs = findViewById(R.id.btnTabs)
@@ -179,8 +221,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         tvShieldBadgeCount = findViewById(R.id.tvShieldBadgeCount)
         btnNavBack = findViewById(R.id.btnNavBack)
 
+        mainViewportContainer = findViewById(R.id.mainViewportContainer)
         webViewContainer = findViewById(R.id.webViewContainer)
         layoutNewTabCanvas = findViewById(R.id.layoutNewTabCanvas)
+        fullscreenCustomViewContainer = findViewById(R.id.fullscreenCustomViewContainer)
 
         etOmniboxInput = findViewById(R.id.etOmniboxInput)
         btnOmniboxMic = findViewById(R.id.btnOmniboxMic)
@@ -810,6 +854,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     contentLauncher.launch(Intent(this, HistoryActivity::class.java))
                     true
                 }
+                R.id.action_downloads -> {
+                    startActivity(Intent(this, DownloadsActivity::class.java))
+                    true
+                }
                 R.id.action_settings -> {
                     startActivity(Intent(this, SettingsActivity::class.java))
                     true
@@ -1054,6 +1102,90 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
     }
 
+    override fun onShowFileChooser(
+        filePathCallback: ValueCallback<Array<Uri>>?,
+        fileChooserParams: WebChromeClient.FileChooserParams?
+    ): Boolean {
+        fileUploadCallback?.onReceiveValue(null)
+        fileUploadCallback = filePathCallback
+
+        val intent = try {
+            fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"
+            }
+        } catch (e: Exception) {
+            Intent(Intent.ACTION_GET_CONTENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"
+            }
+        }
+
+        val title = fileChooserParams?.title?.takeIf { it.isNotBlank() } ?: "Choose File"
+        return try {
+            fileUploadLauncher.launch(Intent.createChooser(intent, title))
+            true
+        } catch (e: ActivityNotFoundException) {
+            fileUploadCallback?.onReceiveValue(null)
+            fileUploadCallback = null
+            Toast.makeText(this, "No file manager found to select files", Toast.LENGTH_SHORT).show()
+            false
+        }
+    }
+
+    override fun onShowCustomView(view: View, callback: WebChromeClient.CustomViewCallback) {
+        if (customView != null) {
+            onHideCustomView()
+        }
+
+        customView = view
+        customViewCallback = callback
+        originalSystemUiVisibility = window.decorView.systemUiVisibility
+        originalOrientation = requestedOrientation
+
+        fullscreenCustomViewContainer.removeAllViews()
+        fullscreenCustomViewContainer.addView(
+            view,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+        fullscreenCustomViewContainer.visibility = View.VISIBLE
+
+        topChromeHeader.visibility = View.GONE
+        bottomFloatingIsland.visibility = View.GONE
+        mainViewportContainer.visibility = View.GONE
+
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        )
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+    }
+
+    override fun onHideCustomView() {
+        val view = customView ?: return
+        fullscreenCustomViewContainer.removeView(view)
+        fullscreenCustomViewContainer.visibility = View.GONE
+
+        customViewCallback?.onCustomViewHidden()
+        customView = null
+        customViewCallback = null
+
+        window.decorView.systemUiVisibility = originalSystemUiVisibility
+        requestedOrientation = originalOrientation
+
+        topChromeHeader.visibility = View.VISIBLE
+        bottomFloatingIsland.visibility = View.VISIBLE
+        mainViewportContainer.visibility = View.VISIBLE
+        updateNavigationButtons()
+    }
+
     private fun updateSecurityIndicator(riskState: RiskState) {
         val colorRes = when (riskState) {
             RiskState.KNOWN_SAFE -> R.color.risk_safe
@@ -1075,6 +1207,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     override fun onBackPressed() {
+        if (customView != null) {
+            onHideCustomView()
+            return
+        }
         val webView = tabManager.activeTab?.webView
         if (webView?.canGoBack() == true) {
             webView.goBack()
@@ -1085,6 +1221,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onDestroy() {
+        if (customView != null) {
+            onHideCustomView()
+        }
+        fileUploadCallback?.onReceiveValue(null)
+        fileUploadCallback = null
+        super.onDestroy()
     }
 
     private fun handleIntent(intent: Intent?) {

@@ -969,4 +969,17 @@
             app:tint="@color/text_secondary" />
     </LinearLayout>
 
+    <!-- 4. FULLSCREEN VIDEO / CUSTOM VIEW OVERLAY CONTAINER -->
+    <FrameLayout
+        android:id="@+id/fullscreenCustomViewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:elevation="24dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

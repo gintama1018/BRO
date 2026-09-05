@@ -48,6 +48,10 @@
         android:title="@string/title_history" />
 
     <item
+        android:id="@+id/action_downloads"
+        android:title="Downloads" />
+
+    <item
         android:id="@+id/action_settings"
         android:title="@string/title_settings" />
 </menu>

@@ -82,7 +82,10 @@ object SitePermissionType {
 class NovaWebChromeClient(
     private val callback: NavigationCallback,
     private val onPermissionRequestPrompt: ((request: android.webkit.PermissionRequest, canonicalOrigin: String, resources: List<String>) -> Unit)? = null,
-    private val onGeolocationPrompt: ((origin: String, canonicalOrigin: String, callback: android.webkit.GeolocationPermissions.Callback) -> Unit)? = null
+    private val onGeolocationPrompt: ((origin: String, canonicalOrigin: String, callback: android.webkit.GeolocationPermissions.Callback) -> Unit)? = null,
+    private val onShowFileChooserCallback: ((filePathCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?, fileChooserParams: WebChromeClient.FileChooserParams?) -> Boolean)? = null,
+    private val onShowCustomViewCallback: ((view: android.view.View, callback: WebChromeClient.CustomViewCallback) -> Unit)? = null,
+    private val onHideCustomViewCallback: (() -> Unit)? = null
 ) : WebChromeClient() {
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -121,5 +124,26 @@ class NovaWebChromeClient(
         } else {
             callback.invoke(origin, false, false)
         }
+    }
+
+    override fun onShowFileChooser(
+        webView: WebView?,
+        filePathCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?,
+        fileChooserParams: FileChooserParams?
+    ): Boolean {
+        return onShowFileChooserCallback?.invoke(filePathCallback, fileChooserParams)
+            ?: super.onShowFileChooser(webView, filePathCallback, fileChooserParams)
+    }
+
+    override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
+        if (view != null && callback != null) {
+            onShowCustomViewCallback?.invoke(view, callback) ?: callback.onCustomViewHidden()
+        } else {
+            super.onShowCustomView(view, callback)
+        }
+    }
+
+    override fun onHideCustomView() {
+        onHideCustomViewCallback?.invoke() ?: super.onHideCustomView()
     }
 }
