@@ -53,6 +53,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import com.gintama.novabrowser.adblock.AdBlockEngine
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.gintama.novabrowser.core.db.NovaDatabaseHelper
+import com.gintama.novabrowser.ui.motion.NovaMotion
 import kotlinx.coroutines.launch
 import java.util.ArrayList
 
@@ -85,6 +86,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var btnOmniboxMic: ImageButton
     private lateinit var btnSearchEnginePicker: TextView
     private lateinit var tvCanvasBlockedCount: TextView
+
+    // Hero Logo & Ambient Glow
+    private lateinit var ivHeroLogo: ImageView
+    private lateinit var ivHeroGlow: View
 
     // Find in Page Bar
     private lateinit var layoutFindInPage: LinearLayout
@@ -157,6 +162,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         setupTabManager()
         setupListeners()
         setupFavoritesAndSyntheses()
+        setupMotionGraphics()
         handleIntent(intent)
     }
 
@@ -181,6 +187,9 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnOmniboxMic = findViewById(R.id.btnOmniboxMic)
         btnSearchEnginePicker = findViewById(R.id.btnSearchEnginePicker)
         tvCanvasBlockedCount = findViewById(R.id.tvCanvasBlockedCount)
+
+        ivHeroLogo = findViewById(R.id.ivHeroLogo)
+        ivHeroGlow = findViewById(R.id.ivHeroGlow)
 
         layoutFindInPage = findViewById(R.id.layoutFindInPage)
         etFindQuery = findViewById(R.id.etFindQuery)
@@ -456,6 +465,18 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
             true
         }
+
+        // Tactile spring micro-interaction
+        NovaMotion.attachSpringTouchFeedback(tileView)
+    }
+
+    private fun setupMotionGraphics() {
+        NovaMotion.startHeroBreathingAnimation(ivHeroLogo, ivHeroGlow)
+        NovaMotion.attachSpringTouchFeedback(
+            btnIslandBrowse, btnIslandAsk, btnIslandShield, btnIslandBookmarks,
+            btnTabs, btnMenu, btnNavBack, btnNavForward, layoutShieldBadge,
+            btnSearchEnginePicker, btnOmniboxMic
+        )
     }
 
     private fun showEditTileDialog(prefKey: String, curName: String, curUrl: String, onUpdated: () -> Unit) {
@@ -583,16 +604,18 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun showStartCanvas() {
-        layoutNewTabCanvas.visibility = View.VISIBLE
-        webViewContainer.visibility = View.GONE
+        NovaMotion.crossFade(webViewContainer, layoutNewTabCanvas)
         etUrlInput.setText("")
         tvLocalBadge.text = "local"
-        tvCanvasBlockedCount.text = "${AdBlockEngine.getLifetimeBlockedCount()} Ads & Trackers Neutralized"
+        NovaMotion.animateCountUp(
+            tvCanvasBlockedCount,
+            AdBlockEngine.getLifetimeBlockedCount(),
+            "Ads & Trackers Neutralized"
+        )
     }
 
     private fun showWebView() {
-        layoutNewTabCanvas.visibility = View.GONE
-        webViewContainer.visibility = View.VISIBLE
+        NovaMotion.crossFade(layoutNewTabCanvas, webViewContainer)
     }
 
     private fun showAdBlockShieldBottomSheet() {
@@ -857,7 +880,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private fun showFindInPage() {
         val webView = tabManager.activeTab?.webView ?: return
-        layoutFindInPage.visibility = View.VISIBLE
+        NovaMotion.slideDown(layoutFindInPage)
         etFindQuery.requestFocus()
         val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.showSoftInput(etFindQuery, InputMethodManager.SHOW_IMPLICIT)
@@ -881,8 +904,9 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnFindNext.setOnClickListener { webView.findNext(true) }
         btnFindClose.setOnClickListener {
             webView.clearMatches()
-            layoutFindInPage.visibility = View.GONE
-            hideKeyboard()
+            NovaMotion.slideUp(layoutFindInPage) {
+                hideKeyboard()
+            }
         }
     }
 
@@ -918,18 +942,14 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     override fun onPageProgress(progress: Int) {
-        if (progress in 1..99) {
-            progressBar.visibility = View.VISIBLE
-            progressBar.progress = progress
-        } else {
-            progressBar.visibility = View.GONE
-        }
+        NovaMotion.animateProgressBar(progressBar, progress)
     }
 
     override fun onBlockedAdsUpdated(tab: BrowserTab, blockedCount: Int) {
         if (tab.id == tabManager.activeTab?.id) {
             runOnUiThread {
                 tvShieldBadgeCount.text = blockedCount.toString()
+                NovaMotion.pulseBadge(layoutShieldBadge)
             }
         }
     }

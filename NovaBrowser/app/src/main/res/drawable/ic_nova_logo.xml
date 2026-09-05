@@ -4,37 +4,94 @@
     android:viewportWidth="100"
     android:viewportHeight="100">
 
-    <!-- Squircle base -->
+    <!-- Deep Space Obsidian Squircle Base -->
     <path
-        android:fillColor="#0F172A"
+        android:fillColor="#090D16"
         android:pathData="M 24,0 L 76,0 A 24,24 0 0,1 100,24 L 100,76 A 24,24 0 0,1 76,100 L 24,100 A 24,24 0 0,1 0,76 L 0,24 A 24,24 0 0,1 24,0 Z" />
 
-    <!-- Outer faint orbit ring -->
+    <!-- Ambient Subtle Inner Border -->
     <path
-        android:strokeColor="#26FFFFFF"
-        android:strokeWidth="2"
-        android:pathData="M 50,18 A 32,32 0 1,1 49.9,18 Z" />
+        android:strokeColor="#1E293B"
+        android:strokeWidth="1.2"
+        android:pathData="M 24,1.5 L 76,1.5 A 22.5,22.5 0 0,1 98.5,24 L 98.5,76 A 22.5,22.5 0 0,1 76,98.5 L 24,98.5 A 22.5,22.5 0 0,1 1.5,76 L 1.5,24 A 22.5,22.5 0 0,1 24,1.5 Z" />
 
-    <!-- Inner orbit ring -->
+    <!-- Background Cosmic Dust Points -->
     <path
-        android:strokeColor="#4DFFFFFF"
-        android:strokeWidth="2.5"
-        android:pathData="M 50,30 A 20,20 0 1,1 49.9,30 Z" />
+        android:fillColor="#3338BDF8"
+        android:pathData="M 21,22 A 1.2,1.2 0 1,1 20.9,22 Z M 79,19 A 1.5,1.5 0 1,1 78.9,19 Z M 17,75 A 1.2,1.2 0 1,1 16.9,75 Z M 83,77 A 1.4,1.4 0 1,1 82.9,77 Z" />
 
-    <!-- Center core beacon -->
+    <!-- Outer Primary Celestial Orbital Ring (Neon Cyan) -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M 50,42 A 8,8 0 1,1 49.9,42 Z" />
-
-    <!-- Crosshair reticles -->
-    <path
-        android:strokeColor="#FFFFFF"
+        android:strokeColor="#06B6D4"
         android:strokeWidth="2.5"
         android:strokeLineCap="round"
-        android:pathData="M 50,14 L 50,26 M 50,74 L 50,86 M 14,50 L 26,50 M 74,50 L 86,50" />
+        android:pathData="M 18,36 C 26,20 68,14 84,34 C 92,44 86,68 76,78 C 62,92 28,88 16,70 C 11,62 13,46 22,34" />
 
-    <!-- Verified Emerald Beacon Dot -->
+    <!-- Secondary Counter-Orbital Ring (Electric Violet) -->
+    <path
+        android:strokeColor="#8B5CF6"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M 28,24 C 54,16 82,34 78,64 C 75,80 52,86 34,80 C 18,74 14,52 24,36" />
+
+    <!-- 8-Point Supernova Celestial Facets (Deep Indigo/Cyan Backdrop) -->
+    <!-- Diagonal Rays -->
+    <path
+        android:fillColor="#4F46E5"
+        android:pathData="M 50,50 L 27,27 L 44,46 Z M 50,50 L 73,27 L 54,44 Z M 50,50 L 73,73 L 56,54 Z M 50,50 L 27,73 L 46,56 Z" />
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M 50,50 L 27,27 L 46,44 Z M 50,50 L 73,27 L 56,46 Z M 50,50 L 73,73 L 54,56 Z M 50,50 L 27,73 L 44,54 Z" />
+
+    <!-- Major Cardinal Star Spikes (Faceted Shading) -->
+    <!-- North Spike -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M 50,14 L 46,45 L 50,50 Z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 50,14 L 54,45 L 50,50 Z" />
+
+    <!-- South Spike -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M 50,86 L 54,55 L 50,50 Z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 50,86 L 46,55 L 50,50 Z" />
+
+    <!-- West Spike -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M 14,50 L 45,54 L 50,50 Z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 14,50 L 45,46 L 50,50 Z" />
+
+    <!-- East Spike -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M 86,50 L 55,46 L 50,50 Z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 86,50 L 55,54 L 50,50 Z" />
+
+    <!-- Brilliant Core Starburst (Inner Diamond Compass) -->
+    <path
+        android:fillColor="#E0F2FE"
+        android:pathData="M 50,33 L 53.5,46.5 L 67,50 L 53.5,53.5 L 50,67 L 46.5,53.5 L 33,50 L 46.5,46.5 Z" />
+
+    <!-- Center Singularity / Light Core -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 50,45 A 5,5 0 1,1 49.9,45 Z" />
+
+    <!-- Emerald Security Node Satellite on Orbit -->
     <path
         android:fillColor="#10B981"
-        android:pathData="M 68,28.5 A 3.5,3.5 0 1,1 67.9,28.5 Z" />
+        android:pathData="M 74,27 A 4,4 0 1,1 73.9,27 Z" />
+    <path
+        android:fillColor="#A7F3D0"
+        android:pathData="M 74,27 A 1.8,1.8 0 1,1 73.9,27 Z" />
+
 </vector>

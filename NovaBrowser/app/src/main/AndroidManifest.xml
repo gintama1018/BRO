@@ -6,9 +6,9 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@drawable/ic_security"
+        android:icon="@drawable/ic_nova_logo"
         android:label="@string/app_name"
-        android:roundIcon="@drawable/ic_security"
+        android:roundIcon="@drawable/ic_nova_logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.NovaBrowser"
         android:usesCleartextTraffic="true">

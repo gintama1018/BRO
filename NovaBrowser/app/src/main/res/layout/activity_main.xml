@@ -287,15 +287,24 @@
                 android:paddingTop="12dp">
 
                 <!-- Hero Identity Anchor: Nova Core Mark + Beacon -->
+                <!-- Hero Identity Anchor: Nova Core Mark + Ambient Celestial Aura -->
                 <FrameLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp">
 
+                    <View
+                        android:id="@+id/ivHeroGlow"
+                        android:layout_width="88dp"
+                        android:layout_height="88dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_hero_glow" />
+
                     <ImageView
                         android:id="@+id/ivHeroLogo"
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_gravity="center"
                         android:contentDescription="NovaBrowser Core Mark"
                         android:src="@drawable/ic_nova_logo" />
                 </FrameLayout>
