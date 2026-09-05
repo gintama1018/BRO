@@ -68,11 +68,21 @@ class NovaWebViewClient(
     }
 }
 
+object SitePermissionType {
+    const val CAMERA = "camera"
+    const val MICROPHONE = "microphone"
+    const val GEOLOCATION = "geolocation"
+    const val PROTECTED_MEDIA = "protected_media"
+}
+
 /**
- * Custom WebChromeClient reporting real-time page progress and page title.
+ * Custom WebChromeClient reporting real-time page progress, page title,
+ * and intercepting WebView permission / geolocation requests with canonical origin enforcement.
  */
 class NovaWebChromeClient(
-    private val callback: NavigationCallback
+    private val callback: NavigationCallback,
+    private val onPermissionRequestPrompt: ((request: android.webkit.PermissionRequest, canonicalOrigin: String, resources: List<String>) -> Unit)? = null,
+    private val onGeolocationPrompt: ((origin: String, canonicalOrigin: String, callback: android.webkit.GeolocationPermissions.Callback) -> Unit)? = null
 ) : WebChromeClient() {
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -84,6 +94,32 @@ class NovaWebChromeClient(
         super.onReceivedTitle(view, title)
         if (!title.isNullOrBlank()) {
             callback.onTitleReceived(title)
+        }
+    }
+
+    override fun onPermissionRequest(request: android.webkit.PermissionRequest?) {
+        if (request == null) return
+        val rawOrigin = request.origin?.toString().orEmpty()
+        val canonicalOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(rawOrigin)
+        val resources = request.resources?.toList().orEmpty()
+
+        if (onPermissionRequestPrompt != null) {
+            onPermissionRequestPrompt.invoke(request, canonicalOrigin, resources)
+        } else {
+            request.deny()
+        }
+    }
+
+    override fun onGeolocationPermissionsShowPrompt(
+        origin: String?,
+        callback: android.webkit.GeolocationPermissions.Callback?
+    ) {
+        if (origin == null || callback == null) return
+        val canonicalOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(origin)
+        if (onGeolocationPrompt != null) {
+            onGeolocationPrompt.invoke(origin, canonicalOrigin, callback)
+        } else {
+            callback.invoke(origin, false, false)
         }
     }
 }

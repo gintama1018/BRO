@@ -115,8 +115,16 @@ object HeuristicsEngine {
 
     private fun detectBrandImpersonation(mainDomain: String, unicodeDomain: String): String? {
         val sanitized = mainDomain.replace("-", "").replace("_", "")
+        val unicodeParts = unicodeDomain.split(".")
+        val unicodeMain = if (unicodeParts.size >= 2) unicodeParts[unicodeParts.size - 2] else unicodeDomain
+        val transliterated = normalizeHomoglyphs(unicodeMain).replace("-", "").replace("_", "")
 
         for (brand in PROTECTED_BRANDS) {
+            // Homoglyph impersonation: Cyrillic/Greek lookalike matches brand but host is punycode
+            if (transliterated.equals(brand, ignoreCase = true) && !mainDomain.equals(brand, ignoreCase = true)) {
+                return brand
+            }
+
             if (sanitized.equals(brand, ignoreCase = true)) continue
 
             // Normalized character replacement check (e.g. '1' -> 'l', '0' -> 'o')
@@ -138,6 +146,25 @@ object HeuristicsEngine {
             }
         }
         return null
+    }
+
+    private fun normalizeHomoglyphs(input: String): String {
+        val sb = StringBuilder()
+        for (c in input) {
+            val norm = when (c) {
+                '\u0430' -> 'a' // Cyrillic small letter a
+                '\u0435' -> 'e' // Cyrillic small letter ie
+                '\u043E' -> 'o' // Cyrillic small letter o
+                '\u0440' -> 'p' // Cyrillic small letter er
+                '\u0441' -> 'c' // Cyrillic small letter es
+                '\u0443' -> 'y' // Cyrillic small letter u
+                '\u0445' -> 'x' // Cyrillic small letter ha
+                '\u0456' -> 'i' // Cyrillic small letter byelorussian-ukrainian i
+                else -> c
+            }
+            sb.append(norm)
+        }
+        return sb.toString()
     }
 
     private fun calculateShannonEntropy(input: String): Double {

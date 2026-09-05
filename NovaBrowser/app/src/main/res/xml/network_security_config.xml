@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      Explicit HTTP/HTTPS Transport Policy:
+      Baseline allows user-approved connections while enforcing standard system trust anchors.
+      Cleartext traffic is explicitly policed and warned via DeterministicSecurityGate.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

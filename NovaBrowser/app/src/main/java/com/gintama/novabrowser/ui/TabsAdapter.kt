@@ -6,7 +6,6 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.gintama.novabrowser.R
@@ -40,7 +39,7 @@ class TabsAdapter(
     override fun getItemCount(): Int = tabs.size
 
     inner class TabViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val cardTab: CardView = itemView.findViewById(R.id.cardTab)
+        private val cardTab: View = itemView.findViewById(R.id.cardTab)
         private val tvTitle: TextView = itemView.findViewById(R.id.tvTabTitle)
         private val tvUrl: TextView = itemView.findViewById(R.id.tvTabUrl)
         private val ivIcon: ImageView = itemView.findViewById(R.id.ivTabIcon)
@@ -59,11 +58,11 @@ class TabsAdapter(
             }
 
             if (isActive) {
-                cardTab.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.background))
-                cardTab.cardElevation = 10f
+                cardTab.setBackgroundResource(R.drawable.bg_glass_card_active)
+                cardTab.elevation = 8f
             } else {
-                cardTab.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.surface))
-                cardTab.cardElevation = 2f
+                cardTab.setBackgroundResource(R.drawable.bg_glass_card)
+                cardTab.elevation = 1f
             }
 
             itemView.setOnClickListener { onTabClick(tab) }

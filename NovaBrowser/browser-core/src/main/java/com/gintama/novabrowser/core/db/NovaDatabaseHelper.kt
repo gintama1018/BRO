@@ -647,6 +647,43 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         }
     }
 
+    fun atomicReplaceSnapshot(source: String, rules: List<com.gintama.novabrowser.core.model.SecurityRule>, version: String = ""): Boolean {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("security_rules", "source = ?", arrayOf(source.uppercase()))
+
+            val stmt = db.compileStatement("""
+                INSERT INTO security_rules (rule_type, pattern, source, severity, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+            """.trimIndent())
+
+            for (rule in rules) {
+                stmt.clearBindings()
+                stmt.bindString(1, rule.ruleType.name.lowercase())
+                stmt.bindString(2, rule.pattern.lowercase().trim())
+                stmt.bindString(3, source.uppercase())
+                stmt.bindString(4, rule.severity.name.lowercase())
+                stmt.bindLong(5, rule.updatedAt)
+                stmt.executeInsert()
+            }
+
+            val metaValues = ContentValues().apply {
+                put("feed_source", source.uppercase())
+                put("last_updated_at", System.currentTimeMillis())
+                put("rule_count", rules.size)
+            }
+            db.insertWithOnConflict("snapshot_meta", null, metaValues, SQLiteDatabase.CONFLICT_REPLACE)
+
+            db.setTransactionSuccessful()
+            return true
+        } catch (e: Exception) {
+            return false
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     fun updateSnapshotMeta(source: String, ruleCount: Int) {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -765,13 +802,14 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     // Site Permissions DAO (Phase 5)
     // ==========================================
 
-    fun getSitePermissions(domain: String): Map<String, Boolean> {
-        val cleanDomain = domain.lowercase().trim().removePrefix("www.")
+    fun getSitePermissions(originOrDomain: String): Map<String, Boolean> {
+        val canonical = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(originOrDomain)
+        val cleanDomain = originOrDomain.lowercase().trim().removePrefix("www.")
         val map = mutableMapOf<String, Boolean>()
         val db = readableDatabase
         val cursor = db.rawQuery(
-            "SELECT permission, granted FROM site_permissions WHERE domain = ?",
-            arrayOf(cleanDomain)
+            "SELECT permission, granted FROM site_permissions WHERE domain = ? OR domain = ?",
+            arrayOf(canonical, cleanDomain)
         )
         cursor.use {
             while (it.moveToNext()) {
@@ -781,11 +819,16 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         return map
     }
 
-    fun setSitePermission(domain: String, permission: String, granted: Boolean) {
-        val cleanDomain = domain.lowercase().trim().removePrefix("www.")
+    fun getSitePermission(originOrDomain: String, permission: String): Boolean? {
+        val perms = getSitePermissions(originOrDomain)
+        return perms[permission]
+    }
+
+    fun setSitePermission(originOrDomain: String, permission: String, granted: Boolean) {
+        val canonical = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(originOrDomain)
         val db = writableDatabase
         val values = android.content.ContentValues().apply {
-            put("domain", cleanDomain)
+            put("domain", canonical)
             put("permission", permission)
             put("granted", if (granted) 1 else 0)
             put("updated_at", System.currentTimeMillis())

@@ -136,11 +136,14 @@ class SettingsActivity : AppCompatActivity() {
                 val report = results.joinToString("\n")
                 tvDiagnosticsResult.text = report
 
+                val activeRuleCount = com.gintama.novabrowser.adblock.AdBlockEngine.getBlocklistCount()
+                val cosmeticCount = com.gintama.novabrowser.adblock.AdBlockEngine.getCosmeticBatchCount()
+
                 AlertDialog.Builder(this@SettingsActivity)
                     .setTitle("Deterministic Security Audit")
                     .setMessage(
                         "RULE ENGINES VERIFIED:\n\n" +
-                        "• Ad/Tracker Rules: 9,578 domain signatures active\n" +
+                        "• Ad/Tracker Rules: $activeRuleCount domain signatures active ($cosmeticCount CSS batches)\n" +
                         "• Heuristic & Typosquat Engine: Levenshtein distance online\n" +
                         "• Canonicalizer: Percent-decode & Null-byte defense verified\n\n" +
                         "TEST OUTCOMES:\n$report"
@@ -161,7 +164,7 @@ class SettingsActivity : AppCompatActivity() {
             if (permissions.isEmpty()) {
                 AlertDialog.Builder(this)
                     .setTitle("Site Permissions")
-                    .setMessage("No site permissions (camera, microphone, location) have been granted yet. All sites operate under strict zero-trust sandboxing.")
+                    .setMessage("No site permissions (camera, microphone, location) have been granted yet. All sites operate with permissions blocked by default until prompted.")
                     .setPositiveButton("OK", null)
                     .show()
             } else {

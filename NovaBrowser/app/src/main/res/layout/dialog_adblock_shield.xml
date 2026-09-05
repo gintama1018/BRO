@@ -53,7 +53,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Shield Active • Zero Cloud Leaks"
+                android:text="Shield Active • On-Device Protection"
                 android:textColor="@color/accent_emerald"
                 android:textSize="12sp" />
         </LinearLayout>

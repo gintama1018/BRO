@@ -152,7 +152,22 @@ class DeterministicSecurityGate(
                     riskScore = heuristic.riskScore
                 )
             }
-            // Curated trusted whitelist domains
+            // Explicit HTTP Transport Warning Policy: Plain HTTP is never silently classified as safe
+            canonical.scheme.equals("http", ignoreCase = true) -> {
+                val httpReasons = reasons.toMutableList()
+                if (!httpReasons.any { it.contains("unencrypted", ignoreCase = true) || it.contains("downgrade", ignoreCase = true) }) {
+                    httpReasons.add("Unencrypted HTTP transport: communications are transmitted in cleartext and vulnerable to interception")
+                }
+                SecurityDecision(
+                    action = GateAction.WARN,
+                    riskState = RiskState.SUSPICIOUS,
+                    targetUrl = url,
+                    canonicalUrl = canonical.canonicalUrl,
+                    reasons = httpReasons,
+                    riskScore = maxOf(heuristic.riskScore, 0.4)
+                )
+            }
+            // Curated trusted whitelist domains (HTTPS only)
             CURATED_TRUSTED_DOMAINS.contains(canonical.host) || CURATED_TRUSTED_DOMAINS.any { canonical.host.endsWith(".$it") } -> {
                 SecurityDecision(
                     action = GateAction.ALLOW,

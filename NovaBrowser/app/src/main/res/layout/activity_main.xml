@@ -470,7 +470,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="1dp"
-                            android:text="9,578-domain local rule engine • Zero remote analytics"
+                            android:text="Local ad &amp; tracker engine • On-device ruleset"
                             android:textColor="@color/text_secondary"
                             android:textSize="10sp" />
                     </LinearLayout>
@@ -825,7 +825,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Zero cloud dispatch"
+                            android:text="On-device processing"
                             android:textColor="@color/text_tertiary"
                             android:textSize="10sp" />
                     </LinearLayout>

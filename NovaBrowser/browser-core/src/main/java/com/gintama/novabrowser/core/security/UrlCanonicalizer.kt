@@ -133,8 +133,22 @@ object UrlCanonicalizer {
     }
 
     private fun extractHostFallback(url: String): String {
-        val withoutScheme = url.substringAfter("://", url)
-        val hostPart = withoutScheme.substringBefore("/").substringBefore("?").substringBefore("#")
+        val noScheme = if (url.contains("://")) url.substringAfter("://") else url
+        val hostPart = noScheme.substringBefore("/").substringBefore("?").substringBefore("#")
         return if (hostPart.contains("@")) hostPart.substringAfterLast("@") else hostPart
+    }
+
+    /**
+     * Canonical origin normalization according to W3C / RFC 6454:
+     * scheme://host[:port] where standard ports (80 for http, 443 for https) are omitted.
+     */
+    fun canonicalOrigin(urlOrOrigin: String): String {
+        return try {
+            val canonical = canonicalize(urlOrOrigin)
+            val portString = if (canonical.port != -1) ":${canonical.port}" else ""
+            "${canonical.scheme}://${canonical.host}$portString"
+        } catch (e: Exception) {
+            urlOrOrigin.trim().lowercase()
+        }
     }
 }

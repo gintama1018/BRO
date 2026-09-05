@@ -50,6 +50,9 @@ object AdBlockEngine {
         db = NovaDatabaseHelper.getInstance(appContext)
         lifetimeCounter.set(prefs.getLong(KEY_LIFETIME_BLOCKED, 0L))
 
+        // Initialize dedicated CosmeticEngine (clean separation of DOM vs network concerns)
+        CosmeticEngine.init(appContext)
+
         scope.launch {
             loadBlocklist(appContext)
             loadCosmeticSelectors(appContext)
@@ -183,35 +186,20 @@ object AdBlockEngine {
 
     // ==========================================
     // Cosmetic CSS Injection (Phase 2)
+    // Delegated to CosmeticEngine for clean architectural separation
     // ==========================================
 
     fun injectCosmeticFilters(webView: WebView, siteHost: String?) {
-        if (!isCosmeticEnabledForSite(siteHost)) return
-        if (cosmeticBatches.isEmpty()) return
-
-        for (batch in cosmeticBatches) {
-            val safeCss = batch.replace("`", "\\`").replace("\\", "\\\\")
-            val js = """
-                (function() {
-                    try {
-                        var style = document.getElementById('nova-adblock-cosmetic');
-                        if (!style) {
-                            style = document.createElement('style');
-                            style.id = 'nova-adblock-cosmetic';
-                            style.type = 'text/css';
-                            (document.head || document.documentElement).appendChild(style);
-                        }
-                        style.textContent += `$safeCss`;
-                    } catch(e) {}
-                })();
-            """.trimIndent()
-            webView.evaluateJavascript(js, null)
-        }
+        CosmeticEngine.injectCosmeticFilters(webView, siteHost)
     }
 
     // ==========================================
     // Counters & Stats (Phase 4)
     // ==========================================
+
+    fun getBlocklistCount(): Int = blocklistSet.size
+
+    fun getCosmeticBatchCount(): Int = CosmeticEngine.getBatchCount()
 
     fun recordBlockedAd(count: Int = 1) {
         val newLifetime = lifetimeCounter.addAndGet(count.toLong())

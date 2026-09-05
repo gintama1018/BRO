@@ -3,6 +3,9 @@ package com.gintama.novabrowser.core.security
 import com.gintama.novabrowser.core.model.RuleSeverity
 import com.gintama.novabrowser.core.model.RuleType
 import com.gintama.novabrowser.core.model.SecurityRule
+import com.gintama.novabrowser.core.security.abp.CosmeticFilter
+import com.gintama.novabrowser.core.security.abp.FilterOption
+import com.gintama.novabrowser.core.security.abp.NetworkFilter
 
 /**
  * Parsed Adblock Plus (ABP) / EasyList / EasyPrivacy rule representation.
@@ -14,53 +17,82 @@ data class ParsedFilterRule(
     val isDomainAnchor: Boolean,
     val targetDomain: String?,
     val isThirdPartyOnly: Boolean,
+    val isImportant: Boolean = false,
+    val isBadFilter: Boolean = false,
     val source: String,
     val severity: RuleSeverity,
     val ruleType: RuleType
 )
 
 /**
- * Adblock & Threat Feed Rule Parser
+ * Modular Adblock & Threat Feed Rule Parser
  *
- * Parses standard filter-list syntax (EasyList, EasyPrivacy) and threat intelligence feeds (URLhaus):
- * - Comments: lines starting with '!' or '[' are skipped
- * - Exception filters: lines starting with '@@'
- * - Domain anchor: '||domain.com^' matches domain.com and any subdomain (*.domain.com)
- * - Options: '$third-party', '$script', '$image', '$subdocument'
- * - URLhaus CSV format: extracts malicious URLs and associated threat classifications
+ * Directs filter list parsing across specialized parsers:
+ * - Network rules (domain anchors, substring, regex, exceptions)
+ * - Cosmetic element hiding rules (##, #@#)
+ * - URLhaus threat intelligence CSV export parsing
  */
 object AdblockParser {
 
-    fun parseLine(line: String, source: String = "EASYLIST"): ParsedFilterRule? {
+    /**
+     * Parses a cosmetic filter rule (##, #?#, #@#).
+     */
+    fun parseCosmeticFilter(line: String): CosmeticFilter? {
+        return CosmeticFilter.parse(line)
+    }
+
+    /**
+     * Parses a network filtering rule with full modifier support ($important, $badfilter, $domain=, etc.).
+     */
+    fun parseNetworkFilter(line: String, source: String = "EASYLIST"): NetworkFilter? {
         val trimmed = line.trim()
-        if (trimmed.isEmpty() || trimmed.startsWith("!") || trimmed.startsWith("[")) {
+        if (trimmed.isEmpty() || trimmed.startsWith("!") || trimmed.startsWith("[") || trimmed.startsWith("#")) {
             return null
         }
+        if (trimmed.contains("##") || trimmed.contains("#@#") || trimmed.contains("#?#")) {
+            return null // Delegate to cosmetic filter
+        }
 
-        // 1. Exception rules: @@||safe.com^
         val isException = trimmed.startsWith("@@")
         val content = if (isException) trimmed.substring(2) else trimmed
 
-        // 2. Options extraction ($third-party, $script, etc.)
         val hasOptions = content.contains("$")
         val rulePart = if (hasOptions) content.substringBefore("$") else content
-        val optionsPart = if (hasOptions) content.substringAfter("$").lowercase() else ""
+        val optionsPart = if (hasOptions) content.substringAfter("$") else ""
+        val options = FilterOption.parse(optionsPart)
 
-        val isThirdParty = optionsPart.contains("third-party") || optionsPart.contains("3p")
+        val isRegex = rulePart.startsWith("/") && rulePart.endsWith("/") && rulePart.length > 2
+        val cleanRule = if (isRegex) rulePart.substring(1, rulePart.length - 1) else rulePart
 
-        // 3. Domain anchor check (||domain.com^)
-        val isDomainAnchor = rulePart.startsWith("||")
-        val stripped = if (isDomainAnchor) rulePart.substring(2) else rulePart
+        val isDomainAnchor = cleanRule.startsWith("||")
+        val stripped = if (isDomainAnchor) cleanRule.substring(2) else cleanRule
 
-        // Extract clean domain / pattern
         val pattern = stripped.trimEnd('^').trimEnd('*')
-        val targetDomain = if (isDomainAnchor) {
+        val targetHost = if (isDomainAnchor) {
             pattern.substringBefore("/").substringBefore("^").substringBefore("*").lowercase()
         } else if (!pattern.contains("/") && pattern.contains(".")) {
             pattern.lowercase()
         } else {
             null
         }
+
+        return NetworkFilter(
+            rawRule = trimmed,
+            pattern = if (isRegex) cleanRule else pattern,
+            isException = isException,
+            isDomainAnchor = isDomainAnchor,
+            isRegex = isRegex,
+            targetHost = targetHost,
+            options = options,
+            source = source
+        )
+    }
+
+    /**
+     * Legacy & snapshot compatible parser for database persistence.
+     */
+    fun parseLine(line: String, source: String = "EASYLIST"): ParsedFilterRule? {
+        val network = parseNetworkFilter(line, source) ?: return null
 
         val ruleType = when (source) {
             "URLHAUS" -> RuleType.MALWARE
@@ -69,19 +101,21 @@ object AdblockParser {
         }
 
         val severity = when {
-            isException -> RuleSeverity.INFO
+            network.isException -> RuleSeverity.INFO
             source == "URLHAUS" -> RuleSeverity.BLOCK
-            source == "EASYPRIVACY" -> RuleSeverity.INFO // Subresource block
-            else -> RuleSeverity.INFO // Subresource block
+            network.options.isImportant -> RuleSeverity.BLOCK
+            else -> RuleSeverity.INFO
         }
 
         return ParsedFilterRule(
-            rawRule = trimmed,
-            pattern = pattern,
-            isException = isException,
-            isDomainAnchor = isDomainAnchor,
-            targetDomain = targetDomain,
-            isThirdPartyOnly = isThirdParty,
+            rawRule = network.rawRule,
+            pattern = network.pattern,
+            isException = network.isException,
+            isDomainAnchor = network.isDomainAnchor,
+            targetDomain = network.targetHost,
+            isThirdPartyOnly = network.options.isThirdParty,
+            isImportant = network.options.isImportant,
+            isBadFilter = network.options.isBadFilter,
             source = source,
             severity = severity,
             ruleType = ruleType

@@ -90,4 +90,15 @@ class SecurityGateTest {
         assertEquals(GateAction.BLOCK, decision.action)
         assertEquals(RiskState.BLOCKED, decision.riskState)
     }
+
+    @Test
+    fun testExplicitPlainHttpYieldsWarning() {
+        // Enforces Objective #2: Plain HTTP is never silently treated as UNKNOWN/ALLOW
+        val gate = createGateWithMockRules(emptyList())
+
+        val decision = gate.evaluate("http://example-insecure.com/login")
+        assertEquals(GateAction.WARN, decision.action)
+        assertEquals(RiskState.SUSPICIOUS, decision.riskState)
+        assertTrue(decision.reasons.any { it.contains("unencrypted", ignoreCase = true) })
+    }
 }

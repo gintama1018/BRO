@@ -5,6 +5,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
@@ -659,12 +660,12 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             switchSiteAdBlock.isChecked = adBlockEnabled
             switchSiteCosmetic.isChecked = cosmeticEnabled
 
-            tvStatus.text = if (adBlockEnabled) "Shield Active • Zero Cloud Leaks" else "Shield Paused on This Site"
+            tvStatus.text = if (adBlockEnabled) "Shield Active • On-Device Protection" else "Shield Paused on This Site"
             tvStatus.setTextColor(ContextCompat.getColor(this, if (adBlockEnabled) R.color.accent_emerald else R.color.risk_suspicious))
 
             switchSiteAdBlock.setOnCheckedChangeListener { _, isChecked ->
                 AdBlockEngine.setSiteRule(siteHost, isChecked, switchSiteCosmetic.isChecked)
-                tvStatus.text = if (isChecked) "Shield Active • Zero Cloud Leaks" else "Shield Paused on This Site"
+                tvStatus.text = if (isChecked) "Shield Active • On-Device Protection" else "Shield Paused on This Site"
                 tvStatus.setTextColor(ContextCompat.getColor(this, if (isChecked) R.color.accent_emerald else R.color.risk_suspicious))
             }
 
@@ -700,7 +701,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         val reasons = if (decision.reasons.isNotEmpty()) {
             decision.reasons.joinToString("\n• ")
         } else {
-            "Passed offline canonical validation\n• No typosquatting detected\n• Zero malicious canary patterns matched"
+            "Passed offline canonical validation\n• No typosquatting detected\n• Threat feed patterns clear"
         }
 
         AlertDialog.Builder(this)
@@ -840,14 +841,16 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder) = false
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val pos = viewHolder.adapterPosition
-                val tab = adapter.getTabAt(pos)
-                tabManager.closeTab(tab.id)
-                adapter.updateTabs(tabManager.getTabsList(), tabManager.activeTab?.id)
-                if (tabManager.tabCount == 0) {
-                    tabManager.createTab("about:blank")
-                    showStartCanvas()
-                    dialog.dismiss()
+                val pos = viewHolder.bindingAdapterPosition
+                if (pos in 0 until adapter.itemCount) {
+                    val tab = adapter.getTabAt(pos)
+                    tabManager.closeTab(tab.id)
+                    adapter.updateTabs(tabManager.getTabsList(), tabManager.activeTab?.id)
+                    if (tabManager.tabCount == 0) {
+                        tabManager.createTab("about:blank")
+                        showStartCanvas()
+                        dialog.dismiss()
+                    }
                 }
             }
         })
@@ -967,6 +970,57 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             putExtra(SecurityWarningActivity.EXTRA_RISK_SCORE, decision.riskScore)
         }
         securityLauncher.launch(intent)
+    }
+
+    override fun onSitePermissionPrompt(
+        canonicalOrigin: String,
+        permissions: List<String>,
+        onAllow: () -> Unit,
+        onDeny: () -> Unit
+    ) {
+        runOnUiThread {
+            val readablePerms = permissions.joinToString(", ") { p ->
+                when (p) {
+                    com.gintama.novabrowser.browser.SitePermissionType.CAMERA -> "Camera"
+                    com.gintama.novabrowser.browser.SitePermissionType.MICROPHONE -> "Microphone"
+                    com.gintama.novabrowser.browser.SitePermissionType.GEOLOCATION -> "Location"
+                    com.gintama.novabrowser.browser.SitePermissionType.PROTECTED_MEDIA -> "Protected Media ID"
+                    else -> p
+                }
+            }
+
+            // Check if native Android runtime permissions are needed
+            val neededAndroidPerms = mutableListOf<String>()
+            if (permissions.contains(com.gintama.novabrowser.browser.SitePermissionType.CAMERA) &&
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                neededAndroidPerms.add(android.Manifest.permission.CAMERA)
+            }
+            if (permissions.contains(com.gintama.novabrowser.browser.SitePermissionType.MICROPHONE) &&
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                neededAndroidPerms.add(android.Manifest.permission.RECORD_AUDIO)
+            }
+            if (permissions.contains(com.gintama.novabrowser.browser.SitePermissionType.GEOLOCATION) &&
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                neededAndroidPerms.add(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+
+            AlertDialog.Builder(this)
+                .setTitle("Site Permission Request")
+                .setMessage("Website:\n$canonicalOrigin\n\nRequests access to:\n• $readablePerms\n\nPermission will be strictly locked to this canonical origin.")
+                .setPositiveButton("Allow") { _, _ ->
+                    if (neededAndroidPerms.isNotEmpty()) {
+                        requestPermissions(neededAndroidPerms.toTypedArray(), 1001)
+                    }
+                    onAllow()
+                }
+                .setNegativeButton("Block") { _, _ ->
+                    onDeny()
+                }
+                .setOnCancelListener {
+                    onDeny()
+                }
+                .show()
+        }
     }
 
     private fun updateSecurityIndicator(riskState: RiskState) {

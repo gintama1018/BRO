@@ -24,6 +24,12 @@ interface TabChangeListener {
     fun onPageProgress(progress: Int)
     fun onSecurityIntervention(decision: SecurityDecision, targetUrl: String, onProceed: () -> Unit)
     fun onBlockedAdsUpdated(tab: BrowserTab, blockedCount: Int)
+    fun onSitePermissionPrompt(
+        canonicalOrigin: String,
+        permissions: List<String>,
+        onAllow: () -> Unit,
+        onDeny: () -> Unit
+    )
 }
 
 /**
@@ -151,7 +157,86 @@ class TabManager(
                 }
             }
         )
-        webView.webChromeClient = NovaWebChromeClient(navCallback)
+        val dbHelper = com.gintama.novabrowser.core.db.NovaDatabaseHelper.getInstance(context)
+
+        webView.webChromeClient = NovaWebChromeClient(
+            callback = navCallback,
+            onPermissionRequestPrompt = { request, canonicalOrigin, resources ->
+                val mainFrameOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(tab.url)
+
+                // Main-frame origin validation: Never grant permissions if context origin does not match main frame
+                if (canonicalOrigin != mainFrameOrigin) {
+                    request.deny()
+                    return@NovaWebChromeClient
+                }
+
+                val mappedPermissions = mutableListOf<String>()
+                for (res in resources) {
+                    when (res) {
+                        android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE -> mappedPermissions.add(SitePermissionType.CAMERA)
+                        android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE -> mappedPermissions.add(SitePermissionType.MICROPHONE)
+                        android.webkit.PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID -> mappedPermissions.add(SitePermissionType.PROTECTED_MEDIA)
+                        else -> mappedPermissions.add(res)
+                    }
+                }
+
+                val configured = dbHelper.getSitePermissions(canonicalOrigin)
+                val allGranted = mappedPermissions.all { configured[it] == true }
+                val anyDenied = mappedPermissions.any { configured[it] == false }
+
+                if (allGranted && mappedPermissions.isNotEmpty()) {
+                    request.grant(resources.toTypedArray())
+                } else if (anyDenied) {
+                    request.deny()
+                } else {
+                    listener.onSitePermissionPrompt(
+                        canonicalOrigin = canonicalOrigin,
+                        permissions = mappedPermissions,
+                        onAllow = {
+                            for (p in mappedPermissions) {
+                                dbHelper.setSitePermission(canonicalOrigin, p, true)
+                            }
+                            request.grant(resources.toTypedArray())
+                        },
+                        onDeny = {
+                            for (p in mappedPermissions) {
+                                dbHelper.setSitePermission(canonicalOrigin, p, false)
+                            }
+                            request.deny()
+                        }
+                    )
+                }
+            },
+            onGeolocationPrompt = { rawOrigin, canonicalOrigin, geoCallback ->
+                val mainFrameOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(tab.url)
+
+                // Main-frame origin validation
+                if (canonicalOrigin != mainFrameOrigin) {
+                    geoCallback.invoke(rawOrigin, false, false)
+                    return@NovaWebChromeClient
+                }
+
+                val decision = dbHelper.getSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION)
+                when (decision) {
+                    true -> geoCallback.invoke(rawOrigin, true, false)
+                    false -> geoCallback.invoke(rawOrigin, false, false)
+                    null -> {
+                        listener.onSitePermissionPrompt(
+                            canonicalOrigin = canonicalOrigin,
+                            permissions = listOf(SitePermissionType.GEOLOCATION),
+                            onAllow = {
+                                dbHelper.setSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION, true)
+                                geoCallback.invoke(rawOrigin, true, false)
+                            },
+                            onDeny = {
+                                dbHelper.setSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION, false)
+                                geoCallback.invoke(rawOrigin, false, false)
+                            }
+                        )
+                    }
+                }
+            }
+        )
 
         tabs.add(tab)
         switchTab(tab.id)
