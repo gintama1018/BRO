@@ -205,6 +205,14 @@ class TabManager(
         }
     }
 
+    fun closeAllTabs() {
+        for (tab in tabs) {
+            tab.webView.cleanUp()
+        }
+        tabs.clear()
+        createTab("about:blank", isPrivate = false)
+    }
+
     private fun saveTabs() {
         // Privacy Invariant: Private tabs must NEVER be persisted to disk/sessions table!
         val sessions = tabs.filter { !it.isPrivate }.map {

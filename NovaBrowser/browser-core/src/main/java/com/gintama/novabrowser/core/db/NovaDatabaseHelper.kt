@@ -136,6 +136,27 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 updated_at INTEGER NOT NULL
             );
         """.trimIndent())
+
+        // 9. Broken Site Reports Table (Phase 2 site compatibility reports)
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS broken_site_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT NOT NULL,
+                domain TEXT NOT NULL,
+                reported_at INTEGER NOT NULL
+            );
+        """.trimIndent())
+
+        // 10. Site Permissions Table (Phase 5 Camera/Mic/Location/Notifications)
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS site_permissions (
+                domain TEXT NOT NULL,
+                permission TEXT NOT NULL,
+                granted INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (domain, permission)
+            );
+        """.trimIndent())
     }
 
     override fun onOpen(db: SQLiteDatabase) {
@@ -148,10 +169,29 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 updated_at INTEGER NOT NULL
             );
         """.trimIndent())
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS broken_site_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT NOT NULL,
+                domain TEXT NOT NULL,
+                reported_at INTEGER NOT NULL
+            );
+        """.trimIndent())
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS site_permissions (
+                domain TEXT NOT NULL,
+                permission TEXT NOT NULL,
+                granted INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (domain, permission)
+            );
+        """.trimIndent())
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         // For development / early phases:
+        db.execSQL("DROP TABLE IF EXISTS site_permissions")
+        db.execSQL("DROP TABLE IF EXISTS broken_site_reports")
         db.execSQL("DROP TABLE IF EXISTS adblock_site_rules")
         db.execSQL("DROP TABLE IF EXISTS ai_page_index")
         db.execSQL("DROP TABLE IF EXISTS snapshot_meta")
@@ -689,5 +729,88 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             }
         }
         return result
+    }
+
+    // ==========================================
+    // Broken Site Reports DAO (Phase 2)
+    // ==========================================
+
+    fun reportBrokenSite(url: String): Long {
+        val domain = try {
+            java.net.URI(url).host?.lowercase()?.removePrefix("www.") ?: url
+        } catch (e: Exception) {
+            url
+        }
+        val db = writableDatabase
+        val values = android.content.ContentValues().apply {
+            put("url", url)
+            put("domain", domain)
+            put("reported_at", System.currentTimeMillis())
+        }
+        return db.insert("broken_site_reports", null, values)
+    }
+
+    fun getBrokenSiteReportsCount(): Int {
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT COUNT(*) FROM broken_site_reports", null)
+        cursor.use {
+            if (it.moveToNext()) {
+                return it.getInt(0)
+            }
+        }
+        return 0
+    }
+
+    // ==========================================
+    // Site Permissions DAO (Phase 5)
+    // ==========================================
+
+    fun getSitePermissions(domain: String): Map<String, Boolean> {
+        val cleanDomain = domain.lowercase().trim().removePrefix("www.")
+        val map = mutableMapOf<String, Boolean>()
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT permission, granted FROM site_permissions WHERE domain = ?",
+            arrayOf(cleanDomain)
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                map[it.getString(0)] = it.getInt(1) == 1
+            }
+        }
+        return map
+    }
+
+    fun setSitePermission(domain: String, permission: String, granted: Boolean) {
+        val cleanDomain = domain.lowercase().trim().removePrefix("www.")
+        val db = writableDatabase
+        val values = android.content.ContentValues().apply {
+            put("domain", cleanDomain)
+            put("permission", permission)
+            put("granted", if (granted) 1 else 0)
+            put("updated_at", System.currentTimeMillis())
+        }
+        db.insertWithOnConflict("site_permissions", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun getAllConfiguredSitePermissions(): Map<String, Map<String, Boolean>> {
+        val result = mutableMapOf<String, MutableMap<String, Boolean>>()
+        val db = readableDatabase
+        val cursor = db.rawQuery("SELECT domain, permission, granted FROM site_permissions", null)
+        cursor.use {
+            while (it.moveToNext()) {
+                val d = it.getString(0)
+                val p = it.getString(1)
+                val g = it.getInt(2) == 1
+                val permMap = result.getOrPut(d) { mutableMapOf() }
+                permMap[p] = g
+            }
+        }
+        return result
+    }
+
+    fun clearAllSitePermissions(): Int {
+        val db = writableDatabase
+        return db.delete("site_permissions", null, null)
     }
 }

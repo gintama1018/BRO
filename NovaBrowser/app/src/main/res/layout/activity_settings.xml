@@ -195,9 +195,37 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="URLhaus malware rules + EasyList ad blocking + EasyPrivacy tracking protection loaded in local SQLite."
+                    android:text="16 canary threat signatures + segment-aware Shannon entropy + Levenshtein distance typosquatting verification."
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="10dp"
+                    android:background="@color/divider" />
+
+                <Button
+                    android:id="@+id/btnRunDiagnostics"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_glass_pill"
+                    android:text="Run Security Self-Check Diagnostics"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@null" />
+
+                <TextView
+                    android:id="@+id/tvDiagnosticsResult"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="monospace"
+                    android:text="Ready for validation."
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <!-- Section 3: Ad-Blocking & Privacy Guardrails -->
@@ -489,13 +517,31 @@
                 android:orientation="vertical">
 
                 <Button
+                    android:id="@+id/btnSitePermissions"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical|start"
+                    android:paddingHorizontal="16dp"
+                    android:text="Site Permissions Manager (Camera, Mic, Location)"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    app:backgroundTint="@null" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/divider" />
+
+                <Button
                     android:id="@+id/btnClearBrowsingData"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackground"
                     android:gravity="center_vertical|start"
                     android:paddingHorizontal="16dp"
-                    android:text="Clear History &amp; Cache"
+                    android:text="Clear Browsing Data (Granular Controls)"
                     android:textAllCaps="false"
                     android:textColor="@color/risk_blocked"
                     android:textSize="13sp"

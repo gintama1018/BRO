@@ -39,8 +39,28 @@ class NovaWebView(
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
 
             // Safe user agent
-            userAgentString = userAgentString.replace("; wv", "")
+            defaultMobileUserAgent = userAgentString.replace("; wv", "")
+            userAgentString = defaultMobileUserAgent
         }
+    }
+
+    private var defaultMobileUserAgent: String = ""
+    var isDesktopMode: Boolean = false
+        private set
+
+    fun setDesktopMode(enabled: Boolean) {
+        if (isDesktopMode == enabled) return
+        isDesktopMode = enabled
+        if (enabled) {
+            settings.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+        } else {
+            settings.userAgentString = defaultMobileUserAgent.ifBlank { WebSettings.getDefaultUserAgent(context).replace("; wv", "") }
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+        }
+        reload()
     }
 
     private fun setupPrivacyMode() {

@@ -176,6 +176,70 @@
             app:tint="@color/text_secondary" />
     </LinearLayout>
 
+    <!-- Find in Page Search Bar Container -->
+    <LinearLayout
+        android:id="@+id/layoutFindInPage"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:background="@drawable/bg_glass_card"
+        android:elevation="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/topChromeHeader">
+
+        <EditText
+            android:id="@+id/etFindQuery"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@null"
+            android:hint="Find in page..."
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_tertiary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvFindMatches"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="8dp"
+            android:text="0/0"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp" />
+
+        <ImageButton
+            android:id="@+id/btnFindPrev"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:rotation="90"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnFindNext"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:rotation="270"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnFindClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_primary" />
+    </LinearLayout>
+
     <!-- Reading & Loading Progress Micro-Indicator (2px Emerald) -->
     <ProgressBar
         android:id="@+id/progressBar"
@@ -185,7 +249,7 @@
         android:max="100"
         android:progressTint="@color/risk_safe"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/topChromeHeader" />
+        app:layout_constraintTop_toBottomOf="@id/layoutFindInPage" />
 
     <!-- 2. MAIN CONTENT VIEWPORT CONTAINER -->
     <FrameLayout
@@ -319,6 +383,20 @@
                         android:src="@drawable/ic_mic"
                         app:tint="@color/text_secondary" />
 
+                    <!-- Search Engine Switcher Pill -->
+                    <TextView
+                        android:id="@+id/btnSearchEnginePicker"
+                        android:layout_width="wrap_content"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="4dp"
+                        android:background="@drawable/bg_glass_pill"
+                        android:gravity="center"
+                        android:paddingHorizontal="7dp"
+                        android:text="DDG ▾"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
                     <!-- Device AI Pulse Pill -->
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -342,6 +420,50 @@
                             android:textColor="@color/risk_safe_on_container"
                             android:textSize="9sp"
                             android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Live Neutralized Ads & Trackers Banner -->
+                <LinearLayout
+                    android:id="@+id/layoutCanvasBlockedStats"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_glass_card"
+                    android:elevation="1dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_shield_verified"
+                        app:tint="@color/accent_emerald" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvCanvasBlockedCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0 Ads &amp; Trackers Neutralized"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:text="9,578-domain local rule engine • Zero remote analytics"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="10sp" />
                     </LinearLayout>
                 </LinearLayout>
 

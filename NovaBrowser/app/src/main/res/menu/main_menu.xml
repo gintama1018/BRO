@@ -7,6 +7,19 @@
         android:title="Reload Page" />
 
     <item
+        android:id="@+id/action_find_in_page"
+        android:title="Find in Page" />
+
+    <item
+        android:id="@+id/action_desktop_site"
+        android:checkable="true"
+        android:title="Desktop Site" />
+
+    <item
+        android:id="@+id/action_copy_clean_link"
+        android:title="Copy Clean Link" />
+
+    <item
         android:id="@+id/action_add_bookmark"
         android:title="Add to Bookmarks" />
 

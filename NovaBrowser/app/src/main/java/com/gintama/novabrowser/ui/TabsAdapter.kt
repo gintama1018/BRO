@@ -25,6 +25,8 @@ class TabsAdapter(
         notifyDataSetChanged()
     }
 
+    fun getTabAt(position: Int): BrowserTab = tabs[position]
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TabViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_tab, parent, false)
         return TabViewHolder(view)
