@@ -66,17 +66,16 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     // Header Controls
     private lateinit var etUrlInput: EditText
+    private lateinit var btnReloadPage: ImageButton
     private lateinit var btnTabs: FrameLayout
     private lateinit var tvTabCount: TextView
     private lateinit var btnMenu: ImageButton
     private lateinit var progressBar: ProgressBar
     private lateinit var ivSecurityIndicator: ImageView
     private lateinit var ivPrivateBadge: ImageView
-    private lateinit var tvLocalBadge: TextView
-    private lateinit var layoutShieldBadge: LinearLayout
+    private lateinit var layoutShieldBadge: View
     private lateinit var tvShieldBadgeCount: TextView
     private lateinit var btnNavBack: ImageButton
-    private lateinit var btnNavForward: ImageButton
 
     // Viewport Containers
     private lateinit var webViewContainer: FrameLayout
@@ -169,17 +168,16 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private fun initViews() {
         etUrlInput = findViewById(R.id.etUrlInput)
+        btnReloadPage = findViewById(R.id.btnReloadPage)
         btnTabs = findViewById(R.id.btnTabs)
         tvTabCount = findViewById(R.id.tvTabCount)
         btnMenu = findViewById(R.id.btnMenu)
         progressBar = findViewById(R.id.progressBar)
         ivSecurityIndicator = findViewById(R.id.ivSecurityIndicator)
         ivPrivateBadge = findViewById(R.id.ivPrivateBadge)
-        tvLocalBadge = findViewById(R.id.tvLocalBadge)
         layoutShieldBadge = findViewById(R.id.layoutShieldBadge)
         tvShieldBadgeCount = findViewById(R.id.tvShieldBadgeCount)
         btnNavBack = findViewById(R.id.btnNavBack)
-        btnNavForward = findViewById(R.id.btnNavForward)
 
         webViewContainer = findViewById(R.id.webViewContainer)
         layoutNewTabCanvas = findViewById(R.id.layoutNewTabCanvas)
@@ -323,7 +321,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         // Tab overview button
         btnTabs.setOnClickListener { showTabsDialog() }
 
-        // Navigation Back/Forward
+        // Navigation Back & In-Pill Quick Reload
         btnNavBack.setOnClickListener {
             val webView = tabManager.activeTab?.webView
             if (webView?.canGoBack() == true) {
@@ -333,10 +331,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
         }
 
-        btnNavForward.setOnClickListener {
+        btnReloadPage.setOnClickListener {
             val webView = tabManager.activeTab?.webView
-            if (webView?.canGoForward() == true) {
-                webView.goForward()
+            if (webView != null) {
+                if (webView.progress < 100) {
+                    webView.stopLoading()
+                    btnReloadPage.setImageResource(R.drawable.ic_refresh)
+                } else {
+                    webView.reload()
+                }
             }
         }
 
@@ -475,7 +478,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         NovaMotion.startHeroBreathingAnimation(ivHeroLogo, ivHeroGlow)
         NovaMotion.attachSpringTouchFeedback(
             btnIslandBrowse, btnIslandAsk, btnIslandShield, btnIslandBookmarks,
-            btnTabs, btnMenu, btnNavBack, btnNavForward, layoutShieldBadge,
+            btnTabs, btnMenu, btnNavBack, btnReloadPage, layoutShieldBadge,
             btnSearchEnginePicker, btnOmniboxMic
         )
     }
@@ -607,7 +610,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private fun showStartCanvas() {
         NovaMotion.crossFade(webViewContainer, layoutNewTabCanvas)
         etUrlInput.setText("")
-        tvLocalBadge.text = "local"
+        updateNavigationButtons()
         NovaMotion.animateCountUp(
             tvCanvasBlockedCount,
             AdBlockEngine.getLifetimeBlockedCount(),
@@ -617,6 +620,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private fun showWebView() {
         NovaMotion.crossFade(layoutNewTabCanvas, webViewContainer)
+        updateNavigationButtons()
     }
 
     private fun showAdBlockShieldBottomSheet() {
@@ -728,8 +732,19 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         val currentWebView = tabManager.activeTab?.webView
         desktopItem?.isChecked = currentWebView?.isDesktopMode == true
 
+        // Forward navigation state
+        val forwardItem = popup.menu.findItem(R.id.action_forward)
+        forwardItem?.isEnabled = currentWebView?.canGoForward() == true
+
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.action_forward -> {
+                    val webView = tabManager.activeTab?.webView
+                    if (webView?.canGoForward() == true) {
+                        webView.goForward()
+                    }
+                    true
+                }
                 R.id.action_reload -> {
                     val webView = tabManager.activeTab?.webView
                     if (webView != null) {
@@ -926,16 +941,14 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         if (tab.isPrivate) {
             ivPrivateBadge.visibility = View.VISIBLE
-            tvLocalBadge.text = "private"
             ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.incognito_accent))
         } else {
             ivPrivateBadge.visibility = View.GONE
-            tvLocalBadge.text = "local"
             val (_, decision) = controller.evaluateNavigation(tab.url)
             updateSecurityIndicator(decision.riskState)
         }
 
-        tvShieldBadgeCount.text = tab.blockedAdsCount.toString()
+        updateShieldBadgeCount(tab.blockedAdsCount)
         updateNavigationButtons()
     }
 
@@ -946,14 +959,32 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     override fun onPageProgress(progress: Int) {
         NovaMotion.animateProgressBar(progressBar, progress)
+        if (progress < 100) {
+            btnReloadPage.setImageResource(R.drawable.ic_close)
+            btnReloadPage.contentDescription = "Stop Loading"
+        } else {
+            btnReloadPage.setImageResource(R.drawable.ic_refresh)
+            btnReloadPage.contentDescription = "Reload"
+        }
     }
 
     override fun onBlockedAdsUpdated(tab: BrowserTab, blockedCount: Int) {
         if (tab.id == tabManager.activeTab?.id) {
             runOnUiThread {
-                tvShieldBadgeCount.text = blockedCount.toString()
-                NovaMotion.pulseBadge(layoutShieldBadge)
+                updateShieldBadgeCount(blockedCount)
+                if (blockedCount > 0) {
+                    NovaMotion.pulseBadge(layoutShieldBadge)
+                }
             }
+        }
+    }
+
+    private fun updateShieldBadgeCount(count: Int) {
+        if (count > 0) {
+            tvShieldBadgeCount.visibility = View.VISIBLE
+            tvShieldBadgeCount.text = if (count > 99) "99+" else count.toString()
+        } else {
+            tvShieldBadgeCount.visibility = View.GONE
         }
     }
 
@@ -1036,10 +1067,11 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private fun updateNavigationButtons() {
         val webView = tabManager.activeTab?.webView
         val canBack = webView?.canGoBack() == true
-        val canForward = webView?.canGoForward() == true
+        val isBrowsing = layoutNewTabCanvas.visibility != View.VISIBLE
 
-        btnNavBack.alpha = if (canBack || layoutNewTabCanvas.visibility != View.VISIBLE) 1.0f else 0.4f
-        btnNavForward.alpha = if (canForward) 1.0f else 0.4f
+        btnNavBack.visibility = if (isBrowsing || canBack) View.VISIBLE else View.GONE
+        btnNavBack.alpha = if (canBack || isBrowsing) 1.0f else 0.4f
+        btnReloadPage.visibility = if (isBrowsing) View.VISIBLE else View.GONE
     }
 
     override fun onBackPressed() {
