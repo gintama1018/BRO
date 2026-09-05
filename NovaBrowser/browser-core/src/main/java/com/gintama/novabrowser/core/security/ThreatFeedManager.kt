@@ -41,8 +41,57 @@ class ThreatFeedManager(private val context: Context) {
     }
 
     /**
-     * Seeds initial high-confidence curated offline snapshot if database is uninitialized.
-     * Guarantees 100% offline navigation protection without requiring initial network connection.
+     * Imports filter list rules (e.g. EasyList, EasyPrivacy) using AdblockParser.
+     * Returns count of successfully imported rules.
+     */
+    fun importAdblockRules(ruleLines: List<String>, source: String): Int {
+        val rules = mutableListOf<SecurityRule>()
+        val now = System.currentTimeMillis()
+        for (line in ruleLines) {
+            val parsed = AdblockParser.parseLine(line, source) ?: continue
+            rules.add(AdblockParser.toSecurityRule(parsed, updatedAt = now))
+        }
+        if (rules.isNotEmpty()) {
+            db.batchInsertSecurityRules(rules)
+            db.updateSnapshotMeta(source, rules.size)
+        }
+        return rules.size
+    }
+
+    /**
+     * Imports malware rules from URLhaus CSV export lines.
+     */
+    fun importUrlhausCsv(csvLines: List<String>): Int {
+        val rules = mutableListOf<SecurityRule>()
+        for (line in csvLines) {
+            val rule = AdblockParser.parseUrlhausCsvLine(line) ?: continue
+            rules.add(rule)
+        }
+        if (rules.isNotEmpty()) {
+            db.batchInsertSecurityRules(rules)
+            db.updateSnapshotMeta("URLHAUS", rules.size)
+        }
+        return rules.size
+    }
+
+    /**
+     * Validates feed payload integrity using SHA-256 digest before ingestion.
+     * Enforces Guardrail #3: Cryptographic Authenticity Model.
+     */
+    fun verifyFeedIntegrity(payload: ByteArray, expectedSha256Hex: String): Boolean {
+        return try {
+            val digest = java.security.MessageDigest.getInstance("SHA-256").digest(payload)
+            val computedHex = digest.joinToString("") { "%02x".format(it) }
+            computedHex.equals(expectedSha256Hex.trim(), ignoreCase = true)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Seeds initial curated offline snapshot if database is uninitialized.
+     * Guarantees offline navigation protection without requiring initial network connection.
+     * Uses standard Adblock Plus (EasyList/EasyPrivacy) and URLhaus syntax via AdblockParser.
      */
     private fun ensureInitialSnapshotSeeded() {
         if (db.getTotalSecurityRuleCount() > 0) return
@@ -58,7 +107,12 @@ class ThreatFeedManager(private val context: Context) {
             "malicious-test-domain.example",
             "drive-by-download-test.org",
             "banking-stealer-sample.net",
-            "crypto-drainer-payload.xyz"
+            "crypto-drainer-payload.xyz",
+            "cozy-stealer.online",
+            "discord-drop-payload.com",
+            "ledger-live-update.com",
+            "redline-stealer-c2.net",
+            "metamask-token-claim.top"
         )
         for (m in malwareDomains) {
             initialRules.add(
@@ -72,47 +126,54 @@ class ThreatFeedManager(private val context: Context) {
             )
         }
 
-        // 2. EasyPrivacy Trackers (RuleType.TRACKER, Severity: INFO)
-        val trackerDomains = listOf(
-            "telemetry.bad-tracker.net",
-            "pixel.behavioral-ads.com",
-            "tracking.spy-adnetwork.biz",
-            "fingerprint-collector.xyz"
+        // 2. EasyPrivacy Trackers — parsed via standard Adblock syntax (||domain^)
+        val abpTrackerRules = listOf(
+            "||telemetry.bad-tracker.net^",
+            "||pixel.behavioral-ads.com^",
+            "||tracking.spy-adnetwork.biz^",
+            "||fingerprint-collector.xyz^",
+            "||analytics.google.com^\$third-party",
+            "||hotjar.com^\$third-party",
+            "||scorecardresearch.com^",
+            "||mixpanel.com^",
+            "||segment.io^",
+            "||clarity.ms^",
+            "||connect.facebook.net^\$third-party",
+            "||pixel.quantserve.com^"
         )
-        for (t in trackerDomains) {
-            initialRules.add(
-                SecurityRule(
-                    ruleType = RuleType.TRACKER,
-                    pattern = t,
-                    source = "EASYPRIVACY",
-                    severity = RuleSeverity.INFO,
-                    updatedAt = now
-                )
-            )
+        for (rule in abpTrackerRules) {
+            val parsed = AdblockParser.parseLine(rule, "EASYPRIVACY") ?: continue
+            initialRules.add(AdblockParser.toSecurityRule(parsed, updatedAt = now))
         }
 
-        // 3. EasyList Ad Domains (RuleType.DOMAIN, Severity: INFO)
-        val adDomains = listOf(
-            "adserver.popup-ads.com",
-            "banners.intrusive-marketing.net"
+        // 3. EasyList Ad Networks — parsed via standard Adblock syntax (||domain^)
+        val abpAdRules = listOf(
+            "||adserver.popup-ads.com^",
+            "||banners.intrusive-marketing.net^",
+            "||doubleclick.net^",
+            "||googleadservices.com^",
+            "||criteo.com^",
+            "||adnxs.com^",
+            "||taboola.com^",
+            "||outbrain.com^",
+            "||popads.net^",
+            "||propellerads.com^",
+            "||zergnet.com^",
+            "||mgid.com^",
+            "||adroll.com^"
         )
-        for (a in adDomains) {
-            initialRules.add(
-                SecurityRule(
-                    ruleType = RuleType.DOMAIN,
-                    pattern = a,
-                    source = "EASYLIST",
-                    severity = RuleSeverity.INFO,
-                    updatedAt = now
-                )
-            )
+        for (rule in abpAdRules) {
+            val parsed = AdblockParser.parseLine(rule, "EASYLIST") ?: continue
+            initialRules.add(AdblockParser.toSecurityRule(parsed, updatedAt = now))
         }
 
-        // 4. Local Heuristic Phishing Signatures (RuleType.URL, Severity: WARN)
+        // 4. Local Phishing & Homoglyph Signatures (RuleType.URL, Severity: WARN)
         val phishingPatterns = listOf(
             "paypa1-security-update.xyz",
             "g00gle-account-recovery.top",
-            "github-login-verification.click"
+            "github-login-verification.click",
+            "apple-id-suspended-security.club",
+            "steam-gift-card-community.site"
         )
         for (p in phishingPatterns) {
             initialRules.add(
@@ -131,8 +192,8 @@ class ThreatFeedManager(private val context: Context) {
 
         // Record metadata
         db.updateSnapshotMeta("URLHAUS", malwareDomains.size)
-        db.updateSnapshotMeta("EASYPRIVACY", trackerDomains.size)
-        db.updateSnapshotMeta("EASYLIST", adDomains.size)
+        db.updateSnapshotMeta("EASYPRIVACY", abpTrackerRules.size)
+        db.updateSnapshotMeta("EASYLIST", abpAdRules.size)
         db.updateSnapshotMeta("LOCAL_HEURISTIC", phishingPatterns.size)
     }
 }

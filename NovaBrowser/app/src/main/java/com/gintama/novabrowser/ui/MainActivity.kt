@@ -383,12 +383,12 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnDone.setOnClickListener { dialog.dismiss() }
 
         val info = TextView(this).apply {
-            text = "SOVEREIGN ENCLAVE TELEMETRY\n\n" +
+            text = "SECURITY & PRIVACY STATUS\n\n" +
                     "• Host: ${if (url.isBlank() || url == "about:blank") "Local Canvas" else url}\n" +
                     "• Risk Classification: ${decision.riskState}\n" +
-                    "• Threat Feeds: URLhaus (Malware) • EasyList • EasyPrivacy\n" +
-                    "• Deterministic Engine: Active on-device SQLite\n" +
-                    "• Zero-Cloud Leak Guarantee: Enforced"
+                    "• Local Protection: Deterministic Rule Gate (SQLite WAL)\n" +
+                    "• AI Runtime: Dormant (Phase 3 on-demand local execution)\n" +
+                    "• Telemetry: Zero remote analytics endpoints"
             textSize = 13f
             setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
             setPadding(16, 16, 16, 24)

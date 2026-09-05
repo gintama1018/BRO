@@ -57,10 +57,31 @@ object HeuristicsEngine {
         }
 
         // 3. Shannon Entropy Check (Algorithmic / DGA domain detection)
-        val entropy = calculateShannonEntropy(mainDomain)
-        if (mainDomain.length >= 10 && entropy >= 3.6) {
-            score += 0.30
-            reasons.add("High entropy domain name indicating potential algorithmic generation (Entropy: ${String.format("%.2f", entropy)})")
+        // If domain has hyphens, check the maximum entropy across meaningful segments (length >= 8)
+        // to avoid falsely penalizing multi-word hyphenated domains (e.g. random-developer-blog).
+        val segments = mainDomain.split("-")
+        val effectiveEntropy = if (segments.size > 1) {
+            val longSegments = segments.filter { it.length >= 8 }
+            if (longSegments.isNotEmpty()) {
+                longSegments.maxOf { calculateShannonEntropy(it) }
+            } else {
+                0.0
+            }
+        } else {
+            calculateShannonEntropy(mainDomain)
+        }
+
+        if (mainDomain.length >= 10 && effectiveEntropy > 0.0) {
+            when {
+                effectiveEntropy >= 3.6 -> {
+                    score += 0.50
+                    reasons.add("Critical entropy domain name indicating algorithmic DGA generation (Entropy: ${String.format("%.2f", effectiveEntropy)})")
+                }
+                effectiveEntropy >= 3.2 -> {
+                    score += 0.40
+                    reasons.add("Elevated entropy domain name indicating potential algorithmic generation (Entropy: ${String.format("%.2f", effectiveEntropy)})")
+                }
+            }
         }
 
         // 4. Suspicious TLD Association

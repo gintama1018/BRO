@@ -93,9 +93,9 @@ flowchart TD
     
     Live["2. Live Browsing Canvas<br/>• 2px Emerald Progress Indicator<br/>• Floating Secure Domain Pill<br/>• Safe-Area Clear Viewport<br/>• Bottom Nav Island"]
     
-    Warn["4. Explainable Security Warning<br/>• Measured Crimson Optics<br/>• Threat Telemetry & Enclave Logs<br/>• Hardware Verified Breakdown"]
+    Warn["4. Explainable Security Warning<br/>• Measured Crimson Optics<br/>• Deterministic Threat Telemetry<br/>• Rule ID & Risk Reason Breakdown"]
     
-    History["3. Ask Browser & AI Search<br/>• Natural Language Query Pill<br/>• Category Filter Chips<br/>• FTS5 BM25 Ranked Card (98%)"]
+    History["3. Ask Browser & AI Search<br/>• Natural Language Query Pill<br/>• Category Filter Chips<br/>• FTS5 BM25 Lexical Ranking"]
 
     Start -->|"Enter URL / Tap Haven"| Gate
     Gate -->|"Clean (ALLOW)"| Live
@@ -335,7 +335,7 @@ sequenceDiagram
 
 ### Canonicalization Subroutines
 
-1. **Punycode / IDN Normalization:** Converts internationalized domain names (e.g. Cyrillic `рaypal.com`) to ASCII Compatible Encoding (`xn--aypal-e1a.com`).
+1. **Punycode / IDN Normalization:** Converts internationalized domain names (e.g. Cyrillic `рaypal.com`) to ASCII Compatible Encoding (`xn--aypal-uye.com`).
 2. **Recursive Percent-Decoding:** Resolves obfuscated multi-stage encoded payloads (e.g. `%2577%2577%2577.evil.com` -> `www.evil.com`).
 3. **Port & Credential Stripping:** Strips embedded basic-auth user credentials (`user:pass@host`) and eliminates default redundant port declarations (`:80` for HTTP, `:443` for HTTPS).
 
@@ -642,7 +642,7 @@ powershell -ExecutionPolicy Bypass -File .\NovaBrowser\run_tests.ps1
 ```
 
 ### Verified Test Assertions
-- **Punycode Spoofing:** `https://рaypal.com` (Cyrillic `р`) canonicalizes to `xn--aypal-e1a.com`.
+- **Punycode Spoofing:** `https://рaypal.com` (Cyrillic `р`) canonicalizes to `xn--aypal-uye.com`.
 - **Recursive Percent-Decoding:** `http://%2577%2577%2577.evil.com` resolves to `http://www.evil.com`.
 - **High Shannon Entropy:** Random hex/alphanumeric domains trigger elevated risk scores.
 - **Brand Levenshtein Proximity:** `https://paypa1.com` triggers `WARN` (Homoglyph spoof).

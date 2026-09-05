@@ -422,16 +422,34 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     // Downloads Operations
     // ==========================================
 
-    fun recordDownload(url: String, filename: String?, mimeType: String?, status: DownloadStatus): Long {
+    fun recordDownload(
+        url: String,
+        filename: String?,
+        mimeType: String?,
+        status: DownloadStatus,
+        riskReason: String? = null
+    ): Long {
         val db = writableDatabase
         val values = ContentValues().apply {
             put("url", url)
             put("filename", filename)
             put("mime_type", mimeType)
             put("status", status.name.lowercase())
+            put("risk_reason", riskReason)
             put("created_at", System.currentTimeMillis())
         }
         return db.insert("downloads", null, values)
+    }
+
+    fun updateDownloadStatus(id: Long, status: DownloadStatus, riskReason: String? = null) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("status", status.name.lowercase())
+            if (riskReason != null) {
+                put("risk_reason", riskReason)
+            }
+        }
+        db.update("downloads", values, "id = ?", arrayOf(id.toString()))
     }
 
     fun getDownloads(): List<DownloadItem> {

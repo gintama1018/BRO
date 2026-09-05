@@ -57,8 +57,8 @@ class DeterministicSecurityGate(
 ) : SecurityGate {
 
     companion object {
-        // High-reputation verified domains eligible for KNOWN_SAFE classification
-        private val VERIFIED_SAFE_DOMAINS = setOf(
+        // Curated high-reputation trusted domains eligible for KNOWN_SAFE UI classification
+        private val CURATED_TRUSTED_DOMAINS = setOf(
             "google.com", "wikipedia.org", "github.com", "mozilla.org",
             "w3.org", "cloudflare.com", "android.com", "eff.org"
         )
@@ -152,14 +152,14 @@ class DeterministicSecurityGate(
                     riskScore = heuristic.riskScore
                 )
             }
-            // Verified safe whitelist domains
-            VERIFIED_SAFE_DOMAINS.contains(canonical.host) || VERIFIED_SAFE_DOMAINS.any { canonical.host.endsWith(".$it") } -> {
+            // Curated trusted whitelist domains
+            CURATED_TRUSTED_DOMAINS.contains(canonical.host) || CURATED_TRUSTED_DOMAINS.any { canonical.host.endsWith(".$it") } -> {
                 SecurityDecision(
                     action = GateAction.ALLOW,
                     riskState = RiskState.KNOWN_SAFE,
                     targetUrl = url,
                     canonicalUrl = canonical.canonicalUrl,
-                    reasons = listOf("Verified high-reputation domain"),
+                    reasons = listOf("Curated high-reputation trusted domain"),
                     riskScore = 0.0
                 )
             }
