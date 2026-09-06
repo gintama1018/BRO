@@ -86,10 +86,10 @@ NovaBrowser implements the **Liquid System** visual specification: Apple-grade m
 | <img src="docs/assets/screens/new_tab_canvas.png" alt="Start Canvas" width="360" /> | <img src="docs/assets/screens/live_browsing_canvas.png" alt="Live Browsing Canvas" width="360" /> |
 | **Start Canvas (`layoutNewTabCanvas`)**<br/>• Hero Nova Core Mark squircle with pulsing status beacon.<br/>• Active glass search omnibox with On-Device AI badge.<br/>• 8 App Haven tiles (GitHub, arXiv, Linear, Notion, Docs, Figma, etc.).<br/>• Contextual Jump-Back-In sessions card.<br/>• Bottom floating island with spatial navigation. | **Live Browsing View**<br/>• 2px emerald reading progress indicator.<br/>• Floating security domain anchor pill with lock glyph.<br/>• Dedicated non-overlapping WebView container (`paddingBottom="76dp"`).<br/>• Contextual bottom "Ask Browser" query pill.<br/>• Clean gesture-friendly navigation controls. |
 
-| 3. Ask Browser & AI History Search | 4. Explainable Security Warning |
+| 3. Fast Lexical History Search | 4. Explainable Security Warning |
 | :---: | :---: |
-| <img src="docs/assets/screens/ai_history_search.png" alt="Ask Browser & History Search" width="360" /> | <img src="docs/assets/screens/security_warning.png" alt="Security Warning Screen" width="360" /> |
-| **AI History Search (`HistoryActivity`)**<br/>• Natural language query input with instant local badge.<br/>• Instant categorization filter chips (All, Dev, Papers, Repos).<br/>• Prime contextual retrieval card with 98% relevance gauge.<br/>• Offline SQLite FTS5 BM25 lexical match ranking. | **Security Warning Screen (`SecurityWarningActivity`)**<br/>• Measured crimson optics with hazard shield.<br/>• Intercepted host card with real-time detection telemetry.<br/>• Hardware-verified threat breakdown (Homoglyph, Entropy).<br/>• Non-bypassable lock for verified URLHAUS malware. |
+| <img src="docs/assets/screens/ai_history_search.png" alt="Fast Lexical History Search" width="360" /> | <img src="docs/assets/screens/security_warning.png" alt="Security Warning Screen" width="360" /> |
+| **Lexical History Search (`HistoryActivity`)**<br/>• Fast full-text keyword search with instant local processing.<br/>• Categorization filter chips (All, Dev, Papers, Repos).<br/>• Contextual retrieval powered by SQLite FTS5 BM25 ranking.<br/>• Offline BM25 lexical search (On-device LLM scheduled for Phase 3). | **Security Warning Screen (`SecurityWarningActivity`)**<br/>• Measured crimson optics with hazard shield.<br/>• Intercepted host card with real-time detection telemetry.<br/>• Hardware-verified threat breakdown (Homoglyph, Entropy).<br/>• Non-bypassable lock for verified URLHAUS malware. |
 
 ### Canvas Interaction & Navigation Flow
 
@@ -792,7 +792,7 @@ To maintain technical credibility, the boundaries of NovaBrowser's protection mo
 ## Privacy Model
 
 - **No Remote Telemetry:** The browser does not transmit analytics, device identifiers, or browsing events to centralized servers.
-- **Encrypted Local Storage:** User profiles and FTS5 search databases reside strictly in app-private sandbox storage (`/data/data/com.gintama.novabrowser/databases/`).
+- **App-Private Sandboxed Storage:** User profiles and FTS5 search databases reside strictly in app-private sandbox storage (`/data/data/com.gintama.novabrowser/databases/`), protected by Android OS application sandboxing with backup disabled (`allowBackup="false"`).
 - **Private Browsing Isolation:** Private tabs disable SQLite history writes, suppress session caching, and flush the WebView cookie store upon tab disposal.
 
 ---
@@ -833,7 +833,7 @@ If you identify a security vulnerability or sandbox bypass in NovaBrowser:
 
 ## Licensing & Attribution
 
-- **Project License:** To be finalized (Proprietary / Open Source review in progress).
+- **Project License:** Apache License 2.0 (see [LICENSE](LICENSE)).
 - **Threat Data Attributions:**
   - [URLhaus](https://urlhaus.abuse.ch/) by Abuse.ch (Malware URL data).
   - [EasyList & EasyPrivacy](https://easylist.to/) (Ad and tracker blocking rules).

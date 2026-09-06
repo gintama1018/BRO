@@ -1,6 +1,12 @@
 package com.gintama.novabrowser.browser
 
 import android.graphics.Bitmap
+import android.net.http.SslError
+import android.os.Message
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -16,7 +22,8 @@ interface NavigationCallback {
 }
 
 /**
- * Custom WebViewClient that implements Dual-Layer Security Interception.
+ * Custom WebViewClient that implements Dual-Layer Security Interception,
+ * renderer crash recovery, and SSL warning notifications.
  *
  * Layer 1 (Navigation Callback): shouldOverrideUrlLoading()
  * Acts as the primary security gate for top-level address transitions.
@@ -29,7 +36,9 @@ interface NavigationCallback {
 class NovaWebViewClient(
     private val callback: NavigationCallback,
     private val onUrlOverride: (String) -> Boolean,
-    private val onSubresourceCheck: ((String) -> Boolean)? = null
+    private val onSubresourceCheck: ((String) -> Boolean)? = null,
+    private val onRenderProcessGoneCallback: ((view: WebView?, detail: RenderProcessGoneDetail?) -> Boolean)? = null,
+    private val onReceivedSslErrorCallback: ((view: WebView?, handler: SslErrorHandler?, error: SslError?) -> Unit)? = null
 ) : WebViewClient() {
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -66,6 +75,18 @@ class NovaWebViewClient(
             }
         }
     }
+
+    override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+        return onRenderProcessGoneCallback?.invoke(view, detail) ?: true
+    }
+
+    override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+        if (onReceivedSslErrorCallback != null) {
+            onReceivedSslErrorCallback.invoke(view, handler, error)
+        } else {
+            handler?.cancel()
+        }
+    }
 }
 
 object SitePermissionType {
@@ -77,6 +98,7 @@ object SitePermissionType {
 
 /**
  * Custom WebChromeClient reporting real-time page progress, page title,
+ * multi-window / OAuth popup handling, native JS dialogs,
  * and intercepting WebView permission / geolocation requests with canonical origin enforcement.
  */
 class NovaWebChromeClient(
@@ -85,7 +107,12 @@ class NovaWebChromeClient(
     private val onGeolocationPrompt: ((origin: String, canonicalOrigin: String, callback: android.webkit.GeolocationPermissions.Callback) -> Unit)? = null,
     private val onShowFileChooserCallback: ((filePathCallback: android.webkit.ValueCallback<Array<android.net.Uri>>?, fileChooserParams: WebChromeClient.FileChooserParams?) -> Boolean)? = null,
     private val onShowCustomViewCallback: ((view: android.view.View, callback: WebChromeClient.CustomViewCallback) -> Unit)? = null,
-    private val onHideCustomViewCallback: (() -> Unit)? = null
+    private val onHideCustomViewCallback: (() -> Unit)? = null,
+    private val onCreateWindowCallback: ((view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message?) -> Boolean)? = null,
+    private val onCloseWindowCallback: ((window: WebView?) -> Unit)? = null,
+    private val onJsAlertCallback: ((view: WebView?, url: String?, message: String?, result: JsResult?) -> Boolean)? = null,
+    private val onJsConfirmCallback: ((view: WebView?, url: String?, message: String?, result: JsResult?) -> Boolean)? = null,
+    private val onJsPromptCallback: ((view: WebView?, url: String?, message: String?, defaultValue: String?, result: JsPromptResult?) -> Boolean)? = null
 ) : WebChromeClient() {
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
@@ -145,5 +172,38 @@ class NovaWebChromeClient(
 
     override fun onHideCustomView() {
         onHideCustomViewCallback?.invoke() ?: super.onHideCustomView()
+    }
+
+    override fun onCreateWindow(
+        view: WebView?,
+        isDialog: Boolean,
+        isUserGesture: Boolean,
+        resultMsg: Message?
+    ): Boolean {
+        return onCreateWindowCallback?.invoke(view, isDialog, isUserGesture, resultMsg)
+            ?: super.onCreateWindow(view, isDialog, isUserGesture, resultMsg)
+    }
+
+    override fun onCloseWindow(window: WebView?) {
+        onCloseWindowCallback?.invoke(window) ?: super.onCloseWindow(window)
+    }
+
+    override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+        return onJsAlertCallback?.invoke(view, url, message, result) ?: super.onJsAlert(view, url, message, result)
+    }
+
+    override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+        return onJsConfirmCallback?.invoke(view, url, message, result) ?: super.onJsConfirm(view, url, message, result)
+    }
+
+    override fun onJsPrompt(
+        view: WebView?,
+        url: String?,
+        message: String?,
+        defaultValue: String?,
+        result: JsPromptResult?
+    ): Boolean {
+        return onJsPromptCallback?.invoke(view, url, message, defaultValue, result)
+            ?: super.onJsPrompt(view, url, message, defaultValue, result)
     }
 }

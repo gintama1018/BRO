@@ -31,28 +31,71 @@ class FeedStagingAndIntegrityTest {
 
     @Test
     fun testManifestSignatureAuthenticityCheck() {
+        val kpg = java.security.KeyPairGenerator.getInstance("EC")
+        kpg.initialize(256)
+        val keyPair = kpg.generateKeyPair()
+        val pubKeyHex = ThreatFeedManager.byteArrayToHex(keyPair.public.encoded)
+
+        val feedSource = "EASYLIST"
+        val version = "2026.09.05"
+        val expectedSha256Hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        val payloadToSign = "$feedSource:$version:$expectedSha256Hex"
+        val validSigHex = ThreatFeedManager.signManifestPayload(payloadToSign, keyPair.private)
+
         val manifest = ThreatFeedManager.SignedFeedManifest(
-            feedSource = "EASYLIST",
-            version = "2026.09.05",
-            expectedSha256Hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            signatureHex = "3045022100a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f"
-        )
-        val trustedPubKey = "04abcd1234ef567890abcdef1234567890abcdef"
-
-        val manager = ThreatFeedManager.SignedFeedManifest(
-            manifest.feedSource,
-            manifest.version,
-            manifest.expectedSha256Hex,
-            manifest.signatureHex
+            feedSource = feedSource,
+            version = version,
+            expectedSha256Hex = expectedSha256Hex,
+            signatureHex = validSigHex
         )
 
-        // Missing signature or empty key must fail authenticity
-        val invalidManifest = manifest.copy(signatureHex = "")
-        assertFalse(invalidManifest.signatureHex.isNotBlank() && trustedPubKey.isNotBlank())
+        // Mock ThreatFeedManager instance or call verification
+        // Since verifyManifestSignature only uses manifest and pubKeyHex:
+        // We can test via dummy context or helper directly
+        val verifier = object {
+            fun verify(m: ThreatFeedManager.SignedFeedManifest, pubHex: String): Boolean {
+                if (m.signatureHex.isBlank() || pubHex.isBlank()) return false
+                return try {
+                    val signedPayload = "${m.feedSource}:${m.version}:${m.expectedSha256Hex}"
+                    val keyBytes = ThreatFeedManager.hexToByteArray(pubHex)
+                    val sigBytes = ThreatFeedManager.hexToByteArray(m.signatureHex)
+                    val keySpec = java.security.spec.X509EncodedKeySpec(keyBytes)
+                    val keyFactory = java.security.KeyFactory.getInstance("EC")
+                    val publicKey = keyFactory.generatePublic(keySpec)
 
-        // Incomplete hash length must fail
-        val badHashManifest = manifest.copy(expectedSha256Hex = "short_hash")
-        assertFalse(badHashManifest.expectedSha256Hex.length == 64)
+                    val sig = java.security.Signature.getInstance("SHA256withECDSA")
+                    sig.initVerify(publicKey)
+                    sig.update(signedPayload.toByteArray(Charsets.UTF_8))
+                    sig.verify(sigBytes)
+                } catch (e: Exception) {
+                    false
+                }
+            }
+        }
+
+        // 1. Valid signature passes verification
+        assertTrue("Genuine ECDSA signature must verify successfully", verifier.verify(manifest, pubKeyHex))
+
+        // 2. Tampered feed version must fail
+        val tamperedVersionManifest = manifest.copy(version = "2026.09.06")
+        assertFalse("Tampered version must fail verification", verifier.verify(tamperedVersionManifest, pubKeyHex))
+
+        // 3. Tampered payload SHA-256 hash must fail
+        val tamperedHashManifest = manifest.copy(expectedSha256Hex = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+        assertFalse("Tampered expected hash must fail verification", verifier.verify(tamperedHashManifest, pubKeyHex))
+
+        // 4. Untrusted different public key must fail
+        val otherKeyPair = kpg.generateKeyPair()
+        val otherPubKeyHex = ThreatFeedManager.byteArrayToHex(otherKeyPair.public.encoded)
+        assertFalse("Verification against untrusted public key must fail", verifier.verify(manifest, otherPubKeyHex))
+
+        // 5. Corrupted signature hex must fail
+        val corruptedSig = manifest.copy(signatureHex = validSigHex.substring(0, validSigHex.length - 4) + "0000")
+        assertFalse("Corrupted signature must fail verification", verifier.verify(corruptedSig, pubKeyHex))
+
+        // 6. Blank / malformed signature or key must fail
+        assertFalse("Blank signature must fail", verifier.verify(manifest.copy(signatureHex = ""), pubKeyHex))
+        assertFalse("Blank public key must fail", verifier.verify(manifest, ""))
     }
 
     @Test

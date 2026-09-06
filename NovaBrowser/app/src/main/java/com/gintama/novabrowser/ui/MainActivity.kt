@@ -62,13 +62,20 @@ import com.gintama.novabrowser.ui.motion.NovaMotion
 import kotlinx.coroutines.launch
 import java.util.ArrayList
 
+import android.net.http.SslError
+import android.os.Message
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
+import android.webkit.WebView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+
 class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private lateinit var controller: BrowserController
-    private lateinit var tabManager: TabManager
     private lateinit var downloadHandler: DownloadHandler
+    private lateinit var tabManager: TabManager
 
-    // Header Controls
+    // Top Header & Address Bar Views
     private lateinit var topChromeHeader: LinearLayout
     private lateinit var etUrlInput: EditText
     private lateinit var btnReloadPage: ImageButton
@@ -84,6 +91,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     // Viewport Containers
     private lateinit var mainViewportContainer: FrameLayout
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var webViewContainer: FrameLayout
     private lateinit var layoutNewTabCanvas: ScrollView
     private lateinit var fullscreenCustomViewContainer: FrameLayout
@@ -222,6 +230,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnNavBack = findViewById(R.id.btnNavBack)
 
         mainViewportContainer = findViewById(R.id.mainViewportContainer)
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
         webViewContainer = findViewById(R.id.webViewContainer)
         layoutNewTabCanvas = findViewById(R.id.layoutNewTabCanvas)
         fullscreenCustomViewContainer = findViewById(R.id.fullscreenCustomViewContainer)
@@ -447,6 +456,27 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
             true
         }
+
+        // Pull to refresh
+        swipeRefreshLayout.setColorSchemeColors(
+            ContextCompat.getColor(this, R.color.risk_safe),
+            ContextCompat.getColor(this, R.color.accent_emerald)
+        )
+        swipeRefreshLayout.setProgressBackgroundColorSchemeColor(
+            ContextCompat.getColor(this, R.color.surface_container_highest)
+        )
+        swipeRefreshLayout.setOnRefreshListener {
+            val webView = tabManager.activeTab?.webView
+            if (webView != null) {
+                webView.reload()
+            } else {
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+        swipeRefreshLayout.setOnChildScrollUpCallback { _, _ ->
+            val webView = tabManager.activeTab?.webView
+            (webView?.scrollY ?: 0) > 0
+        }
     }
 
     private fun setupFavoritesAndSyntheses() {
@@ -652,7 +682,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun showStartCanvas() {
-        NovaMotion.crossFade(webViewContainer, layoutNewTabCanvas)
+        NovaMotion.crossFade(swipeRefreshLayout, layoutNewTabCanvas)
         etUrlInput.setText("")
         updateNavigationButtons()
         NovaMotion.animateCountUp(
@@ -663,8 +693,77 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun showWebView() {
-        NovaMotion.crossFade(layoutNewTabCanvas, webViewContainer)
+        NovaMotion.crossFade(layoutNewTabCanvas, swipeRefreshLayout)
         updateNavigationButtons()
+    }
+
+    private fun showSiteDataTransparencyDialog() {
+        val tab = tabManager.activeTab
+        val currentUrl = tab?.url.orEmpty()
+        val siteHost = try {
+            val host = java.net.URI(currentUrl).host
+            if (host.isNullOrBlank()) "Local Storage" else host
+        } catch (e: Exception) {
+            if (currentUrl.isBlank() || currentUrl == "about:blank") "Local Storage" else currentUrl
+        }
+
+        val canonicalOrigin = if (currentUrl.isNotBlank() && currentUrl != "about:blank") {
+            com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(currentUrl)
+        } else {
+            "sandbox://local"
+        }
+
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_site_transparency, null)
+        dialog.setContentView(view)
+
+        val tvHost = view.findViewById<TextView>(R.id.tvTransparencyHost)
+        val tvOrigin = view.findViewById<TextView>(R.id.tvTransparencyOrigin)
+        val tvPermissions = view.findViewById<TextView>(R.id.tvTransparencyPermissions)
+        val tvTelemetry = view.findViewById<TextView>(R.id.tvTransparencyTelemetry)
+        val btnClear = view.findViewById<Button>(R.id.btnClearSiteData)
+        val btnDone = view.findViewById<Button>(R.id.btnDoneTransparency)
+
+        tvHost.text = siteHost
+        tvOrigin.text = "Origin: $canonicalOrigin"
+
+        val dbHelper = NovaDatabaseHelper.getInstance(this)
+        val perms = dbHelper.getSitePermissions(canonicalOrigin)
+        if (perms.isNotEmpty()) {
+            tvPermissions.text = perms.entries.joinToString("\n") { (k, v) ->
+                val permName = when (k) {
+                    com.gintama.novabrowser.browser.SitePermissionType.CAMERA -> "Camera Access"
+                    com.gintama.novabrowser.browser.SitePermissionType.MICROPHONE -> "Microphone Access"
+                    com.gintama.novabrowser.browser.SitePermissionType.GEOLOCATION -> "Geolocation Access"
+                    else -> k
+                }
+                "• $permName: ${if (v) "GRANTED" else "BLOCKED"}"
+            }
+        } else {
+            tvPermissions.text = "• No hardware or device permissions stored for this origin"
+        }
+
+        val blockedCount = tab?.blockedAdsCount ?: 0
+        tvTelemetry.text = "• Storage Model: App-Private Sandbox (WAL SQLite)\n• Trackers Neutralized: $blockedCount on active tab\n• External Telemetry: 0 bytes (Zero remote tracking)"
+
+        btnClear.setOnClickListener {
+            try {
+                for (k in perms.keys) {
+                    dbHelper.setSitePermission(canonicalOrigin, k, false)
+                }
+                val cookieManager = android.webkit.CookieManager.getInstance()
+                if (currentUrl.isNotBlank() && currentUrl != "about:blank") {
+                    cookieManager.setCookie(currentUrl, "")
+                }
+                Toast.makeText(this, "Cleared local data and permissions for $siteHost", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Error clearing data: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnDone.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 
     private fun showAdBlockShieldBottomSheet() {
@@ -764,6 +863,9 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             .setNeutralButton("Privacy Settings") { _, _ ->
                 startActivity(Intent(this, SettingsActivity::class.java))
             }
+            .setNegativeButton("Site Local Data") { _, _ ->
+                showSiteDataTransparencyDialog()
+            }
             .show()
     }
 
@@ -856,6 +958,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 }
                 R.id.action_downloads -> {
                     startActivity(Intent(this, DownloadsActivity::class.java))
+                    true
+                }
+                R.id.action_site_transparency -> {
+                    showSiteDataTransparencyDialog()
                     true
                 }
                 R.id.action_settings -> {
@@ -1011,6 +1117,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             btnReloadPage.setImageResource(R.drawable.ic_close)
             btnReloadPage.contentDescription = "Stop Loading"
         } else {
+            swipeRefreshLayout.isRefreshing = false
             btnReloadPage.setImageResource(R.drawable.ic_refresh)
             btnReloadPage.contentDescription = "Reload"
         }
@@ -1184,6 +1291,83 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         bottomFloatingIsland.visibility = View.VISIBLE
         mainViewportContainer.visibility = View.VISIBLE
         updateNavigationButtons()
+    }
+
+    override fun onCreateWindow(isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message?): Boolean {
+        val newTab = tabManager.createTab("about:blank", isPrivate = tabManager.activeTab?.isPrivate == true)
+        val transport = resultMsg?.obj as? WebView.WebViewTransport
+        transport?.webView = newTab.webView
+        resultMsg?.sendToTarget()
+        showWebView()
+        return true
+    }
+
+    override fun onCloseWindow(window: WebView?) {
+        val tabToClose = tabManager.getTabsList().firstOrNull { it.webView == window }
+        if (tabToClose != null) {
+            tabManager.closeTab(tabToClose.id)
+            if (tabManager.tabCount == 0) {
+                tabManager.createTab("about:blank")
+                showStartCanvas()
+            }
+        }
+    }
+
+    override fun onJsAlert(message: String, result: JsResult) {
+        AlertDialog.Builder(this)
+            .setTitle("Page Notice")
+            .setMessage(message)
+            .setPositiveButton("OK") { _, _ -> result.confirm() }
+            .setOnCancelListener { result.confirm() }
+            .show()
+    }
+
+    override fun onJsConfirm(message: String, result: JsResult) {
+        AlertDialog.Builder(this)
+            .setTitle("Confirmation")
+            .setMessage(message)
+            .setPositiveButton("OK") { _, _ -> result.confirm() }
+            .setNegativeButton("Cancel") { _, _ -> result.cancel() }
+            .setOnCancelListener { result.cancel() }
+            .show()
+    }
+
+    override fun onJsPrompt(message: String, defaultValue: String, result: JsPromptResult) {
+        val input = EditText(this).apply {
+            setText(defaultValue)
+            if (defaultValue.isNotEmpty()) setSelection(defaultValue.length)
+        }
+        val container = FrameLayout(this).apply {
+            setPadding(48, 16, 48, 16)
+            addView(input)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Prompt")
+            .setMessage(message)
+            .setView(container)
+            .setPositiveButton("OK") { _, _ -> result.confirm(input.text.toString()) }
+            .setNegativeButton("Cancel") { _, _ -> result.cancel() }
+            .setOnCancelListener { result.cancel() }
+            .show()
+    }
+
+    override fun onReceivedSslError(error: SslError, onProceed: () -> Unit, onCancel: () -> Unit) {
+        val primaryError = when (error.primaryError) {
+            SslError.SSL_NOTYETVALID -> "Certificate is not yet valid"
+            SslError.SSL_EXPIRED -> "Certificate has expired"
+            SslError.SSL_IDMISMATCH -> "Hostname does not match certificate"
+            SslError.SSL_UNTRUSTED -> "Certificate authority is untrusted"
+            SslError.SSL_DATE_INVALID -> "Certificate date is invalid"
+            else -> "Certificate validation failed"
+        }
+        val targetUrl = error.url ?: "this site"
+        AlertDialog.Builder(this)
+            .setTitle("Security Alert: SSL Failure")
+            .setMessage("The SSL certificate for $targetUrl failed verification:\n\n• $primaryError\n\nYour connection to this site is not secure.")
+            .setNegativeButton("Back to Safety") { _, _ -> onCancel() }
+            .setPositiveButton("Proceed Anyway (Unsafe)") { _, _ -> onProceed() }
+            .setOnCancelListener { onCancel() }
+            .show()
     }
 
     private fun updateSecurityIndicator(riskState: RiskState) {

@@ -30,9 +30,13 @@ class DownloadHandler(private val context: Context) : DownloadListener {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     companion object {
-        private val RISKY_EXTENSIONS = setOf(
+        val RISKY_EXTENSIONS = setOf(
             "apk", "dex", "sh", "bat", "exe", "vbs", "js", "cmd", "msi", "scr", "jar"
         )
+
+        fun isRiskyExtension(extension: String): Boolean {
+            return RISKY_EXTENSIONS.contains(extension.lowercase().trim().removePrefix("."))
+        }
     }
 
     override fun onDownloadStart(

@@ -85,15 +85,49 @@ class ThreatFeedManager(private val context: Context) {
     )
 
     /**
-     * Verifies manifest cryptographic authenticity using the trusted public key.
+     * Verifies manifest cryptographic authenticity using the trusted EC public key.
+     * Uses SHA256withECDSA over the canonical payload string.
      */
     fun verifyManifestSignature(manifest: SignedFeedManifest, trustedPublicKeyHex: String): Boolean {
         if (manifest.signatureHex.isBlank() || trustedPublicKeyHex.isBlank()) return false
         return try {
             val signedPayload = "${manifest.feedSource}:${manifest.version}:${manifest.expectedSha256Hex}"
-            manifest.signatureHex.length >= 16 && manifest.expectedSha256Hex.length == 64 && signedPayload.isNotEmpty()
+            val keyBytes = hexToByteArray(trustedPublicKeyHex)
+            val sigBytes = hexToByteArray(manifest.signatureHex)
+            val keySpec = java.security.spec.X509EncodedKeySpec(keyBytes)
+            val keyFactory = java.security.KeyFactory.getInstance("EC")
+            val publicKey = keyFactory.generatePublic(keySpec)
+
+            val verifier = java.security.Signature.getInstance("SHA256withECDSA")
+            verifier.initVerify(publicKey)
+            verifier.update(signedPayload.toByteArray(Charsets.UTF_8))
+            verifier.verify(sigBytes)
         } catch (e: Exception) {
             false
+        }
+    }
+
+    companion object {
+        fun hexToByteArray(hex: String): ByteArray {
+            val cleanHex = hex.trim().removePrefix("0x")
+            require(cleanHex.length % 2 == 0) { "Hex string must have an even length" }
+            val result = ByteArray(cleanHex.length / 2)
+            for (i in result.indices) {
+                val index = i * 2
+                result[i] = cleanHex.substring(index, index + 2).toInt(16).toByte()
+            }
+            return result
+        }
+
+        fun byteArrayToHex(bytes: ByteArray): String {
+            return bytes.joinToString("") { "%02x".format(it) }
+        }
+
+        fun signManifestPayload(signedPayload: String, privateKey: java.security.PrivateKey): String {
+            val signer = java.security.Signature.getInstance("SHA256withECDSA")
+            signer.initSign(privateKey)
+            signer.update(signedPayload.toByteArray(Charsets.UTF_8))
+            return byteArrayToHex(signer.sign())
         }
     }
 

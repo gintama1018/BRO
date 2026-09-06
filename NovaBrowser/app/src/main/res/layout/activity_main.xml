@@ -221,14 +221,20 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/progressBar">
 
-        <!-- STATE A: LIVE WEBVIEW HOST CONTAINER (With bottom padding for floating island) -->
-        <FrameLayout
-            android:id="@+id/webViewContainer"
+        <!-- STATE A: LIVE WEBVIEW HOST CONTAINER (With bottom padding for floating island and pull-to-refresh) -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingBottom="76dp"
-            android:visibility="gone" />
+            android:visibility="gone">
+
+            <FrameLayout
+                android:id="@+id/webViewContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="76dp" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <!-- STATE B: NEW TAB / BROWSER CANVAS (novabrowser_new_tab reference) -->
         <ScrollView

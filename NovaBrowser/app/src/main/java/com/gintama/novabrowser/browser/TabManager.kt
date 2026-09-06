@@ -36,6 +36,12 @@ interface TabChangeListener {
     ): Boolean
     fun onShowCustomView(view: android.view.View, callback: android.webkit.WebChromeClient.CustomViewCallback)
     fun onHideCustomView()
+    fun onCreateWindow(isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message?): Boolean
+    fun onCloseWindow(window: android.webkit.WebView?)
+    fun onJsAlert(message: String, result: android.webkit.JsResult)
+    fun onJsConfirm(message: String, result: android.webkit.JsResult)
+    fun onJsPrompt(message: String, defaultValue: String, result: android.webkit.JsPromptResult)
+    fun onReceivedSslError(error: android.net.http.SslError, onProceed: () -> Unit, onCancel: () -> Unit)
 }
 
 /**
@@ -115,6 +121,17 @@ class TabManager(
         webView.webViewClient = NovaWebViewClient(
             callback = navCallback,
             onUrlOverride = { targetUrl ->
+                // Check if targetUrl is an external scheme (tel:, mailto:, sms:, geo:, upi:, market:, intent://)
+                if (ExternalSchemeHandler.isExternalScheme(targetUrl)) {
+                    val (handled, fallbackUrl) = ExternalSchemeHandler.handleExternalUrl(context, targetUrl)
+                    if (handled) {
+                        if (!fallbackUrl.isNullOrBlank()) {
+                            webView.loadUrl(fallbackUrl)
+                        }
+                        return@NovaWebViewClient true
+                    }
+                }
+
                 val upgradedUrl = if (com.gintama.novabrowser.adblock.AdBlockEngine.isHttpsOnlyMode() && targetUrl.startsWith("http://", ignoreCase = true)) {
                     targetUrl.replaceFirst("http://", "https://", ignoreCase = true)
                 } else {
@@ -160,6 +177,28 @@ class TabManager(
                     // Fallback to threat feed / malware gate only for non-ad requests
                     val (_, decision) = controller.evaluateNavigation(subresourceUri)
                     decision.action == GateAction.BLOCK
+                }
+            },
+            onRenderProcessGoneCallback = { view, _ ->
+                // Low-RAM renderer crash recovery: reload webview cleanly instead of crashing app
+                view?.post {
+                    try {
+                        view.reload()
+                    } catch (e: Exception) {
+                        // Suppress reload errors
+                    }
+                }
+                true
+            },
+            onReceivedSslErrorCallback = { _, handler, error ->
+                if (error != null) {
+                    listener.onReceivedSslError(
+                        error = error,
+                        onProceed = { handler?.proceed() },
+                        onCancel = { handler?.cancel() }
+                    )
+                } else {
+                    handler?.cancel()
                 }
             }
         )
@@ -250,6 +289,30 @@ class TabManager(
             },
             onHideCustomViewCallback = {
                 listener.onHideCustomView()
+            },
+            onCreateWindowCallback = { _, isDialog, isUserGesture, resultMsg ->
+                listener.onCreateWindow(isDialog, isUserGesture, resultMsg)
+            },
+            onCloseWindowCallback = { window ->
+                listener.onCloseWindow(window)
+            },
+            onJsAlertCallback = { _, _, message, result ->
+                if (result != null) {
+                    listener.onJsAlert(message.orEmpty(), result)
+                    true
+                } else false
+            },
+            onJsConfirmCallback = { _, _, message, result ->
+                if (result != null) {
+                    listener.onJsConfirm(message.orEmpty(), result)
+                    true
+                } else false
+            },
+            onJsPromptCallback = { _, _, message, defaultValue, result ->
+                if (result != null) {
+                    listener.onJsPrompt(message.orEmpty(), defaultValue.orEmpty(), result)
+                    true
+                } else false
             }
         )
 

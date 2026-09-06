@@ -35,6 +35,10 @@ class NovaWebView(
             allowFileAccess = false
             allowContentAccess = false
 
+            // Web Compatibility: Support OAuth popups and multi-window logins
+            setSupportMultipleWindows(true)
+            javaScriptCanOpenWindowsAutomatically = true
+
             // Security: Never allow insecure mixed content
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
 
