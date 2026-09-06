@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/readerRootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas_base"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <!-- Top Reader Header Chrome -->
+    <LinearLayout
+        android:id="@+id/readerTopChrome"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+        <ImageButton
+            android:id="@+id/btnReaderBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_primary" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvReaderDomain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                tools:text="arstechnica.com" />
+
+            <TextView
+                android:id="@+id/tvReaderMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/accent_emerald"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="4 min read • Distraction-Free" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnReaderAppearance"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Appearance"
+            android:padding="7dp"
+            android:src="@drawable/ic_clean_reader"
+            app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnReaderCopy"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Copy Text"
+            android:padding="7dp"
+            android:src="@drawable/ic_copy"
+            app:tint="@color/text_secondary" />
+
+        <ImageButton
+            android:id="@+id/btnReaderShare"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Share"
+            android:padding="7dp"
+            android:src="@drawable/ic_share"
+            app:tint="@color/text_secondary" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- Sandboxed Reader Viewport -->
+    <WebView
+        android:id="@+id/wvReaderContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/canvas_base" />
+
+</LinearLayout>

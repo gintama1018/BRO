@@ -67,6 +67,13 @@
             android:label="Security Alert"
             android:theme="@style/Theme.NovaBrowser" />
 
+        <activity
+            android:name=".reader.ReaderActivity"
+            android:exported="false"
+            android:label="Reader View"
+            android:theme="@style/Theme.NovaBrowser"
+            android:parentActivityName=".ui.MainActivity" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

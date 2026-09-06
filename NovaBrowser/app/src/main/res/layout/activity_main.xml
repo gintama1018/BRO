@@ -87,6 +87,19 @@
                 android:textColorHint="@color/text_tertiary"
                 android:textSize="13.5sp" />
 
+            <!-- Reader Mode Button (visible when article detected) -->
+            <ImageButton
+                android:id="@+id/btnReaderMode"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_marginEnd="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Reader Mode"
+                android:padding="3dp"
+                android:src="@drawable/ic_clean_reader"
+                android:visibility="gone"
+                app:tint="@color/accent_emerald" />
+
             <!-- Quick Reload Button inside address pill -->
             <ImageButton
                 android:id="@+id/btnReloadPage"

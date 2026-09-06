@@ -15,6 +15,10 @@
         android:title="Find in Page" />
 
     <item
+        android:id="@+id/action_reader_mode"
+        android:title="Reader Mode" />
+
+    <item
         android:id="@+id/action_desktop_site"
         android:checkable="true"
         android:title="Desktop Site" />

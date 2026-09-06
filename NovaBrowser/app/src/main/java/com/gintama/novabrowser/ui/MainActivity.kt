@@ -48,6 +48,8 @@ import com.gintama.novabrowser.downloads.DownloadHandler
 import com.gintama.novabrowser.history.HistoryActivity
 import com.gintama.novabrowser.core.navigation.SearchEngine
 import com.gintama.novabrowser.search.SearchEngineManager
+import com.gintama.novabrowser.reader.ReaderActivity
+import com.gintama.novabrowser.reader.ReaderExtractor
 import com.gintama.novabrowser.settings.SettingsActivity
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -83,6 +85,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var topChromeHeader: LinearLayout
     private lateinit var etUrlInput: EditText
     private lateinit var btnReloadPage: ImageButton
+    private lateinit var btnReaderMode: ImageButton
     private lateinit var btnTabs: FrameLayout
     private lateinit var tvTabCount: TextView
     private lateinit var btnMenu: ImageButton
@@ -228,6 +231,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         topChromeHeader = findViewById(R.id.topChromeHeader)
         etUrlInput = findViewById(R.id.etUrlInput)
         btnReloadPage = findViewById(R.id.btnReloadPage)
+        btnReaderMode = findViewById(R.id.btnReaderMode)
         btnTabs = findViewById(R.id.btnTabs)
         tvTabCount = findViewById(R.id.tvTabCount)
         btnMenu = findViewById(R.id.btnMenu)
@@ -403,6 +407,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     webView.reload()
                 }
             }
+        }
+
+        btnReaderMode.setOnClickListener {
+            launchReaderMode()
         }
 
         // Options Menu
@@ -706,6 +714,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private fun showStartCanvas() {
         NovaMotion.crossFade(swipeRefreshLayout, layoutNewTabCanvas)
+        btnReaderMode.visibility = View.GONE
         etUrlInput.setText("")
         updateNavigationButtons()
         NovaMotion.animateCountUp(
@@ -923,6 +932,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 }
                 R.id.action_find_in_page -> {
                     showFindInPage()
+                    true
+                }
+                R.id.action_reader_mode -> {
+                    launchReaderMode()
                     true
                 }
                 R.id.action_desktop_site -> {
@@ -1260,6 +1273,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         updateShieldBadgeCount(tab.blockedAdsCount)
         updateNavigationButtons()
+        checkReaderCandidate(tab.webView)
     }
 
     override fun onTabsUpdated(tabs: List<BrowserTab>) {
@@ -1276,6 +1290,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             swipeRefreshLayout.isRefreshing = false
             btnReloadPage.setImageResource(R.drawable.ic_refresh)
             btnReloadPage.contentDescription = "Reload"
+            checkReaderCandidate(tabManager.activeTab?.webView)
         }
     }
 
@@ -1590,6 +1605,44 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         handleIntent(intent)
+    }
+
+    private fun launchReaderMode() {
+        val webView = tabManager.activeTab?.webView
+        val currentUrl = tabManager.activeTab?.url.orEmpty()
+        if (webView == null || currentUrl.isBlank() || currentUrl == "about:blank") {
+            Toast.makeText(this, "No article to read on this page", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "Extracting clean article...", Toast.LENGTH_SHORT).show()
+        ReaderExtractor.extractArticle(this, webView) { article ->
+            if (article != null) {
+                startActivity(ReaderActivity.createIntent(this, article))
+            } else {
+                Toast.makeText(this, "Could not extract readable article content", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun checkReaderCandidate(webView: WebView?) {
+        if (webView == null) {
+            btnReaderMode.visibility = View.GONE
+            return
+        }
+        val currentUrl = webView.url.orEmpty()
+        if (currentUrl.isBlank() || currentUrl == "about:blank" || layoutNewTabCanvas.visibility == View.VISIBLE) {
+            btnReaderMode.visibility = View.GONE
+            return
+        }
+        ReaderExtractor.isArticleCandidate(webView) { isCandidate ->
+            runOnUiThread {
+                if (layoutNewTabCanvas.visibility != View.VISIBLE) {
+                    btnReaderMode.visibility = if (isCandidate) View.VISIBLE else View.GONE
+                } else {
+                    btnReaderMode.visibility = View.GONE
+                }
+            }
+        }
     }
 
     private fun hideKeyboard() {
