@@ -180,8 +180,9 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:rotation="90"
-            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Previous match"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_upward"
             app:tint="@color/text_primary" />
 
         <ImageButton
@@ -189,8 +190,9 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:rotation="270"
-            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Next match"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_downward"
             app:tint="@color/text_primary" />
 
         <ImageButton

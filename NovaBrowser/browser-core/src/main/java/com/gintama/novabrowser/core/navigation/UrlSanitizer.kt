@@ -22,7 +22,10 @@ object UrlSanitizer {
         "^(https?://)?localhost(:\\d+)?(/.*)?$"
     )
 
-    fun sanitizeInput(input: String): String {
+    fun sanitizeInput(
+        input: String,
+        searchEngineTemplate: String = SearchEngine.DEFAULT.queryUrlTemplate
+    ): String {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return "about:blank"
 
@@ -43,9 +46,8 @@ object UrlSanitizer {
             return "https://$trimmed"
         }
 
-        // If it contains spaces or lacks a dot, treat as search query
-        val encoded = URLEncoder.encode(trimmed, StandardCharsets.UTF_8.name())
-        return "$DEFAULT_SEARCH_ENGINE$encoded"
+        // If it contains spaces or lacks a dot, treat as search query using the configured engine
+        return SearchEngine.buildSearchUrl(trimmed, searchEngineTemplate)
     }
 
     fun extractDomain(url: String): String {

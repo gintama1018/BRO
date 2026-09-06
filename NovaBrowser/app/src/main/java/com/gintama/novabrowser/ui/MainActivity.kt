@@ -45,6 +45,8 @@ import com.gintama.novabrowser.core.security.RiskState
 import com.gintama.novabrowser.core.security.SecurityDecision
 import com.gintama.novabrowser.downloads.DownloadHandler
 import com.gintama.novabrowser.history.HistoryActivity
+import com.gintama.novabrowser.core.navigation.SearchEngine
+import com.gintama.novabrowser.search.SearchEngineManager
 import com.gintama.novabrowser.settings.SettingsActivity
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import android.speech.RecognizerIntent
@@ -213,6 +215,11 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         setupFavoritesAndSyntheses()
         setupMotionGraphics()
         handleIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateSearchEnginePickerLabel()
     }
 
     private fun initViews() {
@@ -607,62 +614,76 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun getSearchEngineUrl(query: String): String {
-        val prefs = getSharedPreferences("nova_settings", Context.MODE_PRIVATE)
-        val engine = prefs.getString("pref_search_engine", "DuckDuckGo") ?: "DuckDuckGo"
-        val encoded = Uri.encode(query)
-        return when (engine) {
-            "Brave" -> "https://search.brave.com/search?q=$encoded"
-            "Startpage" -> "https://www.startpage.com/sp/search?query=$encoded"
-            "Google" -> "https://www.google.com/search?q=$encoded"
-            else -> "https://duckduckgo.com/?q=$encoded"
-        }
+        return SearchEngineManager.buildSearchUrl(this, query)
     }
 
     private fun updateSearchEnginePickerLabel() {
-        val prefs = getSharedPreferences("nova_settings", Context.MODE_PRIVATE)
-        val engine = prefs.getString("pref_search_engine", "DuckDuckGo") ?: "DuckDuckGo"
-        val code = when (engine) {
-            "Brave" -> "Brave ▾"
-            "Startpage" -> "SP ▾"
-            "Google" -> "Google ▾"
-            else -> "DDG ▾"
+        val activeEngine = SearchEngineManager.getActiveEngine(this)
+        controller.defaultSearchTemplate = SearchEngineManager.getActiveSearchTemplate(this)
+        val code = when (activeEngine) {
+            SearchEngine.DUCKDUCKGO -> "DDG ▾"
+            SearchEngine.BRAVE -> "Brave ▾"
+            SearchEngine.GOOGLE -> "Google ▾"
+            SearchEngine.BING -> "Bing ▾"
+            SearchEngine.STARTPAGE -> "SP ▾"
+            SearchEngine.ECOSIA -> "Ecosia ▾"
+            SearchEngine.CUSTOM -> "Custom ▾"
         }
         btnSearchEnginePicker.text = code
     }
 
     private fun showSearchEnginePicker() {
-        val engines = arrayOf("DuckDuckGo (Privacy)", "Brave Search (Private Index)", "Startpage (Anonymous)", "Google")
+        val engines = SearchEngine.entries.toTypedArray()
+        val names = engines.map { "${it.displayName}\n${it.description}" }.toTypedArray()
+        val current = SearchEngineManager.getActiveEngine(this)
+        val selectedIndex = engines.indexOf(current).coerceAtLeast(0)
+
         AlertDialog.Builder(this)
             .setTitle("Default Search Engine")
-            .setItems(engines) { _, which ->
-                val selected = when (which) {
-                    1 -> "Brave"
-                    2 -> "Startpage"
-                    3 -> "Google"
-                    else -> "DuckDuckGo"
+            .setSingleChoiceItems(names, selectedIndex) { dialog, which ->
+                val chosen = engines[which]
+                if (chosen == SearchEngine.CUSTOM) {
+                    dialog.dismiss()
+                    showCustomSearchEngineDialog {
+                        updateSearchEnginePickerLabel()
+                    }
+                } else {
+                    SearchEngineManager.setActiveEngine(this, chosen)
+                    updateSearchEnginePickerLabel()
+                    Toast.makeText(this, "Search engine: ${chosen.displayName}", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
                 }
-                getSharedPreferences("nova_settings", Context.MODE_PRIVATE)
-                    .edit()
-                    .putString("pref_search_engine", selected)
-                    .apply()
-                updateSearchEnginePickerLabel()
-                Toast.makeText(this, "Search engine set to $selected", Toast.LENGTH_SHORT).show()
             }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showCustomSearchEngineDialog(onSaved: () -> Unit) {
+        val current = SearchEngineManager.getCustomUrl(this)
+        val input = EditText(this).apply {
+            hint = "https://example.com/search?q=%s"
+            setText(current)
+            setSelection(text.length)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Custom Search URL")
+            .setMessage("Enter the search engine URL template using %s for the query term:")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val url = input.text.toString().trim()
+                if (url.isNotBlank()) {
+                    SearchEngineManager.setActiveEngine(this, SearchEngine.CUSTOM, url)
+                    onSaved()
+                    Toast.makeText(this, "Custom search engine configured", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun loadUrlInActiveTab(rawInput: String) {
-        val trimmed = rawInput.trim()
-        val targetInput = if (trimmed.startsWith("http://", ignoreCase = true) ||
-            trimmed.startsWith("https://", ignoreCase = true) ||
-            (trimmed.contains(".") && !trimmed.contains(" "))
-        ) {
-            trimmed
-        } else {
-            getSearchEngineUrl(trimmed)
-        }
-
-        val (sanitizedUrl, decision) = controller.evaluateNavigation(targetInput)
+        val searchTemplate = SearchEngineManager.getActiveSearchTemplate(this)
+        val (sanitizedUrl, decision) = controller.evaluateNavigation(rawInput, searchEngineTemplate = searchTemplate)
         updateSecurityIndicator(decision.riskState)
 
         if (decision.action == GateAction.BLOCK || decision.action == GateAction.WARN) {
@@ -964,6 +985,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     showSiteDataTransparencyDialog()
                     true
                 }
+                R.id.action_search_engine -> {
+                    showSearchEnginePicker()
+                    true
+                }
                 R.id.action_settings -> {
                     startActivity(Intent(this, SettingsActivity::class.java))
                     true
@@ -1052,33 +1077,60 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private fun showFindInPage() {
         val webView = tabManager.activeTab?.webView ?: return
+        layoutFindInPage.visibility = View.VISIBLE
         NovaMotion.slideDown(layoutFindInPage)
         etFindQuery.requestFocus()
         val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.showSoftInput(etFindQuery, InputMethodManager.SHOW_IMPLICIT)
 
-        webView.setFindListener { activeMatchOrdinal, numberOfMatches, _ ->
-            val active = if (numberOfMatches > 0) activeMatchOrdinal + 1 else 0
-            tvFindMatches.text = "$active/$numberOfMatches"
+        attachFindListenerToActiveWebView()
+
+        etFindQuery.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE ||
+                (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+            ) {
+                hideKeyboard()
+                tabManager.activeTab?.webView?.findNext(true)
+                true
+            } else {
+                false
+            }
         }
 
         etFindQuery.doAfterTextChanged { text ->
             val query = text?.toString().orEmpty()
+            val currentWv = tabManager.activeTab?.webView
             if (query.isNotBlank()) {
-                webView.findAllAsync(query)
+                currentWv?.findAllAsync(query)
             } else {
-                webView.clearMatches()
+                currentWv?.clearMatches()
                 tvFindMatches.text = "0/0"
             }
         }
 
-        btnFindPrev.setOnClickListener { webView.findNext(false) }
-        btnFindNext.setOnClickListener { webView.findNext(true) }
-        btnFindClose.setOnClickListener {
-            webView.clearMatches()
-            NovaMotion.slideUp(layoutFindInPage) {
-                hideKeyboard()
-            }
+        btnFindPrev.setOnClickListener { tabManager.activeTab?.webView?.findNext(false) }
+        btnFindNext.setOnClickListener { tabManager.activeTab?.webView?.findNext(true) }
+        btnFindClose.setOnClickListener { closeFindInPage() }
+    }
+
+    private fun closeFindInPage() {
+        tabManager.activeTab?.webView?.clearMatches()
+        etFindQuery.setText("")
+        tvFindMatches.text = "0/0"
+        NovaMotion.slideUp(layoutFindInPage) {
+            hideKeyboard()
+        }
+    }
+
+    private fun attachFindListenerToActiveWebView() {
+        val webView = tabManager.activeTab?.webView ?: return
+        webView.setFindListener { activeMatchOrdinal, numberOfMatches, _ ->
+            val active = if (numberOfMatches > 0) activeMatchOrdinal + 1 else 0
+            tvFindMatches.text = "$active/$numberOfMatches"
+        }
+        val currentQuery = etFindQuery.text.toString()
+        if (currentQuery.isNotBlank() && layoutFindInPage.visibility == View.VISIBLE) {
+            webView.findAllAsync(currentQuery)
         }
     }
 
@@ -1091,6 +1143,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             if (!etUrlInput.hasFocus()) {
                 etUrlInput.setText(tab.url)
             }
+        }
+
+        if (layoutFindInPage.visibility == View.VISIBLE) {
+            attachFindListenerToActiveWebView()
         }
 
         if (tab.isPrivate) {
@@ -1395,6 +1451,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     override fun onBackPressed() {
         if (customView != null) {
             onHideCustomView()
+            return
+        }
+        if (layoutFindInPage.visibility == View.VISIBLE) {
+            closeFindInPage()
             return
         }
         val webView = tabManager.activeTab?.webView

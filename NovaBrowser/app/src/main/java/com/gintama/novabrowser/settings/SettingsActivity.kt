@@ -53,6 +53,50 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         // ==========================================
+        // Search Engine Configuration
+        // ==========================================
+        val btnSelectSearchEngine = findViewById<android.view.View>(R.id.btnSelectSearchEngine)
+        val tvSearchEngineName = findViewById<TextView>(R.id.tvSearchEngineName)
+        val tvSearchEngineDesc = findViewById<TextView>(R.id.tvSearchEngineDesc)
+
+        fun updateSearchEngineDisplay() {
+            val engine = com.gintama.novabrowser.search.SearchEngineManager.getActiveEngine(this)
+            tvSearchEngineName.text = engine.displayName
+            tvSearchEngineDesc.text = if (engine == com.gintama.novabrowser.core.navigation.SearchEngine.CUSTOM) {
+                com.gintama.novabrowser.search.SearchEngineManager.getCustomUrl(this)
+            } else {
+                engine.description
+            }
+        }
+        updateSearchEngineDisplay()
+
+        btnSelectSearchEngine.setOnClickListener {
+            val engines = com.gintama.novabrowser.core.navigation.SearchEngine.entries.toTypedArray()
+            val names = engines.map { "${it.displayName}\n${it.description}" }.toTypedArray()
+            val current = com.gintama.novabrowser.search.SearchEngineManager.getActiveEngine(this)
+            val selectedIndex = engines.indexOf(current).coerceAtLeast(0)
+
+            AlertDialog.Builder(this)
+                .setTitle("Select Default Search Engine")
+                .setSingleChoiceItems(names, selectedIndex) { dialog, which ->
+                    val chosen = engines[which]
+                    if (chosen == com.gintama.novabrowser.core.navigation.SearchEngine.CUSTOM) {
+                        dialog.dismiss()
+                        showCustomSearchEngineDialog {
+                            updateSearchEngineDisplay()
+                        }
+                    } else {
+                        com.gintama.novabrowser.search.SearchEngineManager.setActiveEngine(this, chosen)
+                        updateSearchEngineDisplay()
+                        Toast.makeText(this, "Search engine set to ${chosen.displayName}", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+
+        // ==========================================
         // Phase 4 & Phase 5: Ad-Block & Privacy Controls
         // ==========================================
         com.gintama.novabrowser.adblock.AdBlockEngine.init(this)
@@ -233,5 +277,32 @@ class SettingsActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", null)
                 .show()
         }
+    }
+
+    private fun showCustomSearchEngineDialog(onSaved: () -> Unit) {
+        val current = com.gintama.novabrowser.search.SearchEngineManager.getCustomUrl(this)
+        val input = android.widget.EditText(this).apply {
+            hint = "https://example.com/search?q=%s"
+            setText(current)
+            setSelection(text.length)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Custom Search URL")
+            .setMessage("Enter the search engine URL template using %s for the query term:")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val url = input.text.toString().trim()
+                if (url.isNotBlank()) {
+                    com.gintama.novabrowser.search.SearchEngineManager.setActiveEngine(
+                        this,
+                        com.gintama.novabrowser.core.navigation.SearchEngine.CUSTOM,
+                        url
+                    )
+                    onSaved()
+                    Toast.makeText(this, "Custom search engine configured", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }

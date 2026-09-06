@@ -24,9 +24,14 @@ class BrowserController(
 ) {
     private val db = NovaDatabaseHelper.getInstance(context)
     private val scope = CoroutineScope(Dispatchers.IO)
+    var defaultSearchTemplate: String = com.gintama.novabrowser.core.navigation.SearchEngine.DEFAULT.queryUrlTemplate
 
-    fun evaluateNavigation(rawInput: String, isRedirect: Boolean = false): Pair<String, SecurityDecision> {
-        val sanitizedUrl = UrlSanitizer.sanitizeInput(rawInput)
+    fun evaluateNavigation(
+        rawInput: String,
+        isRedirect: Boolean = false,
+        searchEngineTemplate: String = defaultSearchTemplate
+    ): Pair<String, SecurityDecision> {
+        val sanitizedUrl = UrlSanitizer.sanitizeInput(rawInput, searchEngineTemplate)
         val decision = securityGate.evaluate(sanitizedUrl, isRedirect)
         return Pair(sanitizedUrl, decision)
     }

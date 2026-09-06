@@ -56,6 +56,10 @@
         android:title="Site Privacy &amp; Local Data" />
 
     <item
+        android:id="@+id/action_search_engine"
+        android:title="Search Engine" />
+
+    <item
         android:id="@+id/action_settings"
         android:title="@string/title_settings" />
 </menu>
