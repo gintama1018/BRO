@@ -1,6 +1,8 @@
 package com.gintama.novabrowser.browser
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.view.ViewGroup
 import com.gintama.novabrowser.core.controller.BrowserController
 import com.gintama.novabrowser.core.model.TabSession
@@ -15,7 +17,8 @@ data class BrowserTab(
     var title: String = "New Tab",
     var url: String = "about:blank",
     val isPrivate: Boolean = false,
-    var blockedAdsCount: Int = 0
+    var blockedAdsCount: Int = 0,
+    var thumbnail: Bitmap? = null
 )
 
 interface TabChangeListener {
@@ -64,6 +67,30 @@ class TabManager(
         get() = tabs.size
 
     fun getTabsList(): List<BrowserTab> = tabs.toList()
+
+    fun getStandardTabs(): List<BrowserTab> = tabs.filter { !it.isPrivate }
+
+    fun getPrivateTabs(): List<BrowserTab> = tabs.filter { it.isPrivate }
+
+    fun captureActiveTabThumbnail() {
+        val tab = activeTab ?: return
+        try {
+            val wv = tab.webView
+            if (wv.width > 0 && wv.height > 0) {
+                val scaledWidth = 360
+                val scaledHeight = ((wv.height.toFloat() / wv.width.toFloat()) * scaledWidth).toInt().coerceIn(240, 640)
+                val bitmap = Bitmap.createBitmap(scaledWidth, scaledHeight, Bitmap.Config.RGB_565)
+                val canvas = Canvas(bitmap)
+                val scale = scaledWidth.toFloat() / wv.width.toFloat()
+                canvas.scale(scale, scale)
+                wv.draw(canvas)
+                tab.thumbnail?.recycle()
+                tab.thumbnail = bitmap
+            }
+        } catch (e: Exception) {
+            // Suppress thumbnail capture errors safely
+        }
+    }
 
     fun createTab(initialUrl: String = "about:blank", isPrivate: Boolean = false): BrowserTab {
         val tabId = UUID.randomUUID().toString()
@@ -337,6 +364,9 @@ class TabManager(
 
     fun switchTab(tabId: String) {
         val target = tabs.firstOrNull { it.id == tabId } ?: return
+        if (activeTabId != null && activeTabId != tabId) {
+            captureActiveTabThumbnail()
+        }
         activeTabId = target.id
 
         // Swap view in container
@@ -353,6 +383,8 @@ class TabManager(
         if (index == -1) return
 
         val tabToRemove = tabs.removeAt(index)
+        tabToRemove.thumbnail?.recycle()
+        tabToRemove.thumbnail = null
         tabToRemove.webView.cleanUp()
 
         if (tabs.isEmpty()) {
@@ -368,12 +400,28 @@ class TabManager(
         }
     }
 
-    fun closeAllTabs() {
-        for (tab in tabs) {
-            tab.webView.cleanUp()
+    fun closeAllTabs(isPrivateOnly: Boolean? = null) {
+        val toRemove = when (isPrivateOnly) {
+            true -> tabs.filter { it.isPrivate }
+            false -> tabs.filter { !it.isPrivate }
+            null -> tabs.toList()
         }
-        tabs.clear()
-        createTab("about:blank", isPrivate = false)
+
+        for (tab in toRemove) {
+            tab.thumbnail?.recycle()
+            tab.thumbnail = null
+            tab.webView.cleanUp()
+            tabs.remove(tab)
+        }
+
+        if (tabs.isEmpty()) {
+            createTab("about:blank", isPrivate = false)
+        } else if (activeTab == null) {
+            switchTab(tabs.last().id)
+        } else {
+            listener.onTabsUpdated(tabs)
+            saveTabs()
+        }
     }
 
     private fun saveTabs() {

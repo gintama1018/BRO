@@ -32,6 +32,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.gintama.novabrowser.R
@@ -48,6 +49,7 @@ import com.gintama.novabrowser.history.HistoryActivity
 import com.gintama.novabrowser.core.navigation.SearchEngine
 import com.gintama.novabrowser.search.SearchEngineManager
 import com.gintama.novabrowser.settings.SettingsActivity
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import android.speech.RecognizerIntent
 import android.content.pm.ActivityInfo
@@ -1000,20 +1002,42 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun showTabsDialog() {
+        tabManager.captureActiveTabThumbnail()
+
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_tabs, null)
         dialog.setContentView(view)
 
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let { sheet ->
+                val behavior = BottomSheetBehavior.from(sheet)
+                behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                behavior.skipCollapsed = true
+                sheet.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+        }
+
+        val btnTabFilterStandard = view.findViewById<TextView>(R.id.btnTabFilterStandard)
+        val btnTabFilterPrivate = view.findViewById<TextView>(R.id.btnTabFilterPrivate)
         val rvTabs = view.findViewById<RecyclerView>(R.id.rvTabsList)
-        val btnAdd = view.findViewById<Button>(R.id.btnAddNewTab)
-        val btnAddPrivate = view.findViewById<Button>(R.id.btnNewPrivateTab)
+        val layoutTabsEmpty = view.findViewById<View>(R.id.layoutTabsEmpty)
+        val ivEmptyIcon = view.findViewById<ImageView>(R.id.ivEmptyIcon)
+        val tvEmptyTitle = view.findViewById<TextView>(R.id.tvEmptyTitle)
+        val tvEmptySubtitle = view.findViewById<TextView>(R.id.tvEmptySubtitle)
+        val btnEmptyCreateTab = view.findViewById<Button>(R.id.btnEmptyCreateTab)
         val btnCloseAll = view.findViewById<Button>(R.id.btnCloseAllTabs)
+        val btnAddNewTab = view.findViewById<Button>(R.id.btnAddNewTab)
         val btnDone = view.findViewById<Button>(R.id.btnCloseDialog)
 
-        rvTabs.layoutManager = LinearLayoutManager(this)
+        var showPrivateOnly = tabManager.activeTab?.isPrivate == true
+
+        rvTabs.layoutManager = GridLayoutManager(this, 2)
         lateinit var adapter: TabsAdapter
+        lateinit var refreshTabList: () -> Unit
+
         adapter = TabsAdapter(
-            tabs = tabManager.getTabsList(),
+            tabs = emptyList(),
             activeTabId = tabManager.activeTab?.id,
             onTabClick = { clickedTab ->
                 tabManager.switchTab(clickedTab.id)
@@ -1021,15 +1045,60 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             },
             onTabClose = { closedTab ->
                 tabManager.closeTab(closedTab.id)
-                adapter.updateTabs(tabManager.getTabsList(), tabManager.activeTab?.id)
                 if (tabManager.tabCount == 0) {
                     tabManager.createTab("about:blank")
                     showStartCanvas()
                     dialog.dismiss()
+                } else {
+                    refreshTabList()
                 }
             }
         )
         rvTabs.adapter = adapter
+
+        refreshTabList = {
+            val standardTabs = tabManager.getStandardTabs()
+            val privateTabs = tabManager.getPrivateTabs()
+            val currentList = if (showPrivateOnly) privateTabs else standardTabs
+
+            btnTabFilterStandard.text = "Standard (${standardTabs.size})"
+            btnTabFilterPrivate.text = "Private (${privateTabs.size})"
+
+            if (showPrivateOnly) {
+                btnTabFilterPrivate.setBackgroundResource(R.drawable.bg_glass_pill_dark)
+                btnTabFilterPrivate.setTextColor(ContextCompat.getColor(this, R.color.incognito_accent))
+                btnTabFilterStandard.setBackgroundResource(android.R.color.transparent)
+                btnTabFilterStandard.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                btnAddNewTab.text = "+ New Private Tab"
+                btnAddNewTab.setTextColor(ContextCompat.getColor(this, R.color.incognito_accent))
+                ivEmptyIcon.setImageResource(R.drawable.ic_incognito)
+                ivEmptyIcon.setColorFilter(ContextCompat.getColor(this, R.color.incognito_accent))
+                tvEmptyTitle.text = "No Private Tabs"
+                tvEmptySubtitle.text = "Private browsing leaves zero history, cache, or cookies"
+                btnEmptyCreateTab.text = "+ Open Private Tab"
+            } else {
+                btnTabFilterStandard.setBackgroundResource(R.drawable.bg_glass_pill_dark)
+                btnTabFilterStandard.setTextColor(ContextCompat.getColor(this, R.color.text_on_primary))
+                btnTabFilterPrivate.setBackgroundResource(android.R.color.transparent)
+                btnTabFilterPrivate.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+                btnAddNewTab.text = "+ New Tab"
+                btnAddNewTab.setTextColor(ContextCompat.getColor(this, R.color.text_on_primary))
+                ivEmptyIcon.setImageResource(R.drawable.ic_tabs)
+                ivEmptyIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent_emerald))
+                tvEmptyTitle.text = "No Standard Tabs"
+                tvEmptySubtitle.text = "Open a standard tab to browse with offline adblock & security"
+                btnEmptyCreateTab.text = "+ Open Standard Tab"
+            }
+
+            if (currentList.isEmpty()) {
+                rvTabs.visibility = View.GONE
+                layoutTabsEmpty.visibility = View.VISIBLE
+            } else {
+                rvTabs.visibility = View.VISIBLE
+                layoutTabsEmpty.visibility = View.GONE
+                adapter.updateTabs(currentList, tabManager.activeTab?.id)
+            }
+        }
 
         // Swipe to close tabs
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
@@ -1039,39 +1108,70 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 if (pos in 0 until adapter.itemCount) {
                     val tab = adapter.getTabAt(pos)
                     tabManager.closeTab(tab.id)
-                    adapter.updateTabs(tabManager.getTabsList(), tabManager.activeTab?.id)
                     if (tabManager.tabCount == 0) {
                         tabManager.createTab("about:blank")
                         showStartCanvas()
                         dialog.dismiss()
+                    } else {
+                        refreshTabList()
                     }
                 }
             }
         })
         itemTouchHelper.attachToRecyclerView(rvTabs)
 
+        btnTabFilterStandard.setOnClickListener {
+            if (showPrivateOnly) {
+                showPrivateOnly = false
+                refreshTabList()
+            }
+        }
+
+        btnTabFilterPrivate.setOnClickListener {
+            if (!showPrivateOnly) {
+                showPrivateOnly = true
+                refreshTabList()
+            }
+        }
+
         btnCloseAll.setOnClickListener {
-            tabManager.closeAllTabs()
-            showStartCanvas()
-            dialog.dismiss()
-            Toast.makeText(this, "All tabs closed", Toast.LENGTH_SHORT).show()
+            val title = if (showPrivateOnly) "Close All Private Tabs?" else "Close All Tabs?"
+            val msg = if (showPrivateOnly) {
+                "All private tabs and their in-memory data will be cleared."
+            } else {
+                "All standard tabs will be closed."
+            }
+            AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(msg)
+                .setPositiveButton("Close All") { _, _ ->
+                    tabManager.closeAllTabs(isPrivateOnly = if (showPrivateOnly) true else null)
+                    showStartCanvas()
+                    dialog.dismiss()
+                    Toast.makeText(this, "Tabs closed", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
-        btnAdd.setOnClickListener {
-            tabManager.createTab("about:blank")
+        btnAddNewTab.setOnClickListener {
+            if (showPrivateOnly) {
+                tabManager.createTab("about:blank", isPrivate = true)
+                Toast.makeText(this, R.string.private_mode_notice, Toast.LENGTH_SHORT).show()
+            } else {
+                tabManager.createTab("about:blank", isPrivate = false)
+            }
             showStartCanvas()
             dialog.dismiss()
         }
 
-        btnAddPrivate.setOnClickListener {
-            tabManager.createTab("about:blank", isPrivate = true)
-            showStartCanvas()
-            dialog.dismiss()
-            Toast.makeText(this, R.string.private_mode_notice, Toast.LENGTH_SHORT).show()
+        btnEmptyCreateTab.setOnClickListener {
+            btnAddNewTab.performClick()
         }
 
         btnDone.setOnClickListener { dialog.dismiss() }
 
+        refreshTabList()
         dialog.show()
     }
 
