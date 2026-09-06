@@ -114,6 +114,8 @@ class TabManager(
             override fun onPageStarted(url: String) {
                 tab.url = url
                 tab.blockedAdsCount = 0
+                val siteHost = try { java.net.URI(url).host } catch (e: Exception) { null }
+                tab.webView.applySiteShields(siteHost)
                 if (tab.id == activeTabId) {
                     listener.onBlockedAdsUpdated(tab, 0)
                     listener.onActiveTabChanged(tab)

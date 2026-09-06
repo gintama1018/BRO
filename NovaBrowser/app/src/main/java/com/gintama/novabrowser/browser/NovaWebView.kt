@@ -85,6 +85,21 @@ class NovaWebView(
         }
     }
 
+    /**
+     * Dynamically configures JavaScript execution and third-party cookie isolation
+     * according to per-site shield rules.
+     */
+    fun applySiteShields(siteHost: String?) {
+        val shieldSettings = com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(siteHost)
+        settings.javaScriptEnabled = shieldSettings.isJavaScriptAllowed()
+
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        val blockThirdParty = if (isPrivate) true else shieldSettings.isThirdPartyCookiesBlocked()
+        cookieManager.setAcceptThirdPartyCookies(this, !blockThirdParty)
+    }
+
+
     override fun loadUrl(url: String) {
         if (com.gintama.novabrowser.adblock.AdBlockEngine.isDntEnabled()) {
             val headers = mapOf("DNT" to "1", "Sec-GPC" to "1")

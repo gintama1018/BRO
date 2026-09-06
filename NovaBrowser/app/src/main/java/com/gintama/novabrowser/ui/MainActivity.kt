@@ -212,6 +212,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         controller = BrowserController(this)
         downloadHandler = DownloadHandler(this)
         AdBlockEngine.init(this)
+        com.gintama.novabrowser.shields.SiteShieldManager.init(this)
 
         initViews()
         setupWindowInsets()
@@ -448,15 +449,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
 
         btnIslandShield.setOnClickListener {
-            showAdBlockShieldBottomSheet()
+            showSiteShieldsBottomSheet()
         }
 
         layoutShieldBadge.setOnClickListener {
-            showAdBlockShieldBottomSheet()
+            showSiteShieldsBottomSheet()
         }
 
         ivSecurityIndicator.setOnClickListener {
-            showSecurityInfoDialog()
+            showSiteShieldsBottomSheet()
         }
 
         btnIslandBookmarks.setOnClickListener {
@@ -798,74 +799,216 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         dialog.show()
     }
 
-    private fun showAdBlockShieldBottomSheet() {
+    private fun showSiteShieldsBottomSheet() {
         val dialog = BottomSheetDialog(this)
-        val view = layoutInflater.inflate(R.layout.dialog_adblock_shield, null)
+        val view = layoutInflater.inflate(R.layout.dialog_site_shields, null)
         dialog.setContentView(view)
 
         val tab = tabManager.activeTab
         val currentUrl = tab?.url.orEmpty()
-        val siteHost = try {
-            val host = java.net.URI(currentUrl).host
-            if (host.isNullOrBlank()) "Local Canvas" else host
-        } catch (e: Exception) {
-            if (currentUrl.isBlank() || currentUrl == "about:blank") "Local Canvas" else currentUrl
-        }
+        val siteHost = com.gintama.novabrowser.shields.SiteShieldManager.normalizeDomain(currentUrl).ifBlank { "Local Canvas" }
+        val isLocalCanvas = siteHost == "Local Canvas" || currentUrl.isBlank() || currentUrl == "about:blank"
 
+        val ivHeaderIcon = view.findViewById<ImageView>(R.id.ivShieldHeaderIcon)
         val tvSiteDomain = view.findViewById<TextView>(R.id.tvShieldSiteDomain)
-        val tvStatus = view.findViewById<TextView>(R.id.tvShieldProtectionStatus)
-        val tvBlockedThisPage = view.findViewById<TextView>(R.id.tvShieldBlockedThisPage)
-        val tvLifetimeTotal = view.findViewById<TextView>(R.id.tvShieldLifetimeTotal)
-        val switchSiteAdBlock = view.findViewById<SwitchMaterial>(R.id.switchSiteAdBlock)
-        val switchSiteCosmetic = view.findViewById<SwitchMaterial>(R.id.switchSiteCosmetic)
-        val tvTelemetry = view.findViewById<TextView>(R.id.tvShieldRulesTelemetry)
+        val ivLockIcon = view.findViewById<ImageView>(R.id.ivConnectionLockIcon)
+        val tvConnectionStatus = view.findViewById<TextView>(R.id.tvShieldConnectionStatus)
+        val btnDismiss = view.findViewById<ImageButton>(R.id.btnDismissShields)
+
+        val tvMasterTitle = view.findViewById<TextView>(R.id.tvMasterShieldTitle)
+        val tvMasterSubtitle = view.findViewById<TextView>(R.id.tvMasterShieldSubtitle)
+        val switchMaster = view.findViewById<SwitchMaterial>(R.id.switchMasterShields)
+
+        val tvBlockedPage = view.findViewById<TextView>(R.id.tvShieldBlockedThisPage)
+        val tvJsStatus = view.findViewById<TextView>(R.id.tvShieldJsStatus)
+        val tvCookiesStatus = view.findViewById<TextView>(R.id.tvShieldCookiesStatus)
+
+        val switchAdBlock = view.findViewById<SwitchMaterial>(R.id.switchSiteAdBlock)
+        val switchCosmetic = view.findViewById<SwitchMaterial>(R.id.switchSiteCosmetic)
+        val switchJs = view.findViewById<SwitchMaterial>(R.id.switchSiteJavaScript)
+        val switchThirdPartyCookies = view.findViewById<SwitchMaterial>(R.id.switchSiteThirdPartyCookies)
+
+        val layoutPermissions = view.findViewById<View>(R.id.layoutPermissionsSection)
+        val tvPermissions = view.findViewById<TextView>(R.id.tvSitePermissionsSummary)
+        val btnResetPerms = view.findViewById<TextView>(R.id.btnResetPermissions)
+
+        val btnClearData = view.findViewById<Button>(R.id.btnClearSiteData)
+        val btnAudit = view.findViewById<Button>(R.id.btnTechnicalAudit)
         val btnReport = view.findViewById<Button>(R.id.btnReportBrokenSite)
-        val btnSettings = view.findViewById<Button>(R.id.btnOpenAdBlockSettings)
-        val btnDone = view.findViewById<Button>(R.id.btnDoneShield)
+        val btnDone = view.findViewById<Button>(R.id.btnDoneShields)
 
         tvSiteDomain.text = siteHost
-        val blockedThisPage = tab?.blockedAdsCount ?: 0
-        tvBlockedThisPage.text = blockedThisPage.toString()
-        tvLifetimeTotal.text = AdBlockEngine.getLifetimeBlockedCount().toString()
+        btnDismiss.setOnClickListener { dialog.dismiss() }
+        btnDone.setOnClickListener { dialog.dismiss() }
 
-        val isLocalCanvas = siteHost == "Local Canvas"
+        // Security / Connection Indicator
         if (isLocalCanvas) {
-            switchSiteAdBlock.isEnabled = false
-            switchSiteCosmetic.isEnabled = false
-            tvStatus.text = "Local Canvas • No External Trackers"
-            btnReport.visibility = View.GONE
+            ivLockIcon.setImageResource(R.drawable.ic_shield_verified)
+            ivLockIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent_emerald))
+            tvConnectionStatus.text = "Internal Protected Environment"
+            tvConnectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald))
+        } else if (currentUrl.startsWith("https://", ignoreCase = true)) {
+            ivLockIcon.setImageResource(R.drawable.ic_lock)
+            ivLockIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent_emerald))
+            tvConnectionStatus.text = "HTTPS Secured • TLS Encrypted"
+            tvConnectionStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald))
         } else {
-            val (adBlockEnabled, cosmeticEnabled) = AdBlockEngine.getSiteRule(siteHost)
-            switchSiteAdBlock.isChecked = adBlockEnabled
-            switchSiteCosmetic.isChecked = cosmeticEnabled
+            ivLockIcon.setImageResource(R.drawable.ic_link_off)
+            ivLockIcon.setColorFilter(ContextCompat.getColor(this, R.color.risk_suspicious))
+            tvConnectionStatus.text = "Insecure Connection (HTTP)"
+            tvConnectionStatus.setTextColor(ContextCompat.getColor(this, R.color.risk_suspicious))
+        }
 
-            tvStatus.text = if (adBlockEnabled) "Shield Active • On-Device Protection" else "Shield Paused on This Site"
-            tvStatus.setTextColor(ContextCompat.getColor(this, if (adBlockEnabled) R.color.accent_emerald else R.color.risk_suspicious))
+        val blockedCount = tab?.blockedAdsCount ?: 0
+        tvBlockedPage.text = blockedCount.toString()
 
-            switchSiteAdBlock.setOnCheckedChangeListener { _, isChecked ->
-                AdBlockEngine.setSiteRule(siteHost, isChecked, switchSiteCosmetic.isChecked)
-                tvStatus.text = if (isChecked) "Shield Active • On-Device Protection" else "Shield Paused on This Site"
-                tvStatus.setTextColor(ContextCompat.getColor(this, if (isChecked) R.color.accent_emerald else R.color.risk_suspicious))
+        if (isLocalCanvas) {
+            switchMaster.isEnabled = false
+            switchAdBlock.isEnabled = false
+            switchCosmetic.isEnabled = false
+            switchJs.isEnabled = false
+            switchThirdPartyCookies.isEnabled = false
+            btnClearData.visibility = View.GONE
+            btnReport.visibility = View.GONE
+            layoutPermissions.visibility = View.GONE
+            tvMasterTitle.text = "Local Canvas Protected"
+            tvMasterSubtitle.text = "Zero remote tracking or network subresources"
+        } else {
+            var currentSettings = com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(siteHost)
+
+            fun updateUIStates(s: com.gintama.novabrowser.shields.SiteShieldSettings) {
+                switchMaster.isChecked = s.shieldsEnabled
+                switchAdBlock.isChecked = s.adBlockEnabled
+                switchCosmetic.isChecked = s.cosmeticEnabled
+                switchJs.isChecked = s.javaScriptEnabled
+                switchThirdPartyCookies.isChecked = s.blockThirdPartyCookies
+
+                val isMasterUp = s.shieldsEnabled
+                switchAdBlock.isEnabled = isMasterUp
+                switchCosmetic.isEnabled = isMasterUp
+                switchJs.isEnabled = isMasterUp
+                switchThirdPartyCookies.isEnabled = isMasterUp
+
+                if (isMasterUp) {
+                    tvMasterTitle.text = "Nova Shields: Active"
+                    tvMasterTitle.setTextColor(ContextCompat.getColor(this, R.color.accent_emerald))
+                    tvMasterSubtitle.text = "Blocking network trackers, malvertising, and fingerprinting"
+                    ivHeaderIcon.setBackgroundResource(R.drawable.bg_badge_emerald)
+                    ivHeaderIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent_emerald))
+                } else {
+                    tvMasterTitle.text = "Nova Shields: Paused"
+                    tvMasterTitle.setTextColor(ContextCompat.getColor(this, R.color.risk_suspicious))
+                    tvMasterSubtitle.text = "All protections disabled for this site to prevent layout issues"
+                    ivHeaderIcon.setBackgroundResource(R.drawable.bg_badge_amber)
+                    ivHeaderIcon.setColorFilter(ContextCompat.getColor(this, R.color.risk_suspicious))
+                }
+
+                val jsActive = s.isJavaScriptAllowed()
+                tvJsStatus.text = if (jsActive) "Active" else "Blocked"
+                tvJsStatus.setTextColor(ContextCompat.getColor(this, if (jsActive) R.color.accent_emerald else R.color.risk_blocked))
+
+                val cookiesBlocked = s.isThirdPartyCookiesBlocked()
+                tvCookiesStatus.text = if (cookiesBlocked) "Blocked" else "Allowed"
+                tvCookiesStatus.setTextColor(ContextCompat.getColor(this, if (cookiesBlocked) R.color.accent_emerald else R.color.risk_suspicious))
             }
 
-            switchSiteCosmetic.setOnCheckedChangeListener { _, isChecked ->
-                AdBlockEngine.setSiteRule(siteHost, switchSiteAdBlock.isChecked, isChecked)
+            updateUIStates(currentSettings)
+
+            fun saveAndApply(newSettings: com.gintama.novabrowser.shields.SiteShieldSettings, reload: Boolean = false) {
+                currentSettings = newSettings
+                com.gintama.novabrowser.shields.SiteShieldManager.updateSettings(newSettings)
+                updateUIStates(newSettings)
+                tab?.webView?.applySiteShields(siteHost)
+                if (tab?.isPrivate != true) {
+                    if (!newSettings.shieldsEnabled) {
+                        ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.risk_suspicious))
+                    } else {
+                        val (_, decision) = controller.evaluateNavigation(currentUrl)
+                        updateSecurityIndicator(decision.riskState)
+                    }
+                }
+                if (reload) {
+                    tab?.webView?.reload()
+                }
+            }
+
+            switchMaster.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked != currentSettings.shieldsEnabled) {
+                    saveAndApply(currentSettings.copy(shieldsEnabled = isChecked), reload = true)
+                }
+            }
+
+            switchAdBlock.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked != currentSettings.adBlockEnabled) {
+                    saveAndApply(currentSettings.copy(adBlockEnabled = isChecked), reload = true)
+                }
+            }
+
+            switchCosmetic.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked != currentSettings.cosmeticEnabled) {
+                    saveAndApply(currentSettings.copy(cosmeticEnabled = isChecked), reload = false)
+                }
+            }
+
+            switchJs.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked != currentSettings.javaScriptEnabled) {
+                    saveAndApply(currentSettings.copy(javaScriptEnabled = isChecked), reload = true)
+                }
+            }
+
+            switchThirdPartyCookies.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked != currentSettings.blockThirdPartyCookies) {
+                    saveAndApply(currentSettings.copy(blockThirdPartyCookies = isChecked), reload = false)
+                }
+            }
+
+            // Permissions readout
+            val dbHelper = NovaDatabaseHelper.getInstance(this)
+            val canonicalOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(currentUrl)
+            fun refreshPermissions() {
+                val perms = dbHelper.getSitePermissions(canonicalOrigin)
+                if (perms.isNotEmpty()) {
+                    tvPermissions.text = perms.entries.joinToString("\n") { (k, v) ->
+                        val permName = when (k) {
+                            com.gintama.novabrowser.browser.SitePermissionType.CAMERA -> "Camera"
+                            com.gintama.novabrowser.browser.SitePermissionType.MICROPHONE -> "Microphone"
+                            com.gintama.novabrowser.browser.SitePermissionType.GEOLOCATION -> "Location"
+                            else -> k
+                        }
+                        "• $permName: ${if (v) "GRANTED" else "BLOCKED"}"
+                    }
+                    btnResetPerms.visibility = View.VISIBLE
+                } else {
+                    tvPermissions.text = "• No hardware or device permissions requested"
+                    btnResetPerms.visibility = View.GONE
+                }
+            }
+            refreshPermissions()
+
+            btnResetPerms.setOnClickListener {
+                dbHelper.clearSitePermissions(canonicalOrigin)
+                refreshPermissions()
+                Toast.makeText(this, "Permissions reset for $siteHost", Toast.LENGTH_SHORT).show()
+            }
+
+            btnClearData.setOnClickListener {
+                com.gintama.novabrowser.shields.SiteShieldManager.clearSiteData(this, currentUrl) {
+                    Toast.makeText(this, "Cleared cookies and local storage for $siteHost", Toast.LENGTH_SHORT).show()
+                    tab?.webView?.reload()
+                    dialog.dismiss()
+                }
             }
 
             btnReport.setOnClickListener {
-                NovaDatabaseHelper.getInstance(this).reportBrokenSite(currentUrl)
-                Toast.makeText(this, "Site reported locally for filter adjustments", Toast.LENGTH_SHORT).show()
+                dbHelper.reportBrokenSite(currentUrl)
+                Toast.makeText(this, "Site reported locally for shield rules tuning", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
         }
 
-        btnSettings.setOnClickListener {
+        btnAudit.setOnClickListener {
             dialog.dismiss()
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
-
-        btnDone.setOnClickListener {
-            dialog.dismiss()
+            showSecurityInfoDialog()
         }
 
         dialog.show()
@@ -997,7 +1140,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     true
                 }
                 R.id.action_site_transparency -> {
-                    showSiteDataTransparencyDialog()
+                    showSiteShieldsBottomSheet()
                     true
                 }
                 R.id.action_search_engine -> {
@@ -1267,8 +1410,13 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.incognito_accent))
         } else {
             ivPrivateBadge.visibility = View.GONE
-            val (_, decision) = controller.evaluateNavigation(tab.url)
-            updateSecurityIndicator(decision.riskState)
+            val shield = com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(tab.url)
+            if (!shield.shieldsEnabled) {
+                ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.risk_suspicious))
+            } else {
+                val (_, decision) = controller.evaluateNavigation(tab.url)
+                updateSecurityIndicator(decision.riskState)
+            }
         }
 
         updateShieldBadgeCount(tab.blockedAdsCount)

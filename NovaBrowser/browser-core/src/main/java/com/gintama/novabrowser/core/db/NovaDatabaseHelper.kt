@@ -157,6 +157,19 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 PRIMARY KEY (domain, permission)
             );
         """.trimIndent())
+
+        // 11. Site Shields Settings Table (Brave-style granular per-site security)
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS site_shields_settings (
+                domain TEXT PRIMARY KEY,
+                shields_enabled INTEGER NOT NULL DEFAULT 1,
+                adblock_enabled INTEGER NOT NULL DEFAULT 1,
+                cosmetic_enabled INTEGER NOT NULL DEFAULT 1,
+                javascript_enabled INTEGER NOT NULL DEFAULT 1,
+                block_third_party_cookies INTEGER NOT NULL DEFAULT 1,
+                updated_at INTEGER NOT NULL
+            );
+        """.trimIndent())
     }
 
     override fun onOpen(db: SQLiteDatabase) {
@@ -184,6 +197,17 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 granted INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
                 PRIMARY KEY (domain, permission)
+            );
+        """.trimIndent())
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS site_shields_settings (
+                domain TEXT PRIMARY KEY,
+                shields_enabled INTEGER NOT NULL DEFAULT 1,
+                adblock_enabled INTEGER NOT NULL DEFAULT 1,
+                cosmetic_enabled INTEGER NOT NULL DEFAULT 1,
+                javascript_enabled INTEGER NOT NULL DEFAULT 1,
+                block_third_party_cookies INTEGER NOT NULL DEFAULT 1,
+                updated_at INTEGER NOT NULL
             );
         """.trimIndent())
     }
@@ -865,5 +889,78 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     fun clearAllSitePermissions(): Int {
         val db = writableDatabase
         return db.delete("site_permissions", null, null)
+    }
+
+    fun clearSitePermissions(originOrDomain: String): Int {
+        val canonical = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(originOrDomain)
+        val cleanDomain = originOrDomain.lowercase().trim().removePrefix("www.")
+        val db = writableDatabase
+        return db.delete("site_permissions", "domain = ? OR domain = ?", arrayOf(canonical, cleanDomain))
+    }
+
+    // ==========================================
+    // Site Shields Settings DAO
+    // ==========================================
+
+    fun getSiteShieldRecord(domain: String): SiteShieldRecord? {
+        val cleanDomain = domain.lowercase().trim().removePrefix("www.")
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT domain, shields_enabled, adblock_enabled, cosmetic_enabled, javascript_enabled, block_third_party_cookies, updated_at FROM site_shields_settings WHERE domain = ?",
+            arrayOf(cleanDomain)
+        )
+        cursor.use {
+            if (it.moveToNext()) {
+                return SiteShieldRecord(
+                    domain = it.getString(0),
+                    shieldsEnabled = it.getInt(1) == 1,
+                    adBlockEnabled = it.getInt(2) == 1,
+                    cosmeticEnabled = it.getInt(3) == 1,
+                    javaScriptEnabled = it.getInt(4) == 1,
+                    blockThirdPartyCookies = it.getInt(5) == 1,
+                    updatedAt = it.getLong(6)
+                )
+            }
+        }
+        return null
+    }
+
+    fun setSiteShieldRecord(record: SiteShieldRecord) {
+        val cleanDomain = record.domain.lowercase().trim().removePrefix("www.")
+        val db = writableDatabase
+        val values = android.content.ContentValues().apply {
+            put("domain", cleanDomain)
+            put("shields_enabled", if (record.shieldsEnabled) 1 else 0)
+            put("adblock_enabled", if (record.adBlockEnabled) 1 else 0)
+            put("cosmetic_enabled", if (record.cosmeticEnabled) 1 else 0)
+            put("javascript_enabled", if (record.javaScriptEnabled) 1 else 0)
+            put("block_third_party_cookies", if (record.blockThirdPartyCookies) 1 else 0)
+            put("updated_at", record.updatedAt)
+        }
+        db.insertWithOnConflict("site_shields_settings", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun getAllSiteShieldRecords(): Map<String, SiteShieldRecord> {
+        val result = mutableMapOf<String, SiteShieldRecord>()
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT domain, shields_enabled, adblock_enabled, cosmetic_enabled, javascript_enabled, block_third_party_cookies, updated_at FROM site_shields_settings",
+            null
+        )
+        cursor.use {
+            while (it.moveToNext()) {
+                val d = it.getString(0)
+                result[d] = SiteShieldRecord(
+                    domain = d,
+                    shieldsEnabled = it.getInt(1) == 1,
+                    adBlockEnabled = it.getInt(2) == 1,
+                    cosmeticEnabled = it.getInt(3) == 1,
+                    javaScriptEnabled = it.getInt(4) == 1,
+                    blockThirdPartyCookies = it.getInt(5) == 1,
+                    updatedAt = it.getLong(6)
+                )
+            }
+        }
+        return result
     }
 }

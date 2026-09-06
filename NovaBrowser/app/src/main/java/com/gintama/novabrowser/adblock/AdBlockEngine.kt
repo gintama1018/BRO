@@ -154,9 +154,7 @@ object AdBlockEngine {
         if (!isMasterAdBlockEnabled()) return false
         if (siteHost.isNullOrBlank()) return true
 
-        val clean = siteHost.lowercase().trim().removePrefix("www.")
-        val rule = siteRulesCache[clean] ?: db.getSiteAdBlockRule(clean)
-        return rule?.first ?: true
+        return com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(siteHost).isAdBlockActive()
     }
 
     /**
@@ -166,9 +164,7 @@ object AdBlockEngine {
         if (!isMasterCosmeticEnabled()) return false
         if (siteHost.isNullOrBlank()) return true
 
-        val clean = siteHost.lowercase().trim().removePrefix("www.")
-        val rule = siteRulesCache[clean] ?: db.getSiteAdBlockRule(clean)
-        return rule?.second ?: true
+        return com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(siteHost).isCosmeticActive()
     }
 
     fun setSiteRule(siteHost: String, adBlockEnabled: Boolean, cosmeticEnabled: Boolean) {
@@ -181,8 +177,10 @@ object AdBlockEngine {
 
     fun getSiteRule(siteHost: String): Pair<Boolean, Boolean> {
         val clean = siteHost.lowercase().trim().removePrefix("www.")
-        return siteRulesCache[clean] ?: db.getSiteAdBlockRule(clean) ?: Pair(true, true)
+        val shield = com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(clean)
+        return Pair(shield.isAdBlockActive(), shield.isCosmeticActive())
     }
+
 
     // ==========================================
     // Cosmetic CSS Injection (Phase 2)
