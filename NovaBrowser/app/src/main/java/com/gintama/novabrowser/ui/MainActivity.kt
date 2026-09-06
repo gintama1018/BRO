@@ -1149,10 +1149,12 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         val intent = Intent(this, SecurityWarningActivity::class.java).apply {
             putExtra(SecurityWarningActivity.EXTRA_TARGET_URL, targetUrl)
+            putExtra(SecurityWarningActivity.EXTRA_CANONICAL_URL, decision.canonicalUrl)
             putExtra(SecurityWarningActivity.EXTRA_ACTION, decision.action.name)
             putExtra(SecurityWarningActivity.EXTRA_RISK_STATE, decision.riskState.name)
             putStringArrayListExtra(SecurityWarningActivity.EXTRA_REASONS, ArrayList(decision.reasons))
             putExtra(SecurityWarningActivity.EXTRA_RULE_ID, decision.matchedRuleId)
+            putExtra(SecurityWarningActivity.EXTRA_FEED_SOURCE, decision.feedSource)
             putExtra(SecurityWarningActivity.EXTRA_RISK_SCORE, decision.riskScore)
         }
         securityLauncher.launch(intent)

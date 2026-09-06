@@ -251,6 +251,17 @@
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvCanonicalUrl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="monospace"
+                    android:text="Canonical Origin: https://..."
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- Reasons Card: Detection Breakdown -->
@@ -372,20 +383,42 @@
                 android:padding="14dp"
                 android:visibility="gone">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="SECURITY DIAGNOSTICS LOG"
-                    android:textColor="@color/text_primary"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="SECURITY DIAGNOSTICS LOG"
+                        android:textColor="@color/text_primary"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnCopyDiagnostics"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_glass_pill"
+                        android:paddingHorizontal="10dp"
+                        android:text="Copy Report"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_primary"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="@null" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvDiagnosticsHex"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:lineSpacingExtra="2dp"
+                    android:fontFamily="monospace"
+                    android:lineSpacingExtra="3dp"
                     android:text="ENGINE: Offline Deterministic Gate\nRULE_ID: URLHAUS_MALWARE_01\nACTION: HARD_BLOCK\nRISK_SCORE: 1.0"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp" />

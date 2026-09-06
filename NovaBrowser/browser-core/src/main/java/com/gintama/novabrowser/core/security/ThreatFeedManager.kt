@@ -129,6 +129,20 @@ class ThreatFeedManager(private val context: Context) {
             signer.update(signedPayload.toByteArray(Charsets.UTF_8))
             return byteArrayToHex(signer.sign())
         }
+
+        /**
+         * Parses a sequence of threat domain lines (e.g. from bundled assets or URLhaus plain feeds)
+         * into persistent SecurityRule candidates.
+         */
+        fun parseDomainRules(lines: Sequence<String>, source: String = "URLHAUS"): List<SecurityRule> {
+            val rules = mutableListOf<SecurityRule>()
+            val now = System.currentTimeMillis()
+            for (line in lines) {
+                val rule = AdblockParser.parseUrlhausLine(line) ?: continue
+                rules.add(rule.copy(source = source, updatedAt = now))
+            }
+            return rules
+        }
     }
 
     /**
@@ -175,7 +189,7 @@ class ThreatFeedManager(private val context: Context) {
 
         if (manifest.feedSource.equals("URLHAUS", ignoreCase = true)) {
             for (line in lines) {
-                val rule = AdblockParser.parseUrlhausCsvLine(line) ?: continue
+                val rule = AdblockParser.parseUrlhausLine(line) ?: continue
                 candidates.add(rule)
             }
         } else {
@@ -205,36 +219,52 @@ class ThreatFeedManager(private val context: Context) {
      * Uses standard Adblock Plus (EasyList/EasyPrivacy) and URLhaus syntax via AdblockParser.
      */
     private fun ensureInitialSnapshotSeeded() {
-        if (db.getTotalSecurityRuleCount() > 0) return
+        val urlhausMeta = db.getSnapshotMeta("URLHAUS")
+        val needsUrlhausSeed = urlhausMeta == null || urlhausMeta.ruleCount < 1000
+
+        if (!needsUrlhausSeed && db.getTotalSecurityRuleCount() > 0) return
 
         val initialRules = mutableListOf<SecurityRule>()
         val now = System.currentTimeMillis()
 
-        // 1. URLhaus High-Confidence Malware Seeds (RuleType.MALWARE, Severity: BLOCK)
-        val malwareDomains = listOf(
-            "urlhaus-test.openphish.com",
-            "testsafebrowsing.appspot.com",
-            "malware-traffic-analysis.net",
-            "malicious-test-domain.example",
-            "drive-by-download-test.org",
-            "banking-stealer-sample.net",
-            "crypto-drainer-payload.xyz",
-            "cozy-stealer.online",
-            "discord-drop-payload.com",
-            "ledger-live-update.com",
-            "redline-stealer-c2.net",
-            "metamask-token-claim.top"
-        )
-        for (m in malwareDomains) {
-            initialRules.add(
-                SecurityRule(
-                    ruleType = RuleType.MALWARE,
-                    pattern = m,
-                    source = "URLHAUS",
-                    severity = RuleSeverity.BLOCK,
-                    updatedAt = now
-                )
+        // 1. URLhaus Active Malware Snapshot (Assets: urlhaus_domains.txt)
+        var urlhausCount = 0
+        try {
+            context.assets.open("urlhaus_domains.txt").use { inputStream ->
+                java.io.BufferedReader(java.io.InputStreamReader(inputStream, Charsets.UTF_8)).useLines { lines ->
+                    val parsed = parseDomainRules(lines, "URLHAUS")
+                    initialRules.addAll(parsed)
+                    urlhausCount = parsed.size
+                }
+            }
+        } catch (e: Exception) {
+            // Fallback to high-confidence malware seeds if asset stream unavailable (e.g. stripped tests)
+            val fallbackMalware = listOf(
+                "urlhaus-test.openphish.com",
+                "testsafebrowsing.appspot.com",
+                "malware-traffic-analysis.net",
+                "malicious-test-domain.example",
+                "drive-by-download-test.org",
+                "banking-stealer-sample.net",
+                "crypto-drainer-payload.xyz",
+                "cozy-stealer.online",
+                "discord-drop-payload.com",
+                "ledger-live-update.com",
+                "redline-stealer-c2.net",
+                "metamask-token-claim.top"
             )
+            for (m in fallbackMalware) {
+                initialRules.add(
+                    SecurityRule(
+                        ruleType = RuleType.MALWARE,
+                        pattern = m,
+                        source = "URLHAUS",
+                        severity = RuleSeverity.BLOCK,
+                        updatedAt = now
+                    )
+                )
+            }
+            urlhausCount = fallbackMalware.size
         }
 
         // 2. EasyPrivacy Trackers — parsed via standard Adblock syntax (||domain^)
@@ -302,7 +332,7 @@ class ThreatFeedManager(private val context: Context) {
         db.batchInsertSecurityRules(initialRules)
 
         // Record metadata
-        db.updateSnapshotMeta("URLHAUS", malwareDomains.size)
+        db.updateSnapshotMeta("URLHAUS", urlhausCount)
         db.updateSnapshotMeta("EASYPRIVACY", abpTrackerRules.size)
         db.updateSnapshotMeta("EASYLIST", abpAdRules.size)
         db.updateSnapshotMeta("LOCAL_HEURISTIC", phishingPatterns.size)

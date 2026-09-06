@@ -137,26 +137,64 @@ object AdblockParser {
     }
 
     /**
-     * Parses URLhaus CSV export lines:
-     * Format: id,dateadded,url,url_status,last_online,threat,tags,urlhaus_link,reporter
+     * Parses URLhaus threat feed lines (both full CSV export lines and plain domain lists).
+     * Format 1 (CSV): id,dateadded,url,url_status,last_online,threat,tags,urlhaus_link,reporter
+     * Format 2 (Domain/Host list): domain.tld or 127.0.0.1 domain.tld
+     */
+    fun parseUrlhausLine(line: String): SecurityRule? {
+        val trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("!")) return null
+
+        // Format 1: CSV line with quoted or unquoted tokens
+        if (trimmed.contains(",")) {
+            val tokens = trimmed.split(",")
+            if (tokens.size >= 3) {
+                val rawUrl = tokens[2].trim().trim('"')
+                if (rawUrl.startsWith("http", ignoreCase = true)) {
+                    val host = try {
+                        java.net.URI(rawUrl).host?.lowercase()
+                    } catch (e: Exception) {
+                        null
+                    }
+                    val pattern = host ?: rawUrl
+                    return SecurityRule(
+                        id = 0,
+                        ruleType = RuleType.MALWARE,
+                        pattern = pattern,
+                        source = "URLHAUS",
+                        severity = RuleSeverity.BLOCK,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                }
+            }
+        }
+
+        // Format 2: Domain or host entry
+        val domain = trimmed
+            .removePrefix("127.0.0.1")
+            .removePrefix("0.0.0.0")
+            .trim()
+            .removePrefix("www.")
+            .lowercase()
+
+        if (domain.isNotEmpty() && !domain.contains(" ")) {
+            return SecurityRule(
+                id = 0,
+                ruleType = RuleType.MALWARE,
+                pattern = domain,
+                source = "URLHAUS",
+                severity = RuleSeverity.BLOCK,
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+
+        return null
+    }
+
+    /**
+     * Legacy URLhaus CSV parser. Delegates to parseUrlhausLine.
      */
     fun parseUrlhausCsvLine(csvLine: String): SecurityRule? {
-        val line = csvLine.trim()
-        if (line.isEmpty() || line.startsWith("#")) return null
-
-        val tokens = line.split(",")
-        if (tokens.size < 3) return null
-
-        val rawUrl = tokens[2].trim().trim('"')
-        if (rawUrl.isBlank() || !rawUrl.startsWith("http")) return null
-
-        return SecurityRule(
-            id = 0,
-            ruleType = RuleType.MALWARE,
-            pattern = rawUrl,
-            source = "URLHAUS",
-            severity = RuleSeverity.BLOCK,
-            updatedAt = System.currentTimeMillis()
-        )
+        return parseUrlhausLine(csvLine)
     }
 }
