@@ -26,6 +26,7 @@ class ReaderActivity : AppCompatActivity() {
     private lateinit var btnAppearance: ImageButton
     private lateinit var btnCopy: ImageButton
     private lateinit var btnShare: ImageButton
+    private lateinit var btnPrint: ImageButton
     private lateinit var wvContent: WebView
 
     private var article: ArticleContent? = null
@@ -60,6 +61,7 @@ class ReaderActivity : AppCompatActivity() {
         btnAppearance = findViewById(R.id.btnReaderAppearance)
         btnCopy = findViewById(R.id.btnReaderCopy)
         btnShare = findViewById(R.id.btnReaderShare)
+        btnPrint = findViewById(R.id.btnReaderPrint)
         wvContent = findViewById(R.id.wvReaderContent)
 
         val art = article!!
@@ -101,6 +103,14 @@ class ReaderActivity : AppCompatActivity() {
                 putExtra(Intent.EXTRA_TEXT, "${art.title}\n${art.originalUrl}")
             }
             startActivity(Intent.createChooser(shareIntent, "Share Article"))
+        }
+
+        btnPrint.setOnClickListener {
+            val art = article ?: return@setOnClickListener
+            val success = com.gintama.novabrowser.offline.OfflinePageManager.printOrSavePdf(this, wvContent, art.title)
+            if (!success) {
+                Toast.makeText(this, "Could not launch PDF print manager", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

@@ -1116,6 +1116,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     }
                     true
                 }
+                R.id.action_save_page -> {
+                    showSavePageDialog()
+                    true
+                }
                 R.id.action_new_tab -> {
                     tabManager.createTab("about:blank")
                     showStartCanvas()
@@ -1770,6 +1774,60 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 Toast.makeText(this, "Could not extract readable article content", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showSavePageDialog() {
+        val tab = tabManager.activeTab
+        val webView = tab?.webView
+        val currentUrl = tab?.url.orEmpty()
+        if (webView == null || currentUrl.isBlank() || currentUrl == "about:blank") {
+            Toast.makeText(this, "No webpage loaded to save", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_save_page, null)
+        dialog.setContentView(view)
+
+        val tvSubtitle = view.findViewById<TextView>(R.id.tvSavePageSubtitle)
+        val optPdf = view.findViewById<View>(R.id.layoutOptionPdf)
+        val optMht = view.findViewById<View>(R.id.layoutOptionMht)
+        val btnCancel = view.findViewById<Button>(R.id.btnCancelSavePage)
+
+        val title = tab.title.ifBlank { tab.url }
+        tvSubtitle.text = title
+
+        optPdf.setOnClickListener {
+            dialog.dismiss()
+            val success = com.gintama.novabrowser.offline.OfflinePageManager.printOrSavePdf(this, webView, title)
+            if (!success) {
+                Toast.makeText(this, "Could not open print / PDF manager", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        optMht.setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(this, "Saving web archive...", Toast.LENGTH_SHORT).show()
+            com.gintama.novabrowser.offline.OfflinePageManager.saveWebArchive(this, webView, title, currentUrl) { file ->
+                if (file != null) {
+                    val snackbar = com.google.android.material.snackbar.Snackbar.make(
+                        mainViewportContainer,
+                        "Saved: ${file.name}",
+                        com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                    )
+                    snackbar.setAction("Open") {
+                        val fileUri = Uri.fromFile(file)
+                        loadUrlInActiveTab(fileUri.toString())
+                    }
+                    snackbar.show()
+                } else {
+                    Toast.makeText(this, "Failed to save web archive", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 
     private fun checkReaderCandidate(webView: WebView?) {

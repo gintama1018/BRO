@@ -88,6 +88,17 @@
             android:padding="7dp"
             android:src="@drawable/ic_share"
             app:tint="@color/text_secondary" />
+
+        <ImageButton
+            android:id="@+id/btnReaderPrint"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Save as PDF"
+            android:padding="7dp"
+            android:src="@drawable/ic_file"
+            app:tint="@color/text_secondary" />
     </LinearLayout>
 
     <View

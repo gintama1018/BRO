@@ -188,6 +188,18 @@ class DownloadsActivity : AppCompatActivity() {
         try {
             val contentUri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
             val extension = file.extension.lowercase()
+
+            // Open offline web archives directly inside NovaBrowser
+            if (extension == "mht" || extension == "mhtml") {
+                val browserIntent = Intent(this, com.gintama.novabrowser.ui.MainActivity::class.java).apply {
+                    action = Intent.ACTION_VIEW
+                    data = contentUri
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(browserIntent)
+                return
+            }
+
             val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
                 ?: item.mimeType
                 ?: "*/*"

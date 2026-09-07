@@ -32,8 +32,8 @@ class NovaWebView(
             builtInZoomControls = true
             displayZoomControls = false
             setSupportZoom(true)
-            allowFileAccess = false
-            allowContentAccess = false
+            allowFileAccess = true
+            allowContentAccess = true
 
             // Web Compatibility: Support OAuth popups and multi-window logins
             setSupportMultipleWindows(true)

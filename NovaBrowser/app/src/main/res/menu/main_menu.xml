@@ -36,6 +36,10 @@
         android:title="Share Link" />
 
     <item
+        android:id="@+id/action_save_page"
+        android:title="Save Page Offline..." />
+
+    <item
         android:id="@+id/action_new_tab"
         android:title="@string/new_tab" />
 

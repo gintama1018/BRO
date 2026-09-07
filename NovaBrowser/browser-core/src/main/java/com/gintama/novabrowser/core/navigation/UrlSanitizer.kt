@@ -33,6 +33,7 @@ object UrlSanitizer {
         if (trimmed.startsWith("http://", ignoreCase = true) ||
             trimmed.startsWith("https://", ignoreCase = true) ||
             trimmed.startsWith("file://", ignoreCase = true) ||
+            trimmed.startsWith("content://", ignoreCase = true) ||
             trimmed.startsWith("about:", ignoreCase = true)
         ) {
             return trimmed
