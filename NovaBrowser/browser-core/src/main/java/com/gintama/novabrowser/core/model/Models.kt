@@ -34,10 +34,13 @@ data class TabSession(
 
 enum class DownloadStatus {
     PENDING,
+    DOWNLOADING,
+    PAUSED,
     SAFE,
     QUARANTINED,
     BLOCKED,
-    COMPLETED
+    COMPLETED,
+    FAILED
 }
 
 data class DownloadItem(

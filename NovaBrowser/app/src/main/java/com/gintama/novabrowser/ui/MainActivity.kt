@@ -59,6 +59,8 @@ import android.content.pm.ActivityInfo
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import com.gintama.novabrowser.downloads.DownloadsActivity
+import com.gintama.novabrowser.downloads.MediaSnifferEngine
+import com.gintama.novabrowser.wallpaper.NovaWallpaperManager
 import android.content.ActivityNotFoundException
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -106,6 +108,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var webViewContainer: FrameLayout
     private lateinit var layoutNewTabCanvas: ScrollView
     private lateinit var layoutPrivateCanvas: ScrollView
+    private lateinit var ivStartCanvasWallpaper: ImageView
+    private lateinit var viewWallpaperDimmer: View
     private lateinit var etPrivateSearchInput: EditText
     private lateinit var fullscreenCustomViewContainer: FrameLayout
 
@@ -141,6 +145,21 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
         fileUploadCallback?.onReceiveValue(uris)
         fileUploadCallback = null
+    }
+
+    // Activity Result Launcher for Custom Wallpaper Selection
+    private val wallpaperGalleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val saved = NovaWallpaperManager.saveCustomWallpaper(this, uri)
+            if (saved) {
+                NovaWallpaperManager.applyWallpaper(this, ivStartCanvasWallpaper, viewWallpaperDimmer)
+                Toast.makeText(this, "Custom wallpaper applied!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Failed to load custom wallpaper", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     // Omnibox & Search Engine Switcher
@@ -239,6 +258,9 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     override fun onResume() {
         super.onResume()
         updateSearchEnginePickerLabel()
+        if (::layoutNewTabCanvas.isInitialized && layoutNewTabCanvas.visibility == View.VISIBLE && tabManager.activeTab?.isPrivate != true) {
+            NovaWallpaperManager.applyWallpaper(this, ivStartCanvasWallpaper, viewWallpaperDimmer)
+        }
     }
 
     private fun initViews() {
@@ -264,6 +286,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         webViewContainer = findViewById(R.id.webViewContainer)
         layoutNewTabCanvas = findViewById(R.id.layoutNewTabCanvas)
         layoutPrivateCanvas = findViewById(R.id.layoutPrivateCanvas)
+        ivStartCanvasWallpaper = findViewById(R.id.ivStartCanvasWallpaper)
+        viewWallpaperDimmer = findViewById(R.id.viewWallpaperDimmer)
         etPrivateSearchInput = findViewById(R.id.etPrivateSearchInput)
         fullscreenCustomViewContainer = findViewById(R.id.fullscreenCustomViewContainer)
 
@@ -617,6 +641,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show()
             }
         }
+
+        findViewById<View>(R.id.chipCustomizeWallpaper)?.setOnClickListener {
+            showWallpaperPickerDialog()
+        }
     }
 
     private fun bindEditableTile(viewId: Int, prefKey: String, defaultName: String, defaultUrl: String) {
@@ -801,7 +829,11 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         if (isPrivate) {
             NovaMotion.crossFade(swipeRefreshLayout, layoutPrivateCanvas)
             layoutNewTabCanvas.visibility = View.GONE
+            ivStartCanvasWallpaper.visibility = View.GONE
+            viewWallpaperDimmer.visibility = View.GONE
         } else {
+            NovaWallpaperManager.applyWallpaper(this, ivStartCanvasWallpaper, viewWallpaperDimmer)
+            ivStartCanvasWallpaper.visibility = View.VISIBLE
             NovaMotion.crossFade(swipeRefreshLayout, layoutNewTabCanvas)
             layoutPrivateCanvas.visibility = View.GONE
         }
@@ -827,6 +859,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
         layoutNewTabCanvas.visibility = View.GONE
         layoutPrivateCanvas.visibility = View.GONE
+        ivStartCanvasWallpaper.visibility = View.GONE
+        viewWallpaperDimmer.visibility = View.GONE
         updateNavigationButtons()
     }
 
@@ -1249,6 +1283,20 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 }
                 R.id.action_search_engine -> {
                     showSearchEnginePicker()
+                    true
+                }
+                R.id.action_media_sniffer -> {
+                    val webView = tabManager.activeTab?.webView
+                    val url = tabManager.activeTab?.url.orEmpty()
+                    if (webView != null && url.isNotBlank() && url != "about:blank") {
+                        MediaSnifferEngine.showMediaSnifferDialog(this, webView)
+                    } else {
+                        Toast.makeText(this, "Open a web page first to sniff media and downloads", Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
+                R.id.action_customize_wallpaper -> {
+                    showWallpaperPickerDialog()
                     true
                 }
                 R.id.action_settings -> {
@@ -1975,6 +2023,43 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 }
             }
         }
+    }
+
+    private fun showWallpaperPickerDialog() {
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_wallpaper_picker, null)
+        dialog.setContentView(view)
+
+        fun applyAndDismiss(preset: NovaWallpaperManager.WallpaperPreset) {
+            NovaWallpaperManager.setActivePreset(this, preset)
+            NovaWallpaperManager.applyWallpaper(this, ivStartCanvasWallpaper, viewWallpaperDimmer)
+            dialog.dismiss()
+            Toast.makeText(this, "Wallpaper set: ${preset.displayName}", Toast.LENGTH_SHORT).show()
+        }
+
+        view.findViewById<View>(R.id.cardPresetDeepSpace)?.setOnClickListener {
+            applyAndDismiss(NovaWallpaperManager.WallpaperPreset.DEEP_SPACE)
+        }
+        view.findViewById<View>(R.id.cardPresetAurora)?.setOnClickListener {
+            applyAndDismiss(NovaWallpaperManager.WallpaperPreset.COSMIC_AURORA)
+        }
+        view.findViewById<View>(R.id.cardPresetCyberpunk)?.setOnClickListener {
+            applyAndDismiss(NovaWallpaperManager.WallpaperPreset.CYBERPUNK_NEON)
+        }
+        view.findViewById<View>(R.id.cardPresetSapphire)?.setOnClickListener {
+            applyAndDismiss(NovaWallpaperManager.WallpaperPreset.MIDNIGHT_SAPPHIRE)
+        }
+
+        view.findViewById<View>(R.id.btnPickGalleryPhoto)?.setOnClickListener {
+            dialog.dismiss()
+            try {
+                wallpaperGalleryLauncher.launch("image/*")
+            } catch (e: Exception) {
+                Toast.makeText(this, "Cannot launch gallery picker", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dialog.show()
     }
 
     private fun hideKeyboard() {

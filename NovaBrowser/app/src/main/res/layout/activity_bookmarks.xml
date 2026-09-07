@@ -43,9 +43,26 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <View
-            android:layout_width="40dp"
-            android:layout_height="40dp" />
+        <ImageButton
+            android:id="@+id/btnImportBookmarks"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Import HTML Bookmarks"
+            android:padding="8dp"
+            android:src="@drawable/ic_file"
+            app:tint="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/btnExportBookmarks"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Export HTML Bookmarks"
+            android:padding="8dp"
+            android:src="@drawable/ic_share"
+            app:tint="@color/text_primary" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

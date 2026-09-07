@@ -80,9 +80,41 @@
                 android:textSize="9.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
+
+        <!-- Dynamic Download Progress Indicator -->
+        <ProgressBar
+            android:id="@+id/pbDownloadProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginTop="5dp"
+            android:max="100"
+            android:progressTint="@color/risk_safe"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvDownloadSpeed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="1.2 MB/s • 45s left"
+            android:textColor="@color/accent_emerald"
+            android:textSize="10.5sp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <!-- Action Buttons -->
+    <ImageButton
+        android:id="@+id/btnPauseResumeDownload"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Pause or Resume"
+        android:padding="6dp"
+        android:src="@drawable/ic_pause"
+        android:visibility="gone"
+        app:tint="@color/text_primary" />
+
     <ImageButton
         android:id="@+id/btnShareDownload"
         android:layout_width="32dp"

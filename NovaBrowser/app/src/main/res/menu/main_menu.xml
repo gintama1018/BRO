@@ -68,6 +68,14 @@
         android:title="Search Engine" />
 
     <item
+        android:id="@+id/action_media_sniffer"
+        android:title="Sniff Page Media &amp; Files" />
+
+    <item
+        android:id="@+id/action_customize_wallpaper"
+        android:title="Start Canvas Wallpaper &amp; Theme" />
+
+    <item
         android:id="@+id/action_settings"
         android:title="@string/title_settings" />
 </menu>

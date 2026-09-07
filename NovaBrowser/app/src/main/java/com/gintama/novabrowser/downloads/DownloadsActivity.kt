@@ -73,7 +73,8 @@ class DownloadsActivity : AppCompatActivity() {
             items = emptyList(),
             onItemClick = { item, file -> handleItemClick(item, file) },
             onShareClick = { item, file -> handleShareClick(item, file) },
-            onDeleteClick = { item, file -> handleDeleteClick(item, file) }
+            onDeleteClick = { item, file -> handleDeleteClick(item, file) },
+            onPauseResumeClick = { item -> handlePauseResumeClick(item) }
         )
 
         rvList.layoutManager = LinearLayoutManager(this)
@@ -83,7 +84,24 @@ class DownloadsActivity : AppCompatActivity() {
         setupSearch()
         loadDownloads()
 
+        lifecycleScope.launch {
+            NovaDownloadEngine.downloadsFlow.collect {
+                adapter.notifyDataSetChanged()
+            }
+        }
+
         NovaMotion.attachSpringTouchFeedback(btnBack, btnClearAll, chipAll, chipSafe, chipQuarantine)
+    }
+
+    private fun handlePauseResumeClick(item: DownloadItem) {
+        val snapshot = NovaDownloadEngine.downloadsFlow.value[item.id]
+        if (snapshot?.status == DownloadStatus.PAUSED) {
+            NovaDownloadEngine.resumeDownload(item.id, this, null)
+            Toast.makeText(this, "Resuming download...", Toast.LENGTH_SHORT).show()
+        } else {
+            NovaDownloadEngine.pauseDownload(item.id, this)
+            Toast.makeText(this, "Download paused", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun setupFilters() {

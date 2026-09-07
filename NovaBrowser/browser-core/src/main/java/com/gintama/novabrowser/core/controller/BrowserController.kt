@@ -89,6 +89,14 @@ class BrowserController(
         db.getBookmarks()
     }
 
+    suspend fun addBookmark(url: String, title: String?): Long = withContext(Dispatchers.IO) {
+        if (!db.isBookmarked(url)) {
+            db.addBookmark(url, title)
+        } else {
+            -1L
+        }
+    }
+
     suspend fun deleteBookmark(id: Long): Boolean = withContext(Dispatchers.IO) {
         db.removeBookmark(id)
     }

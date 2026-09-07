@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.gintama.novabrowser.R
+import android.widget.ProgressBar
 import com.gintama.novabrowser.core.model.DownloadItem
 import com.gintama.novabrowser.core.model.DownloadStatus
 import com.gintama.novabrowser.ui.motion.NovaMotion
@@ -23,7 +24,8 @@ class DownloadsAdapter(
     private var items: List<DownloadItem>,
     private val onItemClick: (DownloadItem, File?) -> Unit,
     private val onShareClick: (DownloadItem, File?) -> Unit,
-    private val onDeleteClick: (DownloadItem, File?) -> Unit
+    private val onDeleteClick: (DownloadItem, File?) -> Unit,
+    private val onPauseResumeClick: ((DownloadItem) -> Unit)? = null
 ) : RecyclerView.Adapter<DownloadsAdapter.DownloadViewHolder>() {
 
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy • HH:mm", Locale.getDefault())
@@ -49,6 +51,9 @@ class DownloadsAdapter(
         private val tvFilename: TextView = itemView.findViewById(R.id.tvDownloadFilename)
         private val tvMeta: TextView = itemView.findViewById(R.id.tvDownloadMeta)
         private val tvStatusBadge: TextView = itemView.findViewById(R.id.tvDownloadStatusBadge)
+        private val pbProgress: ProgressBar = itemView.findViewById(R.id.pbDownloadProgress)
+        private val tvSpeed: TextView = itemView.findViewById(R.id.tvDownloadSpeed)
+        private val btnPauseResume: ImageButton = itemView.findViewById(R.id.btnPauseResumeDownload)
         private val btnShare: ImageButton = itemView.findViewById(R.id.btnShareDownload)
         private val btnDelete: ImageButton = itemView.findViewById(R.id.btnDeleteDownload)
 
@@ -56,6 +61,8 @@ class DownloadsAdapter(
             val context = itemView.context
             val filename = item.filename ?: item.url.substringAfterLast("/").ifBlank { "download" }
             tvFilename.text = filename
+
+            val snapshot = NovaDownloadEngine.downloadsFlow.value[item.id]
 
             // Resolve file on disk
             val file = resolveFile(context, item, filename)
@@ -68,27 +75,57 @@ class DownloadsAdapter(
             val dateStr = dateFormat.format(Date(item.createdAt))
             tvMeta.text = "$fileSizeStr • $dateStr"
 
-            // Status Badge & Colors
-            when (item.status) {
-                DownloadStatus.SAFE, DownloadStatus.COMPLETED -> {
-                    tvStatusBadge.text = "SAFE"
-                    tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_emerald)
-                    tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_safe_on_container))
-                }
-                DownloadStatus.QUARANTINED -> {
-                    tvStatusBadge.text = "QUARANTINED"
+            // Live progress & pause/resume state
+            if (snapshot != null && (snapshot.status == DownloadStatus.DOWNLOADING || snapshot.status == DownloadStatus.PAUSED)) {
+                pbProgress.visibility = View.VISIBLE
+                pbProgress.progress = snapshot.progressPercent
+                tvSpeed.visibility = View.VISIBLE
+                tvSpeed.text = "${snapshot.speedText} • ETA: ${snapshot.etaText}"
+                btnPauseResume.visibility = View.VISIBLE
+
+                if (snapshot.status == DownloadStatus.PAUSED) {
+                    btnPauseResume.setImageResource(R.drawable.ic_play)
+                    tvStatusBadge.text = "PAUSED"
                     tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_amber)
                     tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_suspicious_on_container))
-                }
-                DownloadStatus.BLOCKED -> {
-                    tvStatusBadge.text = "BLOCKED"
-                    tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_red)
-                    tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_blocked_on_container))
-                }
-                DownloadStatus.PENDING -> {
+                } else {
+                    btnPauseResume.setImageResource(R.drawable.ic_pause)
                     tvStatusBadge.text = "DOWNLOADING"
                     tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_emerald)
                     tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_safe_on_container))
+                }
+            } else {
+                pbProgress.visibility = View.GONE
+                tvSpeed.visibility = View.GONE
+                btnPauseResume.visibility = View.GONE
+
+                // Static status badges
+                when (item.status) {
+                    DownloadStatus.SAFE, DownloadStatus.COMPLETED -> {
+                        tvStatusBadge.text = "SAFE"
+                        tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_emerald)
+                        tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_safe_on_container))
+                    }
+                    DownloadStatus.QUARANTINED -> {
+                        tvStatusBadge.text = "QUARANTINED"
+                        tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_amber)
+                        tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_suspicious_on_container))
+                    }
+                    DownloadStatus.BLOCKED, DownloadStatus.FAILED -> {
+                        tvStatusBadge.text = if (item.status == DownloadStatus.FAILED) "FAILED" else "BLOCKED"
+                        tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_red)
+                        tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_blocked_on_container))
+                    }
+                    DownloadStatus.PAUSED -> {
+                        tvStatusBadge.text = "PAUSED"
+                        tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_amber)
+                        tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_suspicious_on_container))
+                    }
+                    else -> {
+                        tvStatusBadge.text = "DOWNLOADING"
+                        tvStatusBadge.setBackgroundResource(R.drawable.bg_badge_emerald)
+                        tvStatusBadge.setTextColor(ContextCompat.getColor(context, R.color.risk_safe_on_container))
+                    }
                 }
             }
 
@@ -121,8 +158,9 @@ class DownloadsAdapter(
             itemView.setOnClickListener { onItemClick(item, file) }
             btnShare.setOnClickListener { onShareClick(item, file) }
             btnDelete.setOnClickListener { onDeleteClick(item, file) }
+            btnPauseResume.setOnClickListener { onPauseResumeClick?.invoke(item) }
 
-            NovaMotion.attachSpringTouchFeedback(itemView, btnShare, btnDelete)
+            NovaMotion.attachSpringTouchFeedback(itemView, btnShare, btnDelete, btnPauseResume)
         }
     }
 

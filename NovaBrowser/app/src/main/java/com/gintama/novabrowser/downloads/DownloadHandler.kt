@@ -53,9 +53,11 @@ class DownloadHandler(private val context: Context) : DownloadListener {
         val isRisky = RISKY_EXTENSIONS.contains(extension)
 
         if (isRisky) {
-            handleQuarantinedDownload(url, filename, mimetype, userAgent)
+            Toast.makeText(context, "Isolating file in app-private quarantine...", Toast.LENGTH_SHORT).show()
+            NovaDownloadEngine.startDownload(context, url, filename, mimetype, userAgent, isQuarantine = true)
         } else {
-            handleSafeDownload(url, filename, mimetype, userAgent)
+            Toast.makeText(context, "Download Started: $filename", Toast.LENGTH_SHORT).show()
+            NovaDownloadEngine.startDownload(context, url, filename, mimetype, userAgent, isQuarantine = false)
         }
     }
 
