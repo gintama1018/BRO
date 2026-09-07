@@ -24,6 +24,14 @@
         android:title="Desktop Site" />
 
     <item
+        android:id="@+id/action_mute_tab"
+        android:title="Mute Tab Audio" />
+
+    <item
+        android:id="@+id/action_pip"
+        android:title="Picture-in-Picture (PiP)" />
+
+    <item
         android:id="@+id/action_copy_clean_link"
         android:title="Copy Clean Link" />
 

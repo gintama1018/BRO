@@ -18,7 +18,8 @@ data class BrowserTab(
     var url: String = "about:blank",
     val isPrivate: Boolean = false,
     var blockedAdsCount: Int = 0,
-    var thumbnail: Bitmap? = null
+    var thumbnail: Bitmap? = null,
+    var isMuted: Boolean = false
 )
 
 interface TabChangeListener {

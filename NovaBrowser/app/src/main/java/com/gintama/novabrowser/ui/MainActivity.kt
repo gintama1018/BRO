@@ -61,6 +61,11 @@ import android.webkit.WebChromeClient
 import com.gintama.novabrowser.downloads.DownloadsActivity
 import com.gintama.novabrowser.downloads.MediaSnifferEngine
 import com.gintama.novabrowser.wallpaper.NovaWallpaperManager
+import com.gintama.novabrowser.security.NovaBiometricHelper
+import com.gintama.novabrowser.media.TabMuteEngine
+import android.app.PictureInPictureParams
+import android.content.res.Configuration
+import android.util.Rational
 import android.content.ActivityNotFoundException
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -91,6 +96,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var btnClearUrl: ImageButton
     private lateinit var btnReloadPage: ImageButton
     private lateinit var btnReaderMode: ImageButton
+    private lateinit var btnTabMute: ImageButton
     private lateinit var btnTabs: FrameLayout
     private lateinit var viewTabCountSquircle: View
     private lateinit var tvTabCount: TextView
@@ -118,6 +124,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private var originalSystemUiVisibility: Int = 0
     private var originalOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+    // Biometric Session States
+    private var isPrivateSessionUnlocked = false
+    private var isAppUnlocked = false
 
     // Web Uploads State
     private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
@@ -261,6 +271,26 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         if (::layoutNewTabCanvas.isInitialized && layoutNewTabCanvas.visibility == View.VISIBLE && tabManager.activeTab?.isPrivate != true) {
             NovaWallpaperManager.applyWallpaper(this, ivStartCanvasWallpaper, viewWallpaperDimmer)
         }
+        if (NovaBiometricHelper.isAppLockEnabled(this) && !isAppUnlocked) {
+            mainViewportContainer.visibility = View.INVISIBLE
+            topChromeHeader.visibility = View.INVISIBLE
+            bottomFloatingIsland.visibility = View.INVISIBLE
+            NovaBiometricHelper.authenticate(
+                activity = this,
+                title = "Unlock NovaBrowser",
+                subtitle = "Verify identity to open the browser",
+                onSuccess = {
+                    isAppUnlocked = true
+                    mainViewportContainer.visibility = View.VISIBLE
+                    topChromeHeader.visibility = View.VISIBLE
+                    bottomFloatingIsland.visibility = View.VISIBLE
+                },
+                onError = {
+                    Toast.makeText(this, "Authentication required to open browser", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+            )
+        }
     }
 
     private fun initViews() {
@@ -270,6 +300,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnClearUrl = findViewById(R.id.btnClearUrl)
         btnReloadPage = findViewById(R.id.btnReloadPage)
         btnReaderMode = findViewById(R.id.btnReaderMode)
+        btnTabMute = findViewById(R.id.btnTabMute)
         btnTabs = findViewById(R.id.btnTabs)
         viewTabCountSquircle = findViewById(R.id.viewTabCountSquircle)
         tvTabCount = findViewById(R.id.tvTabCount)
@@ -519,6 +550,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         btnReaderMode.setOnClickListener {
             launchReaderMode()
+        }
+
+        btnTabMute.setOnClickListener {
+            toggleActiveTabMute()
         }
 
         // Options Menu
@@ -838,6 +873,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             layoutPrivateCanvas.visibility = View.GONE
         }
         btnReaderMode.visibility = View.GONE
+        btnTabMute.visibility = View.GONE
         etUrlInput.setText("")
         updateNavigationButtons()
         if (!isPrivate) {
@@ -861,6 +897,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         layoutPrivateCanvas.visibility = View.GONE
         ivStartCanvasWallpaper.visibility = View.GONE
         viewWallpaperDimmer.visibility = View.GONE
+        btnTabMute.visibility = View.VISIBLE
+        updateTabMuteIndicator(tabManager.activeTab?.isMuted == true)
         updateNavigationButtons()
     }
 
@@ -1254,15 +1292,28 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     showSavePageDialog()
                     true
                 }
+                R.id.action_mute_tab -> {
+                    toggleActiveTabMute()
+                    true
+                }
+                R.id.action_pip -> {
+                    val success = enterPipMode()
+                    if (!success) {
+                        Toast.makeText(this, "Picture-in-Picture requires Android 8.0+", Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
                 R.id.action_new_tab -> {
                     tabManager.createTab("about:blank")
                     showStartCanvas()
                     true
                 }
                 R.id.action_new_private_tab -> {
-                    tabManager.createTab("about:blank", isPrivate = true)
-                    Toast.makeText(this, R.string.private_mode_notice, Toast.LENGTH_SHORT).show()
-                    showStartCanvas()
+                    checkPrivateAccess {
+                        tabManager.createTab("about:blank", isPrivate = true)
+                        Toast.makeText(this, R.string.private_mode_notice, Toast.LENGTH_SHORT).show()
+                        showStartCanvas()
+                    }
                     true
                 }
                 R.id.action_bookmarks -> {
@@ -1440,8 +1491,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         btnTabFilterPrivate.setOnClickListener {
             if (!showPrivateOnly) {
-                showPrivateOnly = true
-                refreshTabList()
+                checkPrivateAccess {
+                    showPrivateOnly = true
+                    refreshTabList()
+                }
             }
         }
 
@@ -1467,13 +1520,17 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         btnAddNewTab.setOnClickListener {
             if (showPrivateOnly) {
-                tabManager.createTab("about:blank", isPrivate = true)
-                Toast.makeText(this, R.string.private_mode_notice, Toast.LENGTH_SHORT).show()
+                checkPrivateAccess {
+                    tabManager.createTab("about:blank", isPrivate = true)
+                    Toast.makeText(this, R.string.private_mode_notice, Toast.LENGTH_SHORT).show()
+                    showStartCanvas()
+                    dialog.dismiss()
+                }
             } else {
                 tabManager.createTab("about:blank", isPrivate = false)
+                showStartCanvas()
+                dialog.dismiss()
             }
-            showStartCanvas()
-            dialog.dismiss()
         }
 
         btnEmptyCreateTab.setOnClickListener {
@@ -1549,8 +1606,11 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         val isBlank = tab.url.isBlank() || tab.url == "about:blank"
         if (isBlank) {
             showStartCanvas()
+            btnTabMute.visibility = View.GONE
         } else {
             showWebView()
+            btnTabMute.visibility = View.VISIBLE
+            updateTabMuteIndicator(tab.isMuted)
             if (!etUrlInput.hasFocus()) {
                 etUrlInput.setText(tab.url)
             }
@@ -2060,6 +2120,85 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
 
         dialog.show()
+    }
+
+    private fun checkPrivateAccess(onGranted: () -> Unit) {
+        if (NovaBiometricHelper.isPrivateTabLockEnabled(this) && !isPrivateSessionUnlocked) {
+            NovaBiometricHelper.authenticate(
+                activity = this,
+                title = "Unlock Private Browsing",
+                subtitle = "Verify fingerprint or PIN to access private session",
+                onSuccess = {
+                    isPrivateSessionUnlocked = true
+                    onGranted()
+                },
+                onError = { err ->
+                    Toast.makeText(this, "Authentication cancelled: $err", Toast.LENGTH_SHORT).show()
+                }
+            )
+        } else {
+            onGranted()
+        }
+    }
+
+    private fun toggleActiveTabMute() {
+        val tab = tabManager.activeTab ?: return
+        val isMuted = TabMuteEngine.toggleTabMute(tab)
+        updateTabMuteIndicator(isMuted)
+        val msg = if (isMuted) "Tab audio muted" else "Tab audio restored"
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateTabMuteIndicator(isMuted: Boolean) {
+        btnTabMute.setImageResource(if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_up)
+        btnTabMute.setColorFilter(
+            ContextCompat.getColor(this, if (isMuted) R.color.risk_suspicious else R.color.text_secondary)
+        )
+    }
+
+    private fun enterPipMode(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val params = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+                return enterPictureInPictureMode(params)
+            } catch (e: Exception) {
+                return false
+            }
+        }
+        return false
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val prefs = getSharedPreferences("nova_settings", Context.MODE_PRIVATE)
+        val autoPip = prefs.getBoolean("pref_auto_pip", true)
+        if (autoPip && (customView != null || (tabManager.activeTab != null && layoutNewTabCanvas.visibility != View.VISIBLE))) {
+            enterPipMode()
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            topChromeHeader.visibility = View.GONE
+            bottomFloatingIsland.visibility = View.GONE
+            layoutFindInPage.visibility = View.GONE
+        } else {
+            if (customView == null) {
+                topChromeHeader.visibility = View.VISIBLE
+                bottomFloatingIsland.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        isPrivateSessionUnlocked = false
+        if (NovaBiometricHelper.isAppLockEnabled(this)) {
+            isAppUnlocked = false
+        }
     }
 
     private fun hideKeyboard() {

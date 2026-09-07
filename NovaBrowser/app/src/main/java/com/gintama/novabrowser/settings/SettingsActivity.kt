@@ -14,6 +14,7 @@ import com.gintama.novabrowser.R
 import com.gintama.novabrowser.ai.DeviceTierDetector
 import com.gintama.novabrowser.core.controller.BrowserController
 import com.google.android.material.switchmaterial.SwitchMaterial
+import com.gintama.novabrowser.security.NovaBiometricHelper
 import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
@@ -276,6 +277,83 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
+        }
+
+        // ==========================================
+        // Biometrics & Security Lock
+        // ==========================================
+        val switchLockPrivateTabs = findViewById<SwitchMaterial>(R.id.switchLockPrivateTabs)
+        val switchLockApp = findViewById<SwitchMaterial>(R.id.switchLockApp)
+        val tvBiometricNotice = findViewById<TextView>(R.id.tvBiometricNotice)
+
+        val hasBiometrics = NovaBiometricHelper.canAuthenticate(this)
+        if (!hasBiometrics) {
+            switchLockPrivateTabs.isEnabled = false
+            switchLockApp.isEnabled = false
+            tvBiometricNotice.text = "No biometric or device screen lock configured"
+            tvBiometricNotice.setTextColor(getColor(R.color.risk_suspicious))
+        } else {
+            tvBiometricNotice.text = "Biometric & Device Credential Security Ready"
+            tvBiometricNotice.setTextColor(getColor(R.color.accent_emerald))
+            switchLockPrivateTabs.isChecked = NovaBiometricHelper.isPrivateTabLockEnabled(this)
+            switchLockApp.isChecked = NovaBiometricHelper.isAppLockEnabled(this)
+
+            switchLockPrivateTabs.setOnCheckedChangeListener { buttonView, isChecked ->
+                if (isChecked != NovaBiometricHelper.isPrivateTabLockEnabled(this)) {
+                    if (isChecked) {
+                        NovaBiometricHelper.authenticate(
+                            activity = this,
+                            title = "Verify to Lock Private Tabs",
+                            subtitle = "Confirm identity to enable private vault lock",
+                            onSuccess = {
+                                prefs.edit().putBoolean(NovaBiometricHelper.PREF_LOCK_PRIVATE_TABS, true).apply()
+                                Toast.makeText(this, "Private tabs now locked with biometrics", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { err ->
+                                buttonView.isChecked = false
+                                Toast.makeText(this, "Verification failed: $err", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else {
+                        prefs.edit().putBoolean(NovaBiometricHelper.PREF_LOCK_PRIVATE_TABS, false).apply()
+                        Toast.makeText(this, "Private tab lock disabled", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
+            switchLockApp.setOnCheckedChangeListener { buttonView, isChecked ->
+                if (isChecked != NovaBiometricHelper.isAppLockEnabled(this)) {
+                    if (isChecked) {
+                        NovaBiometricHelper.authenticate(
+                            activity = this,
+                            title = "Verify App Lock",
+                            subtitle = "Confirm identity to enable launch protection",
+                            onSuccess = {
+                                prefs.edit().putBoolean(NovaBiometricHelper.PREF_LOCK_APP_LAUNCH, true).apply()
+                                Toast.makeText(this, "App launch lock enabled", Toast.LENGTH_SHORT).show()
+                            },
+                            onError = { err ->
+                                buttonView.isChecked = false
+                                Toast.makeText(this, "Verification failed: $err", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } else {
+                        prefs.edit().putBoolean(NovaBiometricHelper.PREF_LOCK_APP_LAUNCH, false).apply()
+                        Toast.makeText(this, "App launch lock disabled", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // Media & Floating Playback (PiP)
+        // ==========================================
+        val switchAutoPip = findViewById<SwitchMaterial>(R.id.switchAutoPip)
+        switchAutoPip.isChecked = prefs.getBoolean("pref_auto_pip", true)
+        switchAutoPip.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("pref_auto_pip", isChecked).apply()
+            val msg = if (isChecked) "Auto PiP enabled for videos" else "Auto PiP disabled"
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         }
     }
 
