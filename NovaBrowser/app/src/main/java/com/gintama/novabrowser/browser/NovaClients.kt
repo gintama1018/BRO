@@ -19,6 +19,7 @@ interface NavigationCallback {
     fun onPageFinished(url: String, title: String?)
     fun onProgressChanged(progress: Int)
     fun onTitleReceived(title: String)
+    fun onPageCommitVisible(url: String) {}
 }
 
 /**
@@ -62,6 +63,13 @@ class NovaWebViewClient(
         super.onPageStarted(view, url, favicon)
         if (url != null) {
             callback.onPageStarted(url)
+        }
+    }
+
+    override fun onPageCommitVisible(view: WebView?, url: String?) {
+        super.onPageCommitVisible(view, url)
+        if (url != null) {
+            callback.onPageCommitVisible(url)
         }
     }
 

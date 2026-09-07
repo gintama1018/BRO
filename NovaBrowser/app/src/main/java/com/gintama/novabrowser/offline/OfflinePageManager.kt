@@ -101,11 +101,12 @@ object OfflinePageManager {
                     }
 
                     try {
-                        MediaScannerConnection.scanFile(
-                            activity,
-                            arrayOf(file.absolutePath),
-                            arrayOf("multipart/related"),
-                            null
+                        com.gintama.novabrowser.notifications.NovaNotificationHelper.showPageSaved(
+                            context = activity,
+                            notificationId = (System.currentTimeMillis() % 100000).toInt(),
+                            title = title,
+                            filePath = file.absolutePath,
+                            isPdf = false
                         )
                     } catch (_: Exception) {}
 

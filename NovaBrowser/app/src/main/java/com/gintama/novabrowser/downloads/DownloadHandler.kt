@@ -150,6 +150,13 @@ class DownloadHandler(private val context: Context) : DownloadListener {
                     riskReason = "SHA-256: $sha256Hex | Size: $sizeFormatted | Sandbox: ${quarantineFile.name}"
                 )
 
+                com.gintama.novabrowser.notifications.NovaNotificationHelper.showQuarantineAlert(
+                    context = context,
+                    notificationId = downloadId.toInt(),
+                    filename = filename,
+                    reason = "Isolated in sandbox: size $sizeFormatted"
+                )
+
                 withContext(Dispatchers.Main) {
                     AlertDialog.Builder(context)
                         .setTitle("🛡️ Executable Isolated in Quarantine")
@@ -172,6 +179,13 @@ class DownloadHandler(private val context: Context) : DownloadListener {
                                     quarantineFile.delete()
 
                                     db.updateDownloadStatus(downloadId, DownloadStatus.COMPLETED, "Released by user to Downloads")
+                                    com.gintama.novabrowser.notifications.NovaNotificationHelper.showDownloadComplete(
+                                        context = context,
+                                        notificationId = downloadId.toInt(),
+                                        filename = filename,
+                                        file = targetFile,
+                                        mimeType = mimetype
+                                    )
                                     withContext(Dispatchers.Main) {
                                         Toast.makeText(context, "File released to public Downloads: $filename", Toast.LENGTH_LONG).show()
                                     }

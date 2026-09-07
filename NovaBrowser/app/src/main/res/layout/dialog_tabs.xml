@@ -56,6 +56,37 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- Private Mode Security Banner (visible only in private tab segment) -->
+    <LinearLayout
+        android:id="@+id/layoutPrivateTabsBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_glass_card_incognito"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="Private Icon"
+            android:src="@drawable/ic_incognito"
+            app:tint="@color/incognito_accent" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="Private Session • Zero history or cookies retained"
+            android:textColor="@color/incognito_text"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <!-- Main Container: Grid or Empty State -->
     <FrameLayout
         android:layout_width="match_parent"

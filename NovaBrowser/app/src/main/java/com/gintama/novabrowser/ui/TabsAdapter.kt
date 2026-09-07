@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.gintama.novabrowser.R
 import com.gintama.novabrowser.browser.BrowserTab
+import com.gintama.novabrowser.ui.motion.NovaMotion
 import java.net.URI
 
 class TabsAdapter(
@@ -111,7 +112,12 @@ class TabsAdapter(
 
             layoutActiveIndicator.visibility = if (isActive) View.VISIBLE else View.INVISIBLE
 
-            itemView.setOnClickListener { onTabClick(tab) }
+            NovaMotion.attachSpringTouchFeedback(cardTab, btnClose)
+            cardTab.setOnClickListener {
+                NovaMotion.pulseCardSelection(cardTab) {
+                    onTabClick(tab)
+                }
+            }
             btnClose.setOnClickListener { onTabClose(tab) }
         }
 

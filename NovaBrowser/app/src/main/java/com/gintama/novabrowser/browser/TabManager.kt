@@ -45,6 +45,7 @@ interface TabChangeListener {
     fun onJsConfirm(message: String, result: android.webkit.JsResult)
     fun onJsPrompt(message: String, defaultValue: String, result: android.webkit.JsPromptResult)
     fun onReceivedSslError(error: android.net.http.SslError, onProceed: () -> Unit, onCancel: () -> Unit)
+    fun onPageCommitVisible(tab: BrowserTab) {}
 }
 
 /**
@@ -135,6 +136,12 @@ class TabManager(
             override fun onProgressChanged(progress: Int) {
                 if (tab.id == activeTabId) {
                     listener.onPageProgress(progress)
+                }
+            }
+
+            override fun onPageCommitVisible(url: String) {
+                if (tab.id == activeTabId) {
+                    listener.onPageCommitVisible(tab)
                 }
             }
 

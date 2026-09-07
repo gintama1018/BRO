@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -83,10 +84,13 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     // Top Header & Address Bar Views
     private lateinit var topChromeHeader: LinearLayout
+    private lateinit var headerCapsulePill: LinearLayout
     private lateinit var etUrlInput: EditText
+    private lateinit var btnClearUrl: ImageButton
     private lateinit var btnReloadPage: ImageButton
     private lateinit var btnReaderMode: ImageButton
     private lateinit var btnTabs: FrameLayout
+    private lateinit var viewTabCountSquircle: View
     private lateinit var tvTabCount: TextView
     private lateinit var btnMenu: ImageButton
     private lateinit var progressBar: ProgressBar
@@ -101,6 +105,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var webViewContainer: FrameLayout
     private lateinit var layoutNewTabCanvas: ScrollView
+    private lateinit var layoutPrivateCanvas: ScrollView
+    private lateinit var etPrivateSearchInput: EditText
     private lateinit var fullscreenCustomViewContainer: FrameLayout
 
     // Fullscreen Video State
@@ -213,6 +219,13 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         downloadHandler = DownloadHandler(this)
         AdBlockEngine.init(this)
         com.gintama.novabrowser.shields.SiteShieldManager.init(this)
+        com.gintama.novabrowser.notifications.NovaNotificationHelper.initChannels(this)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
 
         initViews()
         setupWindowInsets()
@@ -230,10 +243,13 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private fun initViews() {
         topChromeHeader = findViewById(R.id.topChromeHeader)
+        headerCapsulePill = findViewById(R.id.headerCapsulePill)
         etUrlInput = findViewById(R.id.etUrlInput)
+        btnClearUrl = findViewById(R.id.btnClearUrl)
         btnReloadPage = findViewById(R.id.btnReloadPage)
         btnReaderMode = findViewById(R.id.btnReaderMode)
         btnTabs = findViewById(R.id.btnTabs)
+        viewTabCountSquircle = findViewById(R.id.viewTabCountSquircle)
         tvTabCount = findViewById(R.id.tvTabCount)
         btnMenu = findViewById(R.id.btnMenu)
         progressBar = findViewById(R.id.progressBar)
@@ -247,6 +263,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
         webViewContainer = findViewById(R.id.webViewContainer)
         layoutNewTabCanvas = findViewById(R.id.layoutNewTabCanvas)
+        layoutPrivateCanvas = findViewById(R.id.layoutPrivateCanvas)
+        etPrivateSearchInput = findViewById(R.id.etPrivateSearchInput)
         fullscreenCustomViewContainer = findViewById(R.id.fullscreenCustomViewContainer)
 
         etOmniboxInput = findViewById(R.id.etOmniboxInput)
@@ -347,6 +365,55 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
         }
 
+        // Omnibox Click & Focus Behavior (Select all, expand URL, clear button)
+        etUrlInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                val activeTab = tabManager.activeTab
+                if (activeTab != null && activeTab.url != "about:blank" && activeTab.url.isNotBlank()) {
+                    etUrlInput.setText(activeTab.url)
+                }
+                etUrlInput.post { etUrlInput.selectAll() }
+                if (etUrlInput.text.isNotEmpty()) {
+                    btnClearUrl.visibility = View.VISIBLE
+                    btnReloadPage.visibility = View.GONE
+                }
+            } else {
+                btnClearUrl.visibility = View.GONE
+                val activeTab = tabManager.activeTab
+                val isBrowsing = activeTab != null && activeTab.url != "about:blank" && activeTab.url.isNotBlank()
+                btnReloadPage.visibility = if (isBrowsing) View.VISIBLE else View.GONE
+                if (activeTab != null) {
+                    etUrlInput.setText(if (isBrowsing) activeTab.url else "")
+                }
+            }
+        }
+
+        etUrlInput.setOnClickListener {
+            etUrlInput.selectAll()
+        }
+
+        etUrlInput.doAfterTextChanged { s ->
+            if (etUrlInput.hasFocus()) {
+                if (!s.isNullOrEmpty()) {
+                    btnClearUrl.visibility = View.VISIBLE
+                    btnReloadPage.visibility = View.GONE
+                } else {
+                    btnClearUrl.visibility = View.GONE
+                }
+            }
+        }
+
+        btnClearUrl.setOnClickListener {
+            etUrlInput.setText("")
+            etUrlInput.requestFocus()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.showSoftInput(etUrlInput, InputMethodManager.SHOW_IMPLICIT)
+        }
+
+        headerCapsulePill.setOnClickListener {
+            etUrlInput.requestFocus()
+        }
+
         // Address bar long-press for clean link copy
         etUrlInput.setOnLongClickListener {
             copyCleanLink(etUrlInput.text.toString())
@@ -361,6 +428,21 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             ) {
                 hideKeyboard()
                 val text = etOmniboxInput.text.toString()
+                loadUrlInActiveTab(text)
+                true
+            } else {
+                false
+            }
+        }
+
+        // Omnibox on Private Start Canvas
+        etPrivateSearchInput.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == EditorInfo.IME_ACTION_GO ||
+                actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+            ) {
+                hideKeyboard()
+                val text = etPrivateSearchInput.text.toString()
                 loadUrlInActiveTab(text)
                 true
             } else {
@@ -405,6 +487,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     webView.stopLoading()
                     btnReloadPage.setImageResource(R.drawable.ic_refresh)
                 } else {
+                    NovaMotion.spinReloadIcon(btnReloadPage)
                     webView.reload()
                 }
             }
@@ -714,19 +797,36 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun showStartCanvas() {
-        NovaMotion.crossFade(swipeRefreshLayout, layoutNewTabCanvas)
+        val isPrivate = tabManager.activeTab?.isPrivate == true
+        if (isPrivate) {
+            NovaMotion.crossFade(swipeRefreshLayout, layoutPrivateCanvas)
+            layoutNewTabCanvas.visibility = View.GONE
+        } else {
+            NovaMotion.crossFade(swipeRefreshLayout, layoutNewTabCanvas)
+            layoutPrivateCanvas.visibility = View.GONE
+        }
         btnReaderMode.visibility = View.GONE
         etUrlInput.setText("")
         updateNavigationButtons()
-        NovaMotion.animateCountUp(
-            tvCanvasBlockedCount,
-            AdBlockEngine.getLifetimeBlockedCount(),
-            "Ads & Trackers Neutralized"
-        )
+        if (!isPrivate) {
+            NovaMotion.animateCountUp(
+                tvCanvasBlockedCount,
+                AdBlockEngine.getLifetimeBlockedCount(),
+                "Ads & Trackers Neutralized"
+            )
+        }
     }
 
     private fun showWebView() {
-        NovaMotion.crossFade(layoutNewTabCanvas, swipeRefreshLayout)
+        if (layoutNewTabCanvas.visibility == View.VISIBLE) {
+            NovaMotion.crossFade(layoutNewTabCanvas, swipeRefreshLayout)
+        } else if (layoutPrivateCanvas.visibility == View.VISIBLE) {
+            NovaMotion.crossFade(layoutPrivateCanvas, swipeRefreshLayout)
+        } else {
+            swipeRefreshLayout.visibility = View.VISIBLE
+        }
+        layoutNewTabCanvas.visibility = View.GONE
+        layoutPrivateCanvas.visibility = View.GONE
         updateNavigationButtons()
     }
 
@@ -1182,6 +1282,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         val btnTabFilterPrivate = view.findViewById<TextView>(R.id.btnTabFilterPrivate)
         val rvTabs = view.findViewById<RecyclerView>(R.id.rvTabsList)
         val layoutTabsEmpty = view.findViewById<View>(R.id.layoutTabsEmpty)
+        val layoutPrivateTabsBanner = view.findViewById<View>(R.id.layoutPrivateTabsBanner)
         val ivEmptyIcon = view.findViewById<ImageView>(R.id.ivEmptyIcon)
         val tvEmptyTitle = view.findViewById<TextView>(R.id.tvEmptyTitle)
         val tvEmptySubtitle = view.findViewById<TextView>(R.id.tvEmptySubtitle)
@@ -1225,6 +1326,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             btnTabFilterPrivate.text = "Private (${privateTabs.size})"
 
             if (showPrivateOnly) {
+                layoutPrivateTabsBanner?.visibility = View.VISIBLE
                 btnTabFilterPrivate.setBackgroundResource(R.drawable.bg_glass_pill_dark)
                 btnTabFilterPrivate.setTextColor(ContextCompat.getColor(this, R.color.incognito_accent))
                 btnTabFilterStandard.setBackgroundResource(android.R.color.transparent)
@@ -1237,6 +1339,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 tvEmptySubtitle.text = "Private browsing leaves zero history, cache, or cookies"
                 btnEmptyCreateTab.text = "+ Open Private Tab"
             } else {
+                layoutPrivateTabsBanner?.visibility = View.GONE
                 btnTabFilterStandard.setBackgroundResource(R.drawable.bg_glass_pill_dark)
                 btnTabFilterStandard.setTextColor(ContextCompat.getColor(this, R.color.text_on_primary))
                 btnTabFilterPrivate.setBackgroundResource(android.R.color.transparent)
@@ -1411,9 +1514,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         if (tab.isPrivate) {
             ivPrivateBadge.visibility = View.VISIBLE
+            headerCapsulePill.setBackgroundResource(R.drawable.bg_glass_pill_incognito)
+            bottomFloatingIsland.setBackgroundResource(R.drawable.bg_nav_island_incognito)
+            viewTabCountSquircle.setBackgroundResource(R.drawable.bg_squircle_tab_count_incognito)
             ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.incognito_accent))
         } else {
             ivPrivateBadge.visibility = View.GONE
+            headerCapsulePill.setBackgroundResource(R.drawable.bg_glass_pill)
+            bottomFloatingIsland.setBackgroundResource(R.drawable.bg_nav_island)
+            viewTabCountSquircle.setBackgroundResource(R.drawable.bg_squircle_tab_count)
             val shield = com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(tab.url)
             if (!shield.shieldsEnabled) {
                 ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.risk_suspicious))
@@ -1423,9 +1532,26 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
         }
 
+        // Auto-dismiss URL input focus when touching the web page
+        tab.webView.setOnTouchListener { _, _ ->
+            if (etUrlInput.hasFocus()) {
+                etUrlInput.clearFocus()
+                hideKeyboard()
+            }
+            false
+        }
+
         updateShieldBadgeCount(tab.blockedAdsCount)
         updateNavigationButtons()
         checkReaderCandidate(tab.webView)
+    }
+
+    override fun onPageCommitVisible(tab: BrowserTab) {
+        if (tab.id == tabManager.activeTab?.id) {
+            runOnUiThread {
+                NovaMotion.animatePageEntrance(tab.webView)
+            }
+        }
     }
 
     override fun onTabsUpdated(tabs: List<BrowserTab>) {

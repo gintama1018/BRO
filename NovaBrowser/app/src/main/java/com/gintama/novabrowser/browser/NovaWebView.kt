@@ -6,9 +6,12 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 
+import androidx.core.content.ContextCompat
+import com.gintama.novabrowser.R
+
 /**
  * NovaWebView: Custom configured WebView optimized for speed, memory efficiency,
- * and private browsing isolation.
+ * zero-flicker reload rendering, and private browsing isolation.
  */
 @SuppressLint("SetJavaScriptEnabled")
 class NovaWebView(
@@ -18,6 +21,9 @@ class NovaWebView(
 ) : WebView(context) {
 
     init {
+        // Prevent default white canvas flash on reload / navigation
+        setBackgroundColor(ContextCompat.getColor(context, R.color.canvas_base))
+        setLayerType(LAYER_TYPE_HARDWARE, null)
         configureSettings()
         setupPrivacyMode()
     }

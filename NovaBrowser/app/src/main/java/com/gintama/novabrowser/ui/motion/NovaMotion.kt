@@ -258,4 +258,56 @@ object NovaMotion {
             }
             .start()
     }
+
+    /**
+     * Tactile 360-degree kinetic spin for reload action feedback.
+     */
+    fun spinReloadIcon(view: View) {
+        view.animate().cancel()
+        view.animate()
+            .rotationBy(360f)
+            .setDuration(500L)
+            .setInterpolator(FastOutSlowInInterpolator())
+            .start()
+    }
+
+    /**
+     * Fluid, hardware-accelerated page viewport entry animation.
+     * Prevents abrupt canvas pops when DOM commit finishes.
+     */
+    fun animatePageEntrance(view: View) {
+        view.animate().cancel()
+        view.alpha = 0.88f
+        view.scaleX = 0.992f
+        view.scaleY = 0.992f
+        view.animate()
+            .alpha(1.0f)
+            .scaleX(1.0f)
+            .scaleY(1.0f)
+            .setDuration(180L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+    }
+
+    /**
+     * Tactile tab card selection pulse before switching tabs.
+     */
+    fun pulseCardSelection(view: View, onComplete: () -> Unit) {
+        view.animate().cancel()
+        view.animate()
+            .scaleX(0.95f)
+            .scaleY(0.95f)
+            .setDuration(80L)
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                view.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(130L)
+                    .setInterpolator(OvershootInterpolator(2.2f))
+                    .withEndAction { onComplete() }
+                    .start()
+            }
+            .start()
+    }
 }
