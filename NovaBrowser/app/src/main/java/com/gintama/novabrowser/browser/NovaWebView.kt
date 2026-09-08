@@ -127,6 +127,13 @@ class NovaWebView(
         }
     }
 
+    var onScrollDeltaListener: ((deltaY: Int, scrollY: Int) -> Unit)? = null
+
+    override fun onScrollChanged(l: Int, t: Int, oldl: Int, oldt: Int) {
+        super.onScrollChanged(l, t, oldl, oldt)
+        onScrollDeltaListener?.invoke(t - oldt, t)
+    }
+
     fun cleanUp() {
         stopLoading()
         clearHistory()

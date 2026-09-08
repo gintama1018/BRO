@@ -8,6 +8,7 @@ import android.webkit.JsResult
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -20,6 +21,7 @@ interface NavigationCallback {
     fun onProgressChanged(progress: Int)
     fun onTitleReceived(title: String)
     fun onPageCommitVisible(url: String) {}
+    fun onPageLoadError(url: String, errorCode: Int, description: String) {}
 }
 
 /**
@@ -81,6 +83,24 @@ class NovaWebViewClient(
                 val siteHost = try { java.net.URI(url).host } catch (e: Exception) { null }
                 com.gintama.novabrowser.adblock.AdBlockEngine.injectCosmeticFilters(view, siteHost)
             }
+        }
+    }
+
+    override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+        super.onReceivedError(view, request, error)
+        if (request?.isForMainFrame == true) {
+            val failingUrl = request.url.toString()
+            val errorCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                error?.errorCode ?: -1
+            } else {
+                -1
+            }
+            val description = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                error?.description?.toString() ?: "Network error"
+            } else {
+                "Network error"
+            }
+            callback.onPageLoadError(failingUrl, errorCode, description)
         }
     }
 

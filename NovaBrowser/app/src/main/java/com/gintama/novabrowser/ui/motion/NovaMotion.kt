@@ -168,38 +168,89 @@ object NovaMotion {
     }
 
     /**
-     * Hardware-accelerated Progress Bar animation with smooth FastOutSlow interpolation.
+     * Throttled Click Listener: Prevents rapid-tap double execution
+     * (e.g. repeated reload, double sheet launches, duplicate tab creations).
+     */
+    fun attachThrottledClick(view: View, intervalMs: Long = 400L, onClick: (View) -> Unit) {
+        var lastClickTime = 0L
+        view.setOnClickListener { v ->
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastClickTime >= intervalMs) {
+                lastClickTime = now
+                onClick(v)
+            }
+        }
+    }
+
+    /**
+     * Optimistic Pulse: Instant visual pop for toggles (e.g. bookmark star).
+     */
+    fun pulseView(view: View, onEnd: () -> Unit = {}) {
+        view.animate().cancel()
+        view.scaleX = 0.82f
+        view.scaleY = 0.82f
+        view.animate()
+            .scaleX(1.18f)
+            .scaleY(1.18f)
+            .setDuration(110L)
+            .setInterpolator(DecelerateInterpolator())
+            .withEndAction {
+                view.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(160L)
+                    .setInterpolator(OvershootInterpolator(2.2f))
+                    .withEndAction { onEnd() }
+                    .start()
+            }
+            .start()
+    }
+
+    /**
+     * Hardware-accelerated Progress Bar animation with monotonic progress,
+     * smooth FastOutSlow interpolation, hold on 100%, and clean fade out.
      */
     fun animateProgressBar(progressBar: ProgressBar, targetProgress: Int) {
         if (targetProgress in 1..99) {
+            val safeTarget = targetProgress.coerceAtLeast(progressBar.progress)
             if (progressBar.visibility != View.VISIBLE) {
-                progressBar.alpha = 1f
+                progressBar.alpha = 0f
                 progressBar.visibility = View.VISIBLE
+                progressBar.animate().alpha(1f).setDuration(100L).start()
             }
-            val anim = ObjectAnimator.ofInt(progressBar, "progress", progressBar.progress, targetProgress)
+            val anim = ObjectAnimator.ofInt(progressBar, "progress", progressBar.progress, safeTarget)
             anim.duration = 180L
             anim.interpolator = FastOutSlowInInterpolator()
             anim.start()
         } else if (targetProgress >= 100) {
             val anim = ObjectAnimator.ofInt(progressBar, "progress", progressBar.progress, 100)
-            anim.duration = 100L
+            anim.duration = 120L
             anim.addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    progressBar.animate()
-                        .alpha(0f)
-                        .setDuration(180L)
-                        .withEndAction {
-                            progressBar.visibility = View.GONE
-                            progressBar.progress = 0
-                            progressBar.alpha = 1f
-                        }
-                        .start()
+                    progressBar.postDelayed({
+                        progressBar.animate()
+                            .alpha(0f)
+                            .setDuration(180L)
+                            .withEndAction {
+                                progressBar.visibility = View.GONE
+                                progressBar.progress = 0
+                                progressBar.alpha = 1f
+                            }
+                            .start()
+                    }, 80L)
                 }
             })
             anim.start()
         } else {
-            progressBar.visibility = View.GONE
-            progressBar.progress = 0
+            progressBar.animate()
+                .alpha(0f)
+                .setDuration(100L)
+                .withEndAction {
+                    progressBar.visibility = View.GONE
+                    progressBar.progress = 0
+                    progressBar.alpha = 1f
+                }
+                .start()
         }
     }
 

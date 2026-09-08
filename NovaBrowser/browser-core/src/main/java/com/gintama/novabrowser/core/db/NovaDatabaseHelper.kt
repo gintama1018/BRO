@@ -446,6 +446,38 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         return list
     }
 
+    fun searchBookmarks(query: String, limit: Int = 10): List<BookmarkItem> {
+        val list = mutableListOf<BookmarkItem>()
+        val clean = query.trim()
+        if (clean.isEmpty()) return emptyList()
+        val db = readableDatabase
+        val sanitized = "%$clean%"
+        val cursor = db.rawQuery(
+            "SELECT id, url, title, folder, created_at FROM bookmarks WHERE title LIKE ? OR url LIKE ? ORDER BY created_at DESC LIMIT ?",
+            arrayOf(sanitized, sanitized, limit.toString())
+        )
+        cursor.use {
+            val idCol = it.getColumnIndexOrThrow("id")
+            val urlCol = it.getColumnIndexOrThrow("url")
+            val titleCol = it.getColumnIndexOrThrow("title")
+            val folderCol = it.getColumnIndexOrThrow("folder")
+            val createdCol = it.getColumnIndexOrThrow("created_at")
+
+            while (it.moveToNext()) {
+                list.add(
+                    BookmarkItem(
+                        id = it.getLong(idCol),
+                        url = it.getString(urlCol),
+                        title = it.getString(titleCol),
+                        folder = it.getString(folderCol),
+                        createdAt = it.getLong(createdCol)
+                    )
+                )
+            }
+        }
+        return list
+    }
+
     // ==========================================
     // Sessions (Tabs) Operations
     // ==========================================

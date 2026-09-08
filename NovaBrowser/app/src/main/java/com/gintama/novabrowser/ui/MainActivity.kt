@@ -82,6 +82,15 @@ import android.webkit.JsPromptResult
 import android.webkit.JsResult
 import android.webkit.WebView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.cardview.widget.CardView
+import com.gintama.novabrowser.ui.omnibox.OmniboxState
+import com.gintama.novabrowser.ui.omnibox.OmniboxSuggestion
+import com.gintama.novabrowser.ui.omnibox.OmniboxSuggestionsAdapter
+import com.gintama.novabrowser.ui.omnibox.SuggestionType
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 class MainActivity : AppCompatActivity(), TabChangeListener {
 
@@ -198,6 +207,23 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var btnFindPrev: ImageButton
     private lateinit var btnFindNext: ImageButton
     private lateinit var btnFindClose: ImageButton
+
+    // Omnibox State Machine & Floating Suggestions
+    private var omniboxState: OmniboxState = OmniboxState.IDLE
+    private var suggestionQueryJob: Job? = null
+    private lateinit var suggestionsAdapter: OmniboxSuggestionsAdapter
+    private lateinit var layoutOmniboxSuggestions: CardView
+    private lateinit var rvOmniboxSuggestions: RecyclerView
+
+    // In-Page Error Recovery
+    private lateinit var layoutPageErrorRecovery: View
+    private lateinit var tvErrorTitle: TextView
+    private lateinit var tvErrorMessage: TextView
+    private lateinit var btnErrorBack: Button
+    private lateinit var btnErrorRetry: Button
+
+    // Bottom Navigation Dock auto-hide state
+    private var isDockHidden = false
 
     // Horizon Adaptive Navigation Dock
     private lateinit var bottomFloatingIsland: LinearLayout
@@ -383,6 +409,23 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnStandaloneMenu.setOnClickListener { view ->
             showOptionsMenu(view)
         }
+
+        // Omnibox floating suggestions
+        layoutOmniboxSuggestions = findViewById(R.id.layoutOmniboxSuggestions)
+        rvOmniboxSuggestions = findViewById(R.id.rvOmniboxSuggestions)
+        suggestionsAdapter = OmniboxSuggestionsAdapter(
+            onItemClick = { suggestion -> onSuggestionSelected(suggestion) },
+            onInsertClick = { suggestion -> onSuggestionInserted(suggestion) }
+        )
+        rvOmniboxSuggestions.layoutManager = LinearLayoutManager(this)
+        rvOmniboxSuggestions.adapter = suggestionsAdapter
+
+        // In-page error recovery card
+        layoutPageErrorRecovery = findViewById(R.id.layoutPageErrorRecovery)
+        tvErrorTitle = findViewById(R.id.tvErrorTitle)
+        tvErrorMessage = findViewById(R.id.tvErrorMessage)
+        btnErrorBack = findViewById(R.id.btnErrorBack)
+        btnErrorRetry = findViewById(R.id.btnErrorRetry)
     }
 
     private fun setupWindowInsets() {
@@ -453,12 +496,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun setupListeners() {
-        // Address bar in header
+        // Address bar in header with Omnibox State Machine
         etUrlInput.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_GO ||
                 (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
             ) {
+                setOmniboxState(OmniboxState.SUBMITTING)
+                layoutOmniboxSuggestions.visibility = View.GONE
                 hideKeyboard()
+                etUrlInput.clearFocus()
                 val text = etUrlInput.text.toString()
                 loadUrlInActiveTab(text)
                 true
@@ -470,6 +516,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         // Omnibox Click & Focus Behavior (Select all, expand URL, clear button)
         etUrlInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
+                setOmniboxState(OmniboxState.FOCUS)
                 val activeTab = tabManager.activeTab
                 if (activeTab != null && activeTab.url != "about:blank" && activeTab.url.isNotBlank()) {
                     etUrlInput.setText(activeTab.url)
@@ -480,6 +527,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     btnReloadPage.visibility = View.GONE
                 }
             } else {
+                setOmniboxState(OmniboxState.IDLE)
+                layoutOmniboxSuggestions.visibility = View.GONE
                 btnClearUrl.visibility = View.GONE
                 val activeTab = tabManager.activeTab
                 val isBrowsing = activeTab != null && activeTab.url != "about:blank" && activeTab.url.isNotBlank()
@@ -499,14 +548,22 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 if (!s.isNullOrEmpty()) {
                     btnClearUrl.visibility = View.VISIBLE
                     btnReloadPage.visibility = View.GONE
+                    setOmniboxState(OmniboxState.EDITING)
+                    suggestionQueryJob?.cancel()
+                    suggestionQueryJob = lifecycleScope.launch {
+                        delay(220)
+                        queryOmniboxSuggestions(s.toString())
+                    }
                 } else {
                     btnClearUrl.visibility = View.GONE
+                    layoutOmniboxSuggestions.visibility = View.GONE
                 }
             }
         }
 
         btnClearUrl.setOnClickListener {
             etUrlInput.setText("")
+            layoutOmniboxSuggestions.visibility = View.GONE
             etUrlInput.requestFocus()
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
             imm?.showSoftInput(etUrlInput, InputMethodManager.SHOW_IMPLICIT)
@@ -570,10 +627,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnSearchEnginePicker.setOnClickListener { showSearchEnginePicker() }
 
         // Tab overview button
-        btnTabs.setOnClickListener { showTabsDialog() }
+        NovaMotion.attachThrottledClick(btnTabs, 400L) { showTabsDialog() }
 
         // Navigation Back & In-Pill Quick Reload
-        btnNavBack.setOnClickListener {
+        NovaMotion.attachThrottledClick(btnNavBack, 300L) {
             val webView = tabManager.activeTab?.webView
             if (webView?.canGoBack() == true) {
                 webView.goBack()
@@ -582,7 +639,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
         }
 
-        btnReloadPage.setOnClickListener {
+        NovaMotion.attachThrottledClick(btnReloadPage, 400L) {
             val webView = tabManager.activeTab?.webView
             if (webView != null) {
                 if (webView.progress < 100) {
@@ -603,8 +660,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             toggleActiveTabMute()
         }
 
-        // Horizon Adaptive Dock Interactions
-        btnDockBack.setOnClickListener {
+        // Horizon Adaptive Dock Interactions (with rapid-tap protection)
+        NovaMotion.attachThrottledClick(btnDockBack, 300L) {
             val webView = tabManager.activeTab?.webView
             if (webView?.canGoBack() == true) {
                 webView.goBack()
@@ -613,18 +670,18 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
         }
 
-        btnDockForward.setOnClickListener {
+        NovaMotion.attachThrottledClick(btnDockForward, 300L) {
             val webView = tabManager.activeTab?.webView
             if (webView?.canGoForward() == true) {
                 webView.goForward()
             }
         }
 
-        btnDockTabs.setOnClickListener {
+        NovaMotion.attachThrottledClick(btnDockTabs, 400L) {
             showTabsDialog()
         }
 
-        btnDockShare.setOnClickListener {
+        NovaMotion.attachThrottledClick(btnDockShare, 400L) {
             val tab = tabManager.activeTab
             val url = tab?.url.orEmpty()
             if (url.isNotBlank() && url != "about:blank") {
@@ -638,12 +695,12 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             }
         }
 
-        btnDockMenu.setOnClickListener {
+        NovaMotion.attachThrottledClick(btnDockMenu, 400L) {
             showPageActionsSheet()
         }
 
         // Top Chrome & Indicator interactions
-        btnMenu.setOnClickListener {
+        NovaMotion.attachThrottledClick(btnMenu, 400L) {
             showPageActionsSheet()
         }
 
@@ -655,7 +712,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             showSiteShieldsBottomSheet()
         }
 
-        // Pull to refresh
+        // Pull to refresh (Tuned with physical scroll bounds check)
         swipeRefreshLayout.setColorSchemeColors(
             ContextCompat.getColor(this, R.color.risk_safe),
             ContextCompat.getColor(this, R.color.accent_emerald)
@@ -673,7 +730,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
         swipeRefreshLayout.setOnChildScrollUpCallback { _, _ ->
             val webView = tabManager.activeTab?.webView
-            (webView?.scrollY ?: 0) > 0
+            webView?.canScrollVertically(-1) == true
         }
     }
 
@@ -877,6 +934,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun loadUrlInActiveTab(rawInput: String) {
+        layoutPageErrorRecovery.visibility = View.GONE
+        layoutOmniboxSuggestions.visibility = View.GONE
         val searchTemplate = SearchEngineManager.getActiveSearchTemplate(this)
         val (sanitizedUrl, decision) = controller.evaluateNavigation(rawInput, searchEngineTemplate = searchTemplate)
         updateSecurityIndicator(decision.riskState)
@@ -898,6 +957,9 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun showStartCanvas() {
+        layoutPageErrorRecovery.visibility = View.GONE
+        layoutOmniboxSuggestions.visibility = View.GONE
+        showDockIsland()
         val isPrivate = tabManager.activeTab?.isPrivate == true
         if (isPrivate) {
             NovaMotion.crossFade(swipeRefreshLayout, layoutPrivateCanvas)
@@ -924,6 +986,8 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     private fun showWebView() {
+        layoutPageErrorRecovery.visibility = View.GONE
+        layoutOmniboxSuggestions.visibility = View.GONE
         if (layoutNewTabCanvas.visibility == View.VISIBLE) {
             NovaMotion.crossFade(layoutNewTabCanvas, swipeRefreshLayout)
         } else if (layoutPrivateCanvas.visibility == View.VISIBLE) {
@@ -1350,15 +1414,25 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         }
 
         // Grouped List Actions
-        view.findViewById<View>(R.id.rowSheetBookmark)?.setOnClickListener {
-            dialog.dismiss()
-            if (isBrowsing) {
-                controller.toggleBookmark(currentUrl, activeTab?.title.orEmpty()) { isAdded ->
-                    val msg = if (isAdded) getString(R.string.bookmark_added) else getString(R.string.bookmark_removed)
-                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        view.findViewById<View>(R.id.rowSheetBookmark)?.let { bmRow ->
+            NovaMotion.attachThrottledClick(bmRow) {
+                dialog.dismiss()
+                if (isBrowsing) {
+                    controller.toggleBookmark(currentUrl, activeTab?.title.orEmpty()) { isAdded ->
+                        val msg = if (isAdded) getString(R.string.bookmark_added) else getString(R.string.bookmark_removed)
+                        com.google.android.material.snackbar.Snackbar.make(
+                            mainViewportContainer,
+                            msg,
+                            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    com.google.android.material.snackbar.Snackbar.make(
+                        mainViewportContainer,
+                        "Open a website to bookmark",
+                        com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                    ).show()
                 }
-            } else {
-                Toast.makeText(this, "Open a website to bookmark", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -1492,7 +1566,11 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     if (tab != null && tab.url.isNotBlank() && tab.url != "about:blank") {
                         controller.toggleBookmark(tab.url, tab.title) { isAdded ->
                             val msg = if (isAdded) getString(R.string.bookmark_added) else getString(R.string.bookmark_removed)
-                            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                            com.google.android.material.snackbar.Snackbar.make(
+                                mainViewportContainer,
+                                msg,
+                                com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                            ).show()
                         }
                     }
                     true
@@ -1823,6 +1901,12 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     }
 
     override fun onActiveTabChanged(tab: BrowserTab) {
+        layoutPageErrorRecovery.visibility = View.GONE
+        layoutOmniboxSuggestions.visibility = View.GONE
+        tab.webView.onScrollDeltaListener = { deltaY, scrollY ->
+            handleWebScrollDelta(deltaY, scrollY)
+        }
+
         val isBlank = tab.url.isBlank() || tab.url == "about:blank"
         if (isBlank) {
             showStartCanvas()
@@ -1831,7 +1915,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             showWebView()
             btnTabMute.visibility = View.VISIBLE
             updateTabMuteIndicator(tab.isMuted)
-            if (!etUrlInput.hasFocus()) {
+            if (omniboxState != OmniboxState.EDITING && !etUrlInput.hasFocus()) {
                 etUrlInput.setText(tab.url)
             }
         }
@@ -1884,6 +1968,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     override fun onPageCommitVisible(tab: BrowserTab) {
         if (tab.id == tabManager.activeTab?.id) {
             runOnUiThread {
+                layoutPageErrorRecovery.visibility = View.GONE
                 NovaMotion.animatePageEntrance(tab.webView)
                 if (tab.webView.isForceDarkMode) {
                     com.gintama.novabrowser.browser.WebDarkThemeManager.applyDarkTheme(tab.webView, true)
@@ -1907,6 +1992,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             btnReloadPage.setImageResource(R.drawable.ic_close)
             btnReloadPage.contentDescription = "Stop Loading"
         } else {
+            setOmniboxState(OmniboxState.LOADED)
             swipeRefreshLayout.isRefreshing = false
             btnReloadPage.setImageResource(R.drawable.ic_refresh)
             btnReloadPage.contentDescription = "Reload"
@@ -2208,6 +2294,25 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             closeFindInPage()
             return
         }
+        if (layoutOmniboxSuggestions.visibility == View.VISIBLE || etUrlInput.hasFocus()) {
+            layoutOmniboxSuggestions.visibility = View.GONE
+            etUrlInput.clearFocus()
+            hideKeyboard()
+            val activeTab = tabManager.activeTab
+            val isBrowsing = activeTab != null && activeTab.url != "about:blank" && activeTab.url.isNotBlank()
+            etUrlInput.setText(if (isBrowsing) activeTab.url else "")
+            return
+        }
+        if (layoutPageErrorRecovery.visibility == View.VISIBLE) {
+            layoutPageErrorRecovery.visibility = View.GONE
+            val webView = tabManager.activeTab?.webView
+            if (webView?.canGoBack() == true) {
+                webView.goBack()
+            } else {
+                showStartCanvas()
+            }
+            return
+        }
         if (isStandaloneMode) {
             val webView = tabManager.activeTab?.webView
             if (webView?.canGoBack() == true) {
@@ -2227,6 +2332,178 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onPageLoadError(tab: BrowserTab, url: String, errorCode: Int, description: String) {
+        if (tab.id == tabManager.activeTab?.id) {
+            runOnUiThread {
+                swipeRefreshLayout.isRefreshing = false
+                swipeRefreshLayout.visibility = View.GONE
+                layoutPageErrorRecovery.visibility = View.VISIBLE
+                tvErrorTitle.text = "Can't reach this page"
+                tvErrorMessage.text = if (description.isNotBlank()) description else "Connection could not be established."
+                btnErrorRetry.setOnClickListener {
+                    layoutPageErrorRecovery.visibility = View.GONE
+                    swipeRefreshLayout.visibility = View.VISIBLE
+                    tab.webView.reload()
+                }
+                btnErrorBack.setOnClickListener {
+                    layoutPageErrorRecovery.visibility = View.GONE
+                    if (tab.webView.canGoBack()) {
+                        swipeRefreshLayout.visibility = View.VISIBLE
+                        tab.webView.goBack()
+                    } else {
+                        showStartCanvas()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onRendererRecovered(tab: BrowserTab) {
+        if (tab.id == tabManager.activeTab?.id) {
+            runOnUiThread {
+                webViewContainer.removeAllViews()
+                webViewContainer.addView(tab.webView)
+                tab.webView.onScrollDeltaListener = { deltaY, scrollY ->
+                    handleWebScrollDelta(deltaY, scrollY)
+                }
+                tab.webView.loadUrl(tab.url.ifBlank { "about:blank" })
+                com.google.android.material.snackbar.Snackbar.make(
+                    mainViewportContainer,
+                    "Web process recovered",
+                    com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun setOmniboxState(state: OmniboxState) {
+        omniboxState = state
+    }
+
+    private fun queryOmniboxSuggestions(query: String) {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            runOnUiThread { layoutOmniboxSuggestions.visibility = View.GONE }
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = NovaDatabaseHelper.getInstance(this@MainActivity)
+            val historyMatches = db.searchHistory(trimmed, limit = 5)
+            val bookmarkMatches = db.searchBookmarks(trimmed, limit = 5)
+
+            val suggestions = mutableListOf<OmniboxSuggestion>()
+
+            // 1. Search Engine suggestion
+            val activeEngine = SearchEngineManager.getActiveEngine(this@MainActivity)
+            suggestions.add(
+                OmniboxSuggestion(
+                    type = SuggestionType.SEARCH,
+                    title = trimmed,
+                    subtitle = "Search with ${activeEngine.displayName}",
+                    targetUrl = trimmed,
+                    queryToInsert = trimmed
+                )
+            )
+
+            // 2. Bookmarks matches
+            for (bm in bookmarkMatches) {
+                suggestions.add(
+                    OmniboxSuggestion(
+                        type = SuggestionType.BOOKMARK,
+                        title = bm.title?.ifBlank { bm.url } ?: bm.url,
+                        subtitle = bm.url,
+                        targetUrl = bm.url,
+                        queryToInsert = bm.url
+                    )
+                )
+            }
+
+            // 3. History matches (deduplicated)
+            val existingUrls = suggestions.map { it.targetUrl }.toSet()
+            for (h in historyMatches) {
+                if (!existingUrls.contains(h.url)) {
+                    suggestions.add(
+                        OmniboxSuggestion(
+                            type = SuggestionType.HISTORY,
+                            title = h.title?.takeIf { it.isNotBlank() } ?: h.domain,
+                            subtitle = h.url,
+                            targetUrl = h.url,
+                            queryToInsert = h.url
+                        )
+                    )
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                if (omniboxState == OmniboxState.EDITING && etUrlInput.hasFocus()) {
+                    suggestionsAdapter.submitList(suggestions.take(8))
+                    layoutOmniboxSuggestions.visibility = if (suggestions.isNotEmpty()) View.VISIBLE else View.GONE
+                }
+            }
+        }
+    }
+
+    private fun onSuggestionSelected(suggestion: OmniboxSuggestion) {
+        setOmniboxState(OmniboxState.SUBMITTING)
+        layoutOmniboxSuggestions.visibility = View.GONE
+        hideKeyboard()
+        etUrlInput.clearFocus()
+        loadUrlInActiveTab(suggestion.targetUrl)
+    }
+
+    private fun onSuggestionInserted(suggestion: OmniboxSuggestion) {
+        etUrlInput.setText(suggestion.queryToInsert)
+        etUrlInput.setSelection(suggestion.queryToInsert.length)
+    }
+
+    private fun handleWebScrollDelta(deltaY: Int, scrollY: Int) {
+        if (layoutNewTabCanvas.visibility == View.VISIBLE ||
+            layoutPrivateCanvas.visibility == View.VISIBLE ||
+            layoutFindInPage.visibility == View.VISIBLE ||
+            isStandaloneMode
+        ) {
+            if (isDockHidden) showDockIsland()
+            return
+        }
+
+        if (scrollY <= 15) {
+            if (isDockHidden) showDockIsland()
+            return
+        }
+
+        val density = resources.displayMetrics.density
+        val threshold = (12 * density).toInt()
+
+        if (deltaY > threshold && !isDockHidden) {
+            hideDockIsland()
+        } else if (deltaY < -threshold && isDockHidden) {
+            showDockIsland()
+        }
+    }
+
+    private fun hideDockIsland() {
+        if (isDockHidden) return
+        isDockHidden = true
+        bottomFloatingIsland.animate()
+            .translationY(bottomFloatingIsland.height.toFloat() + 40f * resources.displayMetrics.density)
+            .alpha(0f)
+            .setDuration(220L)
+            .setInterpolator(android.view.animation.AccelerateInterpolator())
+            .start()
+    }
+
+    private fun showDockIsland() {
+        if (!isDockHidden) return
+        isDockHidden = false
+        bottomFloatingIsland.animate()
+            .translationY(0f)
+            .alpha(1f)
+            .setDuration(260L)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
     }
 
     override fun onDestroy() {

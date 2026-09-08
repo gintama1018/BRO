@@ -13,7 +13,7 @@ import java.util.UUID
 
 data class BrowserTab(
     val id: String = UUID.randomUUID().toString(),
-    val webView: NovaWebView,
+    var webView: NovaWebView,
     var title: String = "New Tab",
     var url: String = "about:blank",
     val isPrivate: Boolean = false,
@@ -26,6 +26,9 @@ interface TabChangeListener {
     fun onActiveTabChanged(tab: BrowserTab)
     fun onTabsUpdated(tabs: List<BrowserTab>)
     fun onPageProgress(progress: Int)
+    fun onPageCommitVisible(tab: BrowserTab) {}
+    fun onPageLoadError(tab: BrowserTab, url: String, errorCode: Int, description: String) {}
+    fun onRendererRecovered(tab: BrowserTab) {}
     fun onSecurityIntervention(decision: SecurityDecision, targetUrl: String, onProceed: () -> Unit)
     fun onBlockedAdsUpdated(tab: BrowserTab, blockedCount: Int)
     fun onSitePermissionPrompt(
@@ -46,7 +49,6 @@ interface TabChangeListener {
     fun onJsConfirm(message: String, result: android.webkit.JsResult)
     fun onJsPrompt(message: String, defaultValue: String, result: android.webkit.JsPromptResult)
     fun onReceivedSslError(error: android.net.http.SslError, onProceed: () -> Unit, onCancel: () -> Unit)
-    fun onPageCommitVisible(tab: BrowserTab) {}
 }
 
 /**
@@ -111,6 +113,30 @@ class TabManager(
             isPrivate = isPrivate
         )
 
+        setupClientsForTab(tab)
+
+        tabs.add(tab)
+        switchTab(tab.id)
+
+        if (initialUrl.isNotBlank() && initialUrl != "about:blank") {
+            val (sanitized, decision) = controller.evaluateNavigation(initialUrl)
+            if (decision.action == GateAction.BLOCK || decision.action == GateAction.WARN) {
+                listener.onSecurityIntervention(decision, sanitized) {
+                    webView.loadUrl(sanitized)
+                }
+            } else {
+                webView.loadUrl(sanitized)
+            }
+        }
+
+        listener.onTabsUpdated(tabs)
+        saveTabs()
+        return tab
+    }
+
+    private fun setupClientsForTab(tab: BrowserTab) {
+        val webView = tab.webView
+
         // Setup navigation callbacks for this tab
         val navCallback = object : NavigationCallback {
             override fun onPageStarted(url: String) {
@@ -146,6 +172,12 @@ class TabManager(
                 }
             }
 
+            override fun onPageLoadError(url: String, errorCode: Int, description: String) {
+                if (tab.id == activeTabId) {
+                    listener.onPageLoadError(tab, url, errorCode, description)
+                }
+            }
+
             override fun onTitleReceived(title: String) {
                 tab.title = title
                 if (tab.id == activeTabId) {
@@ -158,7 +190,6 @@ class TabManager(
         webView.webViewClient = NovaWebViewClient(
             callback = navCallback,
             onUrlOverride = { targetUrl ->
-                // Check if targetUrl is an external scheme (tel:, mailto:, sms:, geo:, upi:, market:, intent://)
                 if (ExternalSchemeHandler.isExternalScheme(targetUrl)) {
                     val (handled, fallbackUrl) = ExternalSchemeHandler.handleExternalUrl(context, targetUrl)
                     if (handled) {
@@ -199,7 +230,6 @@ class TabManager(
                     null
                 }
 
-                // Phase 1: Fast O(labels) check FIRST before heavy security gate
                 if (requestHost != null &&
                     com.gintama.novabrowser.adblock.AdBlockEngine.isAdBlockEnabledForSite(currentSiteHost) &&
                     com.gintama.novabrowser.adblock.AdBlockEngine.isAdOrTracker(requestHost)
@@ -209,21 +239,15 @@ class TabManager(
                     if (tab.id == activeTabId) {
                         listener.onBlockedAdsUpdated(tab, tab.blockedAdsCount)
                     }
-                    true // Drop resource immediately!
+                    true
                 } else {
-                    // Fallback to threat feed / malware gate only for non-ad requests
                     val (_, decision) = controller.evaluateNavigation(subresourceUri)
                     decision.action == GateAction.BLOCK
                 }
             },
-            onRenderProcessGoneCallback = { view, _ ->
-                // Low-RAM renderer crash recovery: reload webview cleanly instead of crashing app
-                view?.post {
-                    try {
-                        view.reload()
-                    } catch (e: Exception) {
-                        // Suppress reload errors
-                    }
+            onRenderProcessGoneCallback = { _, _ ->
+                tab.webView.post {
+                    recoverDeadTab(tab)
                 }
                 true
             },
@@ -246,7 +270,6 @@ class TabManager(
             onPermissionRequestPrompt = { request, canonicalOrigin, resources ->
                 val mainFrameOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(tab.url)
 
-                // Main-frame origin validation: Never grant permissions if context origin does not match main frame
                 if (canonicalOrigin != mainFrameOrigin) {
                     request.deny()
                     return@NovaWebChromeClient
@@ -255,74 +278,78 @@ class TabManager(
                 val mappedPermissions = mutableListOf<String>()
                 for (res in resources) {
                     when (res) {
-                        android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE -> mappedPermissions.add(SitePermissionType.CAMERA)
                         android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE -> mappedPermissions.add(SitePermissionType.MICROPHONE)
+                        android.webkit.PermissionRequest.RESOURCE_VIDEO_CAPTURE -> mappedPermissions.add(SitePermissionType.CAMERA)
                         android.webkit.PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID -> mappedPermissions.add(SitePermissionType.PROTECTED_MEDIA)
-                        else -> mappedPermissions.add(res)
                     }
                 }
 
-                val configured = dbHelper.getSitePermissions(canonicalOrigin)
-                val allGranted = mappedPermissions.all { configured[it] == true }
-                val anyDenied = mappedPermissions.any { configured[it] == false }
-
-                if (allGranted && mappedPermissions.isNotEmpty()) {
-                    request.grant(resources.toTypedArray())
-                } else if (anyDenied) {
+                if (mappedPermissions.isEmpty()) {
                     request.deny()
-                } else {
-                    listener.onSitePermissionPrompt(
-                        canonicalOrigin = canonicalOrigin,
-                        permissions = mappedPermissions,
-                        onAllow = {
-                            for (p in mappedPermissions) {
-                                dbHelper.setSitePermission(canonicalOrigin, p, true)
-                            }
-                            request.grant(resources.toTypedArray())
-                        },
-                        onDeny = {
-                            for (p in mappedPermissions) {
-                                dbHelper.setSitePermission(canonicalOrigin, p, false)
-                            }
-                            request.deny()
-                        }
-                    )
-                }
-            },
-            onGeolocationPrompt = { rawOrigin, canonicalOrigin, geoCallback ->
-                val mainFrameOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(tab.url)
-
-                // Main-frame origin validation
-                if (canonicalOrigin != mainFrameOrigin) {
-                    geoCallback.invoke(rawOrigin, false, false)
                     return@NovaWebChromeClient
                 }
 
-                val decision = dbHelper.getSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION)
-                when (decision) {
-                    true -> geoCallback.invoke(rawOrigin, true, false)
-                    false -> geoCallback.invoke(rawOrigin, false, false)
-                    null -> {
-                        listener.onSitePermissionPrompt(
-                            canonicalOrigin = canonicalOrigin,
-                            permissions = listOf(SitePermissionType.GEOLOCATION),
-                            onAllow = {
-                                dbHelper.setSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION, true)
-                                geoCallback.invoke(rawOrigin, true, false)
-                            },
-                            onDeny = {
-                                dbHelper.setSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION, false)
-                                geoCallback.invoke(rawOrigin, false, false)
-                            }
-                        )
-                    }
+                val savedStatus = dbHelper.getSitePermission(canonicalOrigin, mappedPermissions.first())
+                if (savedStatus == true) {
+                    request.grant(resources.toTypedArray())
+                    return@NovaWebChromeClient
+                } else if (savedStatus == false) {
+                    request.deny()
+                    return@NovaWebChromeClient
                 }
+
+                listener.onSitePermissionPrompt(
+                    canonicalOrigin = canonicalOrigin,
+                    permissions = mappedPermissions,
+                    onAllow = {
+                        for (perm in mappedPermissions) {
+                            dbHelper.setSitePermission(canonicalOrigin, perm, true)
+                        }
+                        request.grant(resources.toTypedArray())
+                    },
+                    onDeny = {
+                        for (perm in mappedPermissions) {
+                            dbHelper.setSitePermission(canonicalOrigin, perm, false)
+                        }
+                        request.deny()
+                    }
+                )
+            },
+            onGeolocationPrompt = { origin, canonicalOrigin, callback ->
+                val mainFrameOrigin = com.gintama.novabrowser.core.security.UrlCanonicalizer.canonicalOrigin(tab.url)
+
+                if (canonicalOrigin != mainFrameOrigin) {
+                    callback.invoke(origin, false, false)
+                    return@NovaWebChromeClient
+                }
+
+                val savedStatus = dbHelper.getSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION)
+                if (savedStatus == true) {
+                    callback.invoke(origin, true, true)
+                    return@NovaWebChromeClient
+                } else if (savedStatus == false) {
+                    callback.invoke(origin, false, true)
+                    return@NovaWebChromeClient
+                }
+
+                listener.onSitePermissionPrompt(
+                    canonicalOrigin = canonicalOrigin,
+                    permissions = listOf(SitePermissionType.GEOLOCATION),
+                    onAllow = {
+                        dbHelper.setSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION, true)
+                        callback.invoke(origin, true, true)
+                    },
+                    onDeny = {
+                        dbHelper.setSitePermission(canonicalOrigin, SitePermissionType.GEOLOCATION, false)
+                        callback.invoke(origin, false, true)
+                    }
+                )
             },
             onShowFileChooserCallback = { filePathCallback, fileChooserParams ->
                 listener.onShowFileChooser(filePathCallback, fileChooserParams)
             },
-            onShowCustomViewCallback = { view, callback ->
-                listener.onShowCustomView(view, callback)
+            onShowCustomViewCallback = { view, customViewCallback ->
+                listener.onShowCustomView(view, customViewCallback)
             },
             onHideCustomViewCallback = {
                 listener.onHideCustomView()
@@ -352,24 +379,40 @@ class TabManager(
                 } else false
             }
         )
+    }
 
-        tabs.add(tab)
-        switchTab(tab.id)
-
-        if (initialUrl.isNotBlank() && initialUrl != "about:blank") {
-            val (sanitized, decision) = controller.evaluateNavigation(initialUrl)
-            if (decision.action == GateAction.BLOCK || decision.action == GateAction.WARN) {
-                listener.onSecurityIntervention(decision, sanitized) {
-                    webView.loadUrl(sanitized)
-                }
-            } else {
-                webView.loadUrl(sanitized)
-            }
+    fun recoverDeadTab(tab: BrowserTab) {
+        val lastUrl = tab.url
+        try {
+            webViewContainer.removeView(tab.webView)
+            tab.webView.cleanUp()
+        } catch (e: Exception) {
+            // Suppress errors cleaning up dead WebView
         }
 
-        listener.onTabsUpdated(tabs)
-        saveTabs()
-        return tab
+        val freshWebView = NovaWebView(context, tab.id, tab.isPrivate).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            setDownloadListener(downloadHandler)
+        }
+
+        tab.webView = freshWebView
+        setupClientsForTab(tab)
+
+        if (tab.id == activeTabId) {
+            if (freshWebView.parent == null) {
+                webViewContainer.addView(freshWebView)
+            }
+            freshWebView.bringToFront()
+            listener.onActiveTabChanged(tab)
+        }
+
+        if (lastUrl.isNotBlank() && lastUrl != "about:blank") {
+            freshWebView.loadUrl(lastUrl)
+        }
+        listener.onRendererRecovered(tab)
     }
 
     fun switchTab(tabId: String) {
@@ -379,9 +422,17 @@ class TabManager(
         }
         activeTabId = target.id
 
-        // Swap view in container
-        webViewContainer.removeAllViews()
-        webViewContainer.addView(target.webView)
+        // Zero-flicker swap: attach new view first, bring to front, then remove other views
+        if (target.webView.parent == null) {
+            webViewContainer.addView(target.webView)
+        }
+        target.webView.bringToFront()
+        for (i in webViewContainer.childCount - 1 downTo 0) {
+            val child = webViewContainer.getChildAt(i)
+            if (child != target.webView) {
+                webViewContainer.removeViewAt(i)
+            }
+        }
 
         listener.onActiveTabChanged(target)
         listener.onBlockedAdsUpdated(target, target.blockedAdsCount)

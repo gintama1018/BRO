@@ -1136,6 +1136,90 @@
 
             </LinearLayout>
         </ScrollView>
+
+        <!-- STATE C: IN-PAGE ERROR RECOVERY CARD -->
+        <LinearLayout
+            android:id="@+id/layoutPageErrorRecovery"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/canvas_base"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="28dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_glass_card"
+                android:elevation="3dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingHorizontal="24dp"
+                android:paddingVertical="32dp">
+
+                <ImageView
+                    android:id="@+id/ivErrorIcon"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="Error Icon"
+                    android:src="@drawable/ic_link_off"
+                    app:tint="@color/risk_blocked" />
+
+                <TextView
+                    android:id="@+id/tvErrorTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Page Unavailable"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvErrorMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="The server could not be reached or connection timed out."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnErrorBack"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="Go Back"
+                        android:textSize="13sp"
+                        app:cornerRadius="12dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnErrorRetry"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/primary"
+                        android:text="Try Again"
+                        android:textColor="@color/text_on_primary"
+                        android:textSize="13sp"
+                        app:cornerRadius="12dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
     </FrameLayout>
 
     <!-- 3. BOTTOM FLOATING COMMAND DOCK (Horizon-Adapted Navigation Dock) -->
@@ -1228,6 +1312,31 @@
             android:src="@drawable/ic_more_vert"
             app:tint="@color/text_primary" />
     </LinearLayout>
+
+    <!-- 3.5. OMNIBOX FLOATING SUGGESTIONS DROPDOWN (Horizon Glass Card) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/layoutOmniboxSuggestions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="2dp"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/surface_bright"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="14dp"
+        app:cardMaxElevation="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/progressBar">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvOmniboxSuggestions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:overScrollMode="never"
+            android:paddingVertical="4dp" />
+    </androidx.cardview.widget.CardView>
 
     <!-- 4. FULLSCREEN VIDEO / CUSTOM VIEW OVERLAY CONTAINER -->
     <FrameLayout
