@@ -24,6 +24,15 @@
         android:title="Desktop Site" />
 
     <item
+        android:id="@+id/action_force_dark"
+        android:checkable="true"
+        android:title="Force Dark Web" />
+
+    <item
+        android:id="@+id/action_add_to_home"
+        android:title="Add to Home Screen" />
+
+    <item
         android:id="@+id/action_mute_tab"
         android:title="Mute Tab Audio" />
 

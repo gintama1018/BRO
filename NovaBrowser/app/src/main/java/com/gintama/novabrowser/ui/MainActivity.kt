@@ -108,6 +108,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var tvShieldBadgeCount: TextView
     private lateinit var btnNavBack: ImageButton
 
+    // Standalone PWA Mode Views
+    private lateinit var layoutStandaloneHeader: LinearLayout
+    private lateinit var btnStandaloneBack: ImageButton
+    private lateinit var ivStandaloneLock: ImageView
+    private lateinit var tvStandaloneTitle: TextView
+    private lateinit var btnStandaloneReload: ImageButton
+    private lateinit var btnStandaloneMenu: ImageButton
+    private var isStandaloneMode: Boolean = false
+
     // Viewport Containers
     private lateinit var mainViewportContainer: FrameLayout
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
@@ -342,6 +351,32 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnIslandAsk = findViewById(R.id.btnIslandAsk)
         btnIslandShield = findViewById(R.id.btnIslandShield)
         btnIslandBookmarks = findViewById(R.id.btnIslandBookmarks)
+
+        // Standalone PWA views
+        layoutStandaloneHeader = findViewById(R.id.layoutStandaloneHeader)
+        btnStandaloneBack = findViewById(R.id.btnStandaloneBack)
+        ivStandaloneLock = findViewById(R.id.ivStandaloneLock)
+        tvStandaloneTitle = findViewById(R.id.tvStandaloneTitle)
+        btnStandaloneReload = findViewById(R.id.btnStandaloneReload)
+        btnStandaloneMenu = findViewById(R.id.btnStandaloneMenu)
+
+        btnStandaloneBack.setOnClickListener {
+            val webView = tabManager.activeTab?.webView
+            if (webView?.canGoBack() == true) {
+                webView.goBack()
+            } else {
+                finish()
+            }
+        }
+        btnStandaloneReload.setOnClickListener {
+            val webView = tabManager.activeTab?.webView
+            if (webView != null) {
+                if (webView.progress < 100) webView.stopLoading() else webView.reload()
+            }
+        }
+        btnStandaloneMenu.setOnClickListener { view ->
+            showOptionsMenu(view)
+        }
     }
 
     private fun setupWindowInsets() {
@@ -353,6 +388,9 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         topChrome.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             topMargin = fallbackStatusHeight
         }
+        layoutStandaloneHeader.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            topMargin = fallbackStatusHeight
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             val statusBarInsets = insets.getInsets(
@@ -362,6 +400,9 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
             val effectiveTop = if (statusBarInsets.top > 0) statusBarInsets.top else fallbackStatusHeight
             topChrome.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = effectiveTop
+            }
+            layoutStandaloneHeader.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 topMargin = effectiveTop
             }
 
@@ -1225,6 +1266,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         val currentWebView = tabManager.activeTab?.webView
         desktopItem?.isChecked = currentWebView?.isDesktopMode == true
 
+        // Set Force Dark checkmark
+        val forceDarkItem = popup.menu.findItem(R.id.action_force_dark)
+        forceDarkItem?.isChecked = currentWebView?.isForceDarkMode == true
+
         // Forward navigation state
         val forwardItem = popup.menu.findItem(R.id.action_forward)
         forwardItem?.isEnabled = currentWebView?.canGoForward() == true
@@ -1260,6 +1305,33 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                         webView.setDesktopMode(newMode)
                         val msg = if (newMode) "Desktop mode enabled" else "Mobile mode restored"
                         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
+                R.id.action_force_dark -> {
+                    val webView = tabManager.activeTab?.webView
+                    if (webView != null) {
+                        val newMode = !webView.isForceDarkMode
+                        webView.setForceDarkMode(newMode)
+                        val msg = if (newMode) "Force dark web enabled" else "Default web styling restored"
+                        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
+                R.id.action_add_to_home -> {
+                    val tab = tabManager.activeTab
+                    val currentUrl = tab?.url.orEmpty()
+                    val currentTitle = tab?.title.takeIf { !it.isNullOrBlank() } ?: "Web App"
+                    val favicon = tab?.webView?.favicon
+                    if (currentUrl.isNotBlank() && currentUrl != "about:blank") {
+                        com.gintama.novabrowser.browser.PwaShortcutManager.showAddToHomeDialog(
+                            this,
+                            currentUrl,
+                            currentTitle,
+                            favicon
+                        )
+                    } else {
+                        Toast.makeText(this, "Open a website first to add to home screen", Toast.LENGTH_SHORT).show()
                     }
                     true
                 }
@@ -1652,12 +1724,21 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         updateShieldBadgeCount(tab.blockedAdsCount)
         updateNavigationButtons()
         checkReaderCandidate(tab.webView)
+        if (isStandaloneMode) {
+            tvStandaloneTitle.text = if (tab.title.isNotBlank()) tab.title else tab.url
+        }
     }
 
     override fun onPageCommitVisible(tab: BrowserTab) {
         if (tab.id == tabManager.activeTab?.id) {
             runOnUiThread {
                 NovaMotion.animatePageEntrance(tab.webView)
+                if (tab.webView.isForceDarkMode) {
+                    com.gintama.novabrowser.browser.WebDarkThemeManager.applyDarkTheme(tab.webView, true)
+                }
+                if (isStandaloneMode) {
+                    tvStandaloneTitle.text = if (tab.title.isNotBlank()) tab.title else tab.url
+                }
             }
         }
     }
@@ -1677,6 +1758,16 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             btnReloadPage.setImageResource(R.drawable.ic_refresh)
             btnReloadPage.contentDescription = "Reload"
             checkReaderCandidate(tabManager.activeTab?.webView)
+            tabManager.activeTab?.webView?.let { webView ->
+                if (webView.isForceDarkMode) {
+                    com.gintama.novabrowser.browser.WebDarkThemeManager.applyDarkTheme(webView, true)
+                }
+            }
+            if (isStandaloneMode) {
+                tabManager.activeTab?.let { tab ->
+                    tvStandaloneTitle.text = if (tab.title.isNotBlank()) tab.title else tab.url
+                }
+            }
         }
     }
 
@@ -1958,6 +2049,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             closeFindInPage()
             return
         }
+        if (isStandaloneMode) {
+            val webView = tabManager.activeTab?.webView
+            if (webView?.canGoBack() == true) {
+                webView.goBack()
+            } else {
+                finish()
+            }
+            return
+        }
         val webView = tabManager.activeTab?.webView
         if (webView?.canGoBack() == true) {
             webView.goBack()
@@ -1981,11 +2081,25 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     private fun handleIntent(intent: Intent?) {
         val action = intent?.action
+        val isStandalone = intent?.getBooleanExtra(com.gintama.novabrowser.browser.PwaShortcutManager.EXTRA_STANDALONE, false) == true ||
+                action == com.gintama.novabrowser.browser.PwaShortcutManager.ACTION_OPEN_PWA
+        if (isStandalone) {
+            enableStandalonePwaMode()
+        }
+
         val data: Uri? = intent?.data
-        if (Intent.ACTION_VIEW == action && data != null) {
+        if ((Intent.ACTION_VIEW == action || isStandalone) && data != null) {
             val url = data.toString()
             loadUrlInActiveTab(url)
         }
+    }
+
+    private fun enableStandalonePwaMode() {
+        isStandaloneMode = true
+        topChromeHeader.visibility = View.GONE
+        bottomFloatingIsland.visibility = View.GONE
+        layoutStandaloneHeader.visibility = View.VISIBLE
+        webViewContainer.setPadding(0, 0, 0, 0)
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -2185,10 +2299,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             topChromeHeader.visibility = View.GONE
             bottomFloatingIsland.visibility = View.GONE
             layoutFindInPage.visibility = View.GONE
+            layoutStandaloneHeader.visibility = View.GONE
         } else {
             if (customView == null) {
-                topChromeHeader.visibility = View.VISIBLE
-                bottomFloatingIsland.visibility = View.VISIBLE
+                if (isStandaloneMode) {
+                    layoutStandaloneHeader.visibility = View.VISIBLE
+                } else {
+                    topChromeHeader.visibility = View.VISIBLE
+                    bottomFloatingIsland.visibility = View.VISIBLE
+                }
             }
         }
     }

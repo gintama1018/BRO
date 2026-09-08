@@ -355,6 +355,17 @@ class SettingsActivity : AppCompatActivity() {
             val msg = if (isChecked) "Auto PiP enabled for videos" else "Auto PiP disabled"
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         }
+
+        // ==========================================
+        // Global Force Dark Web Engine
+        // ==========================================
+        val switchGlobalForceDark = findViewById<SwitchMaterial>(R.id.switchGlobalForceDark)
+        switchGlobalForceDark.isChecked = com.gintama.novabrowser.browser.WebDarkThemeManager.isGlobalForceDarkEnabled(this)
+        switchGlobalForceDark.setOnCheckedChangeListener { _, isChecked ->
+            com.gintama.novabrowser.browser.WebDarkThemeManager.setGlobalForceDarkEnabled(this, isChecked)
+            val msg = if (isChecked) "Force dark web enabled for all tabs" else "Default web styling restored"
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showCustomSearchEngineDialog(onSaved: () -> Unit) {

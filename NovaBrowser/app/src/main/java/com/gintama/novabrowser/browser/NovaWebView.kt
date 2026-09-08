@@ -20,12 +20,24 @@ class NovaWebView(
     val isPrivate: Boolean = false
 ) : WebView(context) {
 
+    var isForceDarkMode: Boolean = false
+        private set
+
     init {
-        // Prevent default white canvas flash on reload / navigation
         setBackgroundColor(ContextCompat.getColor(context, R.color.canvas_base))
         setLayerType(LAYER_TYPE_HARDWARE, null)
         configureSettings()
         setupPrivacyMode()
+
+        isForceDarkMode = WebDarkThemeManager.isGlobalForceDarkEnabled(context)
+        if (isForceDarkMode) {
+            WebDarkThemeManager.applyDarkTheme(this, true)
+        }
+    }
+
+    fun setForceDarkMode(enabled: Boolean) {
+        isForceDarkMode = enabled
+        WebDarkThemeManager.applyDarkTheme(this, enabled)
     }
 
     private fun configureSettings() {

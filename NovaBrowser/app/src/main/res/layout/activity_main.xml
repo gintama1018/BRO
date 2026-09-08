@@ -179,6 +179,74 @@
             app:tint="@color/text_secondary" />
     </LinearLayout>
 
+    <!-- STANDALONE PWA HEADER (Minimal Header: Back, Lock, Page Title, Reload, Options) -->
+    <LinearLayout
+        android:id="@+id/layoutStandaloneHeader"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp"
+        android:background="@color/canvas_base"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/topChromeHeader"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnStandaloneBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back"
+            android:padding="6dp"
+            android:contentDescription="Back"
+            app:tint="@color/text_secondary" />
+
+        <ImageView
+            android:id="@+id/ivStandaloneLock"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="6dp"
+            android:src="@drawable/ic_shield_verified"
+            app:tint="@color/risk_safe"
+            android:contentDescription="Secure" />
+
+        <TextView
+            android:id="@+id/tvStandaloneTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="Web App"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnStandaloneReload"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_refresh"
+            android:padding="6dp"
+            android:contentDescription="Reload"
+            app:tint="@color/text_tertiary" />
+
+        <ImageButton
+            android:id="@+id/btnStandaloneMenu"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_more_vert"
+            android:padding="6dp"
+            android:contentDescription="Options"
+            app:tint="@color/text_secondary" />
+    </LinearLayout>
+
     <!-- Find in Page Search Bar Container -->
     <LinearLayout
         android:id="@+id/layoutFindInPage"
@@ -190,7 +258,7 @@
         android:orientation="horizontal"
         android:paddingHorizontal="12dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/topChromeHeader">
+        app:layout_constraintTop_toBottomOf="@id/layoutStandaloneHeader">
 
         <EditText
             android:id="@+id/etFindQuery"
