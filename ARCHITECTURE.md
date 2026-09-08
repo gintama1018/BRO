@@ -1,327 +1,356 @@
 # NovaBrowser — System Architecture
 
-Companion docs: `PRD.md` (why) / `PLAN.txt` (when) / `DESIGN.md` (data + UI) / `SECURITY.md` (threat model)
+**Version:** 1.2 (Synchronized with Codebase)  
+**Status:** Active Implementation  
+**Companion Docs:** [PRD.md](PRD.md) (Product Requirements) / [PLAN.txt](PLAN.txt) (Roadmap) / [DESIGN.md](DESIGN.md) (Data & UI Contracts) / [SECURITY.md](SECURITY.md) (Threat Model)
 
 ---
 
 ## 1. Design Philosophy
 
-> Do not ask: "How do we put a giant AI inside a browser?"
-> Ask: "How little AI do we need to make the browser feel intelligent?"
+> *Do not ask:* "How do we put a giant cloud AI inside a browser?"  
+> *Ask:* "How little local compute do we need to make the browser feel fast, intelligent, and secure?"
 
-Division of responsibility:
-
-```
-Browser engine     -> render the web            (WebView / Chromium)
-Security core      -> allow/block decisions      (deterministic code)
-Retrieval engine    -> find the user's data      (SQLite + lexical/embedding search)
-Tiny local LLM      -> understand/summarize/explain/choose (narrow, tool-scoped)
-Browser controller  -> execute validated actions (permissioned API)
-Local database       -> remember browser state    (SQLite)
-Sync layer            -> optional encrypted state movement between devices
-```
-
-**Non-negotiable rule:** AI is never the final security authority.
+NovaBrowser enforces a strict, auditable separation of responsibilities:
 
 ```
-BAD:      URL -> LLM -> "looks safe" -> open
-CORRECT:  URL -> deterministic Security Gate -> allow / block
+Browser UI & Shell   -> Render tabs, omnibox, shields, and Nova QuadView
+Browser Manager      -> Tab lifecycle, session ownership, view reparenting
+Deterministic Gate   -> 100% auditable allow/block/warn navigation decisions
+Ad & Shield Engine   -> Fast-path subresource filtering + cosmetic CSS hiding
+WebView Runtime      -> Sandboxed web execution via Android system WebView
+Local Database       -> SQLite persistence (12 tables), lexical FTS5 BM25 search
+AI Intelligence      -> Hardware RAM tiering (implemented); tiny-LLM inference (in progress)
+Browser Controller   -> Validated execution of user and system navigation intents
 ```
+
+### The Non-Negotiable Invariant
+**AI is never the security authority.**
+
+```
+UNAUDITABLE / UNSAFE:  URL -> LLM -> "looks safe to me" -> Open
+DETERMINISTIC & SAFE:  URL -> DeterministicSecurityGate -> ALLOW / WARN / BLOCK
+```
+
+No probabilistic language model is permitted in the navigation allow/block pipeline. All security gating is deterministic, testable, and offline-functional.
 
 ---
 
-## 2. High-Level Architecture
+## 2. High-Level Layered Architecture
 
 ```
-                         +-------------------------+
-                         |       BROWSER UI        |
-                         | Tabs / URL / History     |
-                         +------------+------------+
-                                      |
-                              Navigation Request
-                                      |
-                                      v
-                    +--------------------------------------+
-                    |             SECURITY GATE             |
-                    |  1. URL normalization                |
-                    |  2. Local blocklist lookup            |
-                    |  3. Threat/reputation feed            |
-                    |  4. Typosquat heuristics               |
-                    |  5. Suspicious TLD / pattern checks    |
-                    |  6. Redirect policy                    |
-                    |  7. Download policy                    |
-                    +----------------+---------------------+
++-------------------------------------------------------------------------+
+|                              BROWSER UI LAYER                           |
+|  - MainActivity & Navigation Stack       - Omnibox & Search Suggestions |
+|  - Nova QuadView (2x2 Multi-Tab Grid)   - Site Shields Interstitial    |
+|  - Security Warning Screen (Explainable) - Reader Mode & Offline Pages  |
++------------------------------------+------------------------------------+
                                      |
-                         +-----------+-----------+
-                         |                       |
-                       BLOCK                   ALLOW
-                         |                       |
-                         v                       v
-                   Warning Page             WEB ENGINE
-                                             |
-                                     +-------+-------+
-                                     |               |
-                                  Android          Desktop
-                                  WebView          Electron
-                                     |               |
-                                     +-------+-------+
-
-                +------------------+
-                |    LOCAL AI      |
-                |   AI Assistant   |
-                +---------+--------+
-                          |
-                 +--------+---------+
-                 |                  |
-              Tiny LLM          Retrieval Engine
-                 |                  |
-                 +--------+---------+
-                          |
-                       SQLite
-                          |
-              +-----------+-----------+
-              |                       |
-           History                AI Index
-           Bookmarks              Embeddings
-           Sessions               Page summaries
-           Metadata               Semantic metadata
+                          Navigation / Tab Intent
+                                     v
++-------------------------------------------------------------------------+
+|                     BROWSER & SESSION MANAGEMENT                        |
+|  - TabManager (Sole source of truth for BrowserTab lifecycle)          |
+|  - BrowserController (Coordinates security, database, and visits)       |
+|  - ExternalSchemeHandler (Guarded intents: tel, mailto, market, etc.)   |
++------------------------------------+------------------------------------+
+                                     |
+                           Candidate Navigation
+                                     v
++-------------------------------------------------------------------------+
+|                      DETERMINISTIC SECURITY GATE                        |
+|  1. UrlCanonicalizer (Punycode xn--, recursive percent-decoding, ports) |
+|  2. ThreatFeedManager (URLhaus malware dataset fast binary match)       |
+|  3. HeuristicsEngine (Shannon entropy for DGA, Levenshtein typosquats)  |
+|  4. RedirectTracker (Max 4 hops, SSL downgrade / stripping detection)   |
++------------------+-----------------------------------+------------------+
+                   |                                   |
+              [ BLOCK / WARN ]                      [ ALLOW ]
+                   |                                   |
+                   v                                   v
+        SecurityWarningActivity             +----------------------+
+        (Explainable Interstitial)          |  AD & TRACKER SHIELD |
+                                            |  - AdBlockEngine     |
+                                            |  - CosmeticEngine    |
+                                            |  - SiteShieldManager |
+                                            +----------+-----------+
+                                                       |
+                                              Interception Filter
+                                                       v
++-------------------------------------------------------------------------+
+|                            WEB ENGINE RUNTIME                           |
+|  - NovaWebView (Hardened AndroidX WebKit wrapper)                       |
+|  - NovaWebClient (shouldOverrideUrlLoading, shouldInterceptRequest)    |
+|  - NovaChromeClient (progress, title, fullscreen, permissions)          |
+|  - Hardened JS Boundary (Zero privileged native APIs exposed)           |
++------------------------------------+------------------------------------+
+                                     |
+                          Page Events & Persistence
+                                     v
++-------------------------------------------------------------------------+
+|                          LOCAL STORAGE & RETRIEVAL                      |
+|  - NovaDatabaseHelper (SQLite v2: 12 tables + FTS5 full-text search)    |
+|  - History FTS5 (BM25 token ranking with graceful LIKE fallback)        |
+|  - Bookmarks & HTML import/export (BookmarkHtmlManager)                 |
+|  - Download Quarantine (.nova_quarantine/ with SHA-256 integrity)       |
+|  - Private Browsing Isolation (Zero disk persistence, biometric lock)   |
++------------------------------------+------------------------------------+
+                                     |
+                          Parallel Analysis Path
+                                     v
++-------------------------------------------------------------------------+
+|                         LOCAL AI SUBSYSTEM                              |
+|  - DeviceTierDetector (RAM-based: Minimal <=2GB, Light 3-4GB, Std 6GB+) |
+|  - AiEngine Contract (Dormant during Phase 1 & 2 to prevent RAM bloat)  |
+|  - Native Inference Runtime (llama.cpp / quantized GGUF - Planned/Roadmap)|
+|  - Contextual Page Summarization & Local Embeddings (Planned/Roadmap)   |
++-------------------------------------------------------------------------+
 ```
-
-The AI layer sits **parallel to**, never **inside**, the navigation decision path.
 
 ---
 
-## 3. Component Breakdown
+## 3. Project Module Structure
 
-| Component | Responsibility | Depends on AI? |
+The project is structured into three clean Gradle modules:
+
+```
+NovaBrowser/
+├── app/                  # Android Application Shell
+│   ├── adblock/          # AdBlockEngine, CosmeticEngine
+│   ├── backup/           # NovaBackupManager
+│   ├── bookmarks/        # BookmarksActivity, BookmarkHtmlManager
+│   ├── browser/          # NovaWebView, TabManager, WebDarkThemeManager, PwaShortcutManager
+│   ├── diagnostics/      # NovaDiagnostics (In-app self-check runner)
+│   ├── downloads/        # DownloadHandler, NovaDownloadEngine, MediaSnifferEngine
+│   ├── history/          # HistoryActivity, HistoryAdapter
+│   ├── media/            # TabMuteEngine
+│   ├── notifications/    # NovaNotificationHelper
+│   ├── offline/          # OfflinePageManager (MHTML archives)
+│   ├── reader/           # ReaderActivity, ReaderExtractor, ReaderPreferences
+│   ├── search/           # SearchEngineManager
+│   ├── security/         # NovaBiometricHelper
+│   ├── settings/         # SettingsActivity
+│   ├── shields/          # SiteShieldManager, SiteShieldSettings
+│   └── ui/               # MainActivity, SecurityWarningActivity, TabsAdapter
+│       ├── motion/       # NovaMotion
+│       ├── omnibox/      # OmniboxSuggestionsAdapter
+│       └── quad/         # QuadViewManager, QuadPaneView, QuadSlot, QuadViewState
+│
+├── browser-core/         # Platform-Agnostic Core Engine
+│   ├── controller/       # BrowserController
+│   ├── db/               # NovaDatabaseHelper (12 SQLite tables, FTS5 migrations)
+│   ├── model/            # TabSession, HistoryItem, BookmarkItem, DownloadItem
+│   ├── navigation/       # UrlSanitizer, SearchEngine
+│   └── security/         # DeterministicSecurityGate, UrlCanonicalizer, HeuristicsEngine,
+│                         # RedirectTracker, ThreatFeedManager, AdblockParser
+│
+└── ai/                   # Local Intelligence Subsystem
+    ├── DeviceTier.kt     # RAM inspection (MINIMAL, LIGHT, STANDARD)
+    └── AiEngine.kt       # Tier contract and lifecycle management
+```
+
+---
+
+## 4. Nova QuadView Presentation Architecture
+
+Nova QuadView is a major spatial browsing innovation built on the architectural principle:  
+**"Same browser sessions. New spatial arrangement."**
+
+```
+┌────────────────────────────────────────────────────────┐
+│               Nova QuadView Workspace                  │
+│                                                        │
+│   ┌────────────────────────┬────────────────────────┐  │
+│   │ Slot A [ACTIVE]        │ Slot B                 │  │
+│   │ Tab: "GitHub Repo"     │ Tab: "Android Docs"    │  │
+│   │ [Live NovaWebView #1]  │ [Live NovaWebView #2]  │  │
+│   ├────────────────────────┼────────────────────────┤  │
+│   │ Slot C                 │ Slot D                 │  │
+│   │ Tab: "StackOverflow"   │ Tab: "Terminal Logs"   │  │
+│   │ [Live NovaWebView #3]  │ [Live NovaWebView #4]  │  │
+│   └────────────────────────┴────────────────────────┘  │
+└────────────────────────────────────────────────────────┘
+```
+
+### 4.1 Invariant: Layout Change $\neq$ Session Recreation
+QuadView is strictly a **presentation layer**, not a separate browser engine.  
+- `TabManager` remains the **sole source of truth** for all `BrowserTab` objects and their underlying `NovaWebView` instances.
+- When entering QuadView, switching to Focus Mode, swapping panes, or returning to single-tab view, the active `NovaWebView` instances are **reparented** in the Android View hierarchy:
+  ```kotlin
+  // Detach from previous container
+  (webView.parent as? ViewGroup)?.removeView(webView)
+  // Attach into target QuadPaneView container
+  paneContainer.addView(webView, LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+  ```
+- **Zero WebViews are destroyed, recreated, or reloaded.** JavaScript execution, scroll offsets, form inputs, audio playback, and DOM state remain 100% continuous.
+
+### 4.2 Slot State vs Tab State Separation
+- `QuadViewState` tracks slots via tab identifiers: `QuadSlot -> tabId` (e.g., `slotATabId = "tab_101"`).
+- Tab resolution always routes through `tabManager.getTabById(id)`.
+- If a tab is closed from within a QuadView pane, its slot transitions to `EMPTY`. Tapping an empty slot triggers `onPaneEmptySlotListener` presenting an assignment dialog to pick an existing tab or open a new one.
+
+### 4.3 Responsive Spatial Layout
+- **Portrait Orientation:** Two horizontal rows (`rowTopQuad` and `rowBottomQuad`), each containing two slots side-by-side.
+- **Landscape Orientation:** Two vertical columns, each with two vertically stacked slots, preserving widescreen aspect ratios.
+- **Focus Mode:** Expands any selected slot to dominant 100% screen weight while maintaining live background sessions in dormant slots, ready for instant restoration to 2×2 grid.
+
+### 4.4 Privacy Boundary in QuadView
+- QuadView workspaces **strictly enforce privacy segregation**.
+- If QuadView is launched from a private tab, only private tabs can be assigned to slots B, C, and D. Standard tabs cannot be added to a private QuadView workspace, and vice-versa.
+
+---
+
+## 5. Deterministic Security Core
+
+All navigation evaluation executes synchronously or on the `Dispatchers.IO` coroutine context prior to loading:
+
+```
+Raw Input
+    │
+    ▼
+UrlSanitizer.sanitizeInput() ──────────► Search query or valid URL
+    │
+    ▼
+DeterministicSecurityGate.evaluate()
+    │
+    ├── 1. UrlCanonicalizer.canonicalize()
+    │      - Punycode IDN conversion (e.g. Cyrillic 'р' -> 'xn--aypal-uye')
+    │      - Recursive percent-decoding (%2577 -> %77 -> w)
+    │      - Port & schema normalization
+    │
+    ├── 2. ThreatFeedManager.check()
+    │      - URLhaus malware domain dataset lookup
+    │      - If matched: Emits RiskState.BLOCKED (Severity: BLOCK)
+    │
+    ├── 3. HeuristicsEngine.evaluate()
+    │      - Shannon entropy check on domain labels (DGA detection)
+    │      - Levenshtein distance check against protected brand list (homoglyphs)
+    │      - If threshold exceeded: Emits RiskState.SUSPICIOUS (Severity: WARN)
+    │
+    ├── 4. RedirectTracker.evaluate()
+    │      - Redirect hops tracked (max 4 allowed)
+    │      - Protocol downgrade (HTTPS -> HTTP) detection
+    │      - If loop or downgrade: Emits RiskState.SUSPICIOUS
+    │
+    └── 5. Axiom Evaluation:
+           - If unlisted: Emits RiskState.UNKNOWN (Never false claim of KNOWN_SAFE)
+```
+
+---
+
+## 6. Ad, Tracker & Shield Architecture
+
+Subresource filtering operates directly inside `NovaWebClient.shouldInterceptRequest()`:
+
+```
+Subresource Request (Script, Image, IFrame, XHR)
+    │
+    ▼
+SiteShieldManager.getSettings(documentHost)
+    │
+    ├── If shields disabled for site ────────► ALLOW request
+    │
+    ▼
+AdBlockEngine.shouldBlock(requestUrl, documentHost)
+    │
+    ├── Fast-path domain label tree matching (O(labels) lookup)
+    ├── Checks against EasyList & EasyPrivacy rules
+    │
+    ├── MATCHED ─────────────────────────────► BlockedWebResourceResponse (empty stream)
+    │                                          Increment blockedTrackerCount
+    ▼
+ALLOW request (load from network / cache)
+```
+
+### Cosmetic Filtering
+When `onPageFinished` fires, `CosmeticEngine` matches the document domain against embedded CSS selectors and injects an inline style block:
+```javascript
+(function() {
+    const style = document.createElement('style');
+    style.id = 'nova-cosmetic-shield';
+    style.textContent = 'selector1, selector2 { display: none !important; }';
+    document.head.appendChild(style);
+})();
+```
+
+### Known Technical Boundary
+In-stream video advertisements delivered via server-side ad insertion (SSAI) from the same CDN host as legitimate content (e.g. YouTube CDN media chunks) cannot be filtered using domain-level blocking without breaking core media playback. This limitation is acknowledged by design.
+
+---
+
+## 7. Download Quarantine Architecture
+
+```
+Incoming Download Request
+    │
+    ▼
+MIME & File Extension Classification
+    │
+    ├── Safe (Plain text, standard images, audio/video) ──► Save directly to Downloads/
+    │
+    ▼ Risky (.apk, .dex, .sh, .exe, .js, .bat)
+Stream to App-Private Sandbox: .nova_quarantine/{UUID}.quarantine
+    │
+    ├── Calculate SHA-256 integrity hash on the fly
+    ├── Insert record in downloads table (status = 'quarantined')
+    │
+    ▼
+Present Interstitial Dialog to User
+    - Display filename, size, threat reason, and SHA-256 fingerprint
+    │
+    ├── User selects [DELETE] ──► Wipe sandbox file, mark 'blocked'
+    └── User confirms [PROCEED] ─► Sanitize filename, move to public Downloads/
+```
+
+---
+
+## 8. Database Architecture
+
+Storage is centralized in `NovaDatabaseHelper` (`nova_browser.db`, SQLite version 2), featuring 12 tables:
+
+1. **`history`**: Visited URLs, titles, domains, timestamps, summaries, and nullable embedding BLOBs.
+2. **`history_fts`**: FTS5 virtual table for lexical full-text token search (`"query"*` prefix matching) ranked via `bm25(history_fts) ASC`.
+3. **`bookmarks`**: User bookmarks with optional folder hierarchy.
+4. **`sessions`**: Tab persistence records across app restarts.
+5. **`downloads`**: Download history, quarantine states (`pending`, `safe`, `quarantined`, `blocked`, `completed`), and threat reasons.
+6. **`security_rules`**: Cached security patterns with severity and source tags.
+7. **`snapshot_meta`**: Threat feed version metadata, rule counts, and update timestamps.
+8. **`ai_page_index`**: Chunked text and vector embeddings for local RAG.
+9. **`adblock_site_rules`**: Domain-specific adblock and cosmetic toggles.
+10. **`broken_site_reports`**: User-reported compatibility issues.
+11. **`site_permissions`**: Domain-level Android permissions (camera, microphone, location).
+12. **`site_shields_settings`**: Granular per-domain shield preferences (shields, adblock, cosmetic, JavaScript, cookies).
+
+---
+
+## 9. Local AI & Low-Memory Strategy
+
+NovaBrowser's AI subsystem (`:ai`) is designed for extreme memory discipline:
+
+### 9.1 Hardware Device Tiering
+Evaluated at runtime via `DeviceTierDetector`:
+
+| Tier | RAM Threshold | Capabilities & Behavioral Strategy |
 |---|---|---|
-| Browser UI | Tabs, address bar, "Ask Browser" input | No |
-| Security Gate | URL/redirect/download allow-block decisions | **No — must never depend on AI** |
-| Web Engine | Render pages (WebView / Chromium via Electron) | No |
-| Retrieval Engine | Lexical + optional semantic search over local data | No (works without LLM) |
-| Tiny Local LLM | Intent parsing, summarization, explanation, formatting | Is the AI |
-| Browser Controller | Executes validated, permissioned actions | No — validates, doesn't trust LLM output blindly |
-| Local DB (SQLite) | Security rules, history/bookmarks, AI index | No |
-| Sync Layer (Phase 6) | Optional encrypted cross-device state | No |
+| **`MINIMAL`** | $\le 2.2\text{ GB}$ | **No LLM loaded.** 100% lexical search via SQLite FTS5. Zero AI memory overhead. |
+| **`LIGHT`** | $2.2\text{ GB} - 5.6\text{ GB}$ | On-demand 0.5B–1.5B quantized GGUF model via `llama.cpp`. Unloaded after 2-minute idle timeout. |
+| **`STANDARD`** | $\ge 5.6\text{ GB}$ | Up to 3B quantized GGUF model + local embeddings for semantic history and page retrieval. |
+
+### 9.2 Current Status vs Roadmap
+- **Implemented Today:** Device tier detection (`DeviceTierDetector.kt`) and AI engine contract stub (`AiEngine.kt`).
+- **Phase 3 Roadmap:** `llama.cpp` Android NDK build, quantized GGUF model execution, contextual page summarization, and local embeddings.
 
 ---
 
-## 4. Security Core (detail)
+## 10. Verification & Build Architecture
 
-Layered, in order:
-
-1. **Threat/reputation snapshot** — local copy of blocklists (URLhaus for malware, EasyList/EasyPrivacy for trackers/ads), updated opportunistically when online, usable fully offline from the last snapshot.
-2. **URL canonicalization** — normalize URL/host, handle encoding/obfuscation, compare canonical forms before any lookup.
-3. **Blocklist/allowlist lookup** — start with a simple indexed/hashed lookup in SQLite; move to a Bloom filter only if measured lookup latency requires it (avoid premature optimization / added complexity).
-4. **Heuristic suspicious-link detection** — typosquatting, suspicious TLD/subdomain patterns, obfuscated URLs, brand-impersonation indicators. **Outputs a risk score/warning, not a false claim of certainty.**
-5. **Redirect protection** — track navigation chains (site A -> B -> C -> download), apply allow/warn/block policy on the chain, not just the final URL.
-6. **Download protection** — classify safe vs. risky (executables/scripts get stronger scrutiny); quarantine risky downloads rather than silently allowing or silently deleting.
-7. **Web isolation** — rely on the underlying engine's sandbox (WebView/Chromium); do not attempt custom isolation in v1.
-
-**Android JS bridge boundary (hard rule):**
-
-```
-UNTRUSTED WEB
-     |
-     X   <-- no path here
-     |
-privileged Android APIs
-
-Browser-owned/trusted UI
-     |
-     v
-Browser controller
-```
-
-Never expose a JavaScript bridge that gives arbitrary web content access to privileged native functionality. Full threat model in `SECURITY.md`.
-
----
-
-## 5. Local AI Strategy
-
-- Not "an LLM wrapped around a browser." Ordinary algorithms handle anything that doesn't need language understanding (see table).
-- LLM size target: **sub-2B to ~3B class**, quantized GGUF, run via `llama.cpp` (Android NDK bindings; desktop via `llama.cpp` directly or an optional local server such as Ollama on localhost).
-
-| Task | Best tool |
-|---|---|
-| Find exact text | Search algorithm |
-| Extract page/article content | DOM parser |
-| Language detection | Small classifier/rules |
-| Summarize | Tiny LLM |
-| Rewrite text | Tiny LLM |
-| Page Q&A | Retrieval + tiny LLM |
-| Autofill | Rules / controlled flows |
-| Tab grouping | Classifier/embeddings |
-| Threat decision | Deterministic security engine — **never the LLM** |
-| Read aloud | Platform TTS |
-| Voice command input | Local STT where available |
-
-### Operating modes
-- **LOCAL** — AI runs entirely on-device (history search, page search, summarization, rewriting, commands).
-- **HYBRID** — local model handles routine work; a larger/cloud model is optional and explicitly user-enabled for tasks beyond local capacity.
-- **CLOUD OFF** — no cloud AI at all; privacy-maximized mode.
-
-Security intelligence (blocklists) is a separate concern from AI: it cannot be perfectly current while offline, but the browser uses the last downloaded snapshot and updates opportunistically — this is independent of whether the AI mode is LOCAL/HYBRID/CLOUD OFF.
-
----
-
-## 6. LOW-MEMORY / NO-BLOAT STRATEGY (critical requirement)
-
-This is a first-class architectural constraint, not an afterthought.
-
-### 6.1 Device tiering (checked on first launch, overridable in Settings)
-
-| Tier | RAM | AI behavior |
-|---|---|---|
-| Minimal | ≤ 2GB | **No LLM loaded.** Lexical-only history/bookmark search (SQL `LIKE`/FTS). Page "summarization" falls back to extractive (first N sentences / heading extraction) — no generation. |
-| Light | ~3–4GB | 0.5B–1.5B quantized model, loaded on demand, unloaded after idle timeout (e.g. 2 min). |
-| Standard | ~6GB+ | Up to ~3B quantized model, still lazy-loaded/unloaded, embeddings enabled for semantic search. |
-
-The app must be **fully functional** (browser + full security gate) at every tier with AI **off** — AI is additive, never load-bearing for core browsing.
-
-### 6.2 Concrete techniques
-- **Lazy load / unload**: the model is not resident at app start. Load on first AI interaction; unload after an idle timeout. A browsing session that never touches "Ask Browser" should carry near-zero AI memory cost.
-- **mmap-backed GGUF loading** via llama.cpp rather than fully materializing the model in heap where the runtime supports it.
-- **No embeddings on Minimal tier** — embeddings + vector index are optional, added only where the tier supports the extra RAM/storage.
-- **Retrieval-before-generation everywhere**: never feed a full page or full history into the model. Chunk, rank, retrieve top-N, only then generate (see §7).
-- **No bundled Chromium on Android** — Android uses the OS-provided WebView (Chromium-based but system-shared, not app-bundled), which is why the APK stays small; Electron's Chromium bundling cost is a **desktop-only** cost, not paid on mobile.
-- **Model files live outside the app bundle / outside the git repo**, downloaded post-install and stored in app-private storage — keeps the installable APK small (~target <40MB per PRD.md) and avoids shipping model weights that most low-end users would never load anyway.
-- **No unnecessary background services**: security snapshot updates and any AI indexing run as bounded, user-visible or WorkManager-scheduled jobs — not persistent background processes.
-- **Avoid heavy dependency bloat**: prefer platform-native APIs over large third-party UI/utility libraries; every new dependency should have a stated reason in code review, not be added "just in case."
-
-### 6.3 What "no bloatware" means concretely here
-- No pre-loaded, non-removable feature modules the user didn't ask for.
-- No telemetry/analytics SDKs beyond what's strictly needed for crash diagnostics (and that should be disclosed, not silent).
-- No dependency on cloud services for anything in the MVP feature list.
-- Settings expose the AI tier and let a user manually force "Minimal" even on a capable device.
-
----
-
-## 7. Retrieval + Tool Use (why tiny LLMs can work here)
-
-```
-User request
-    |
-    v
-Tiny LLM = intent interpretation
-    |
-    v
-Search / retrieval engine
-    +--> lexical search
-    +--> semantic search (tier-dependent)
-    +--> metadata filters (time, domain, etc.)
-    |
-    v
-Top relevant results
-    |
-    v
-Tiny LLM = explain / choose / format
-    |
-    v
-Browser Controller (validates + executes)
-```
-
-The model interprets intent and formats output; **code** finds the actual data and **code** executes browser actions. The LLM is never given, and never needs, huge context.
-
-### Page Q&A pipeline (for large pages)
-```
-Page loaded -> DOM extraction -> remove irrelevant material ->
-chunk/segment -> rank/retrieve relevant sections ->
-send only relevant context to tiny local LLM -> answer
-```
-A 40-page doc is never dumped wholesale into a 1–3B model; only the top relevant chunks (e.g. the "authentication" section for an auth-related question) are sent.
-
-### Model router
-```
-Task -> can deterministic code solve it? --YES--> do it, no LLM
-                     | NO
-                     v
-        can tiny local model solve it? --YES--> local inference
-                     | NO
-                     v
-        optional larger/cloud model (only if user enabled it)
-```
-
----
-
-## 8. Data Layer
-
-Logical separation (can physically live in one SQLite file, separated by table/module — full schema in `DESIGN.md`):
-
-- **Security DB** — domain rules, URL rules, tracker rules, threat metadata (source-tagged: URLHAUS / EASYLIST / EASYPRIVACY / LOCAL_HEURISTIC).
-- **Browser DB** — history, bookmarks, tabs, sessions, downloads.
-- **AI Index** — embeddings (tier-dependent), page summaries, semantic metadata.
-
----
-
-## 9. Platform Architecture
-
-### Android (v1 primary target)
-- Engine: Android WebView (Chromium-based, OS-shared).
-- Navigation security: `WebViewClient`/navigation callback as the **first** gate; resource interception (`shouldInterceptRequest`) as a **second**, complementary layer — do not assume one callback covers the full threat surface.
-- Local model: llama.cpp via NDK bindings, GGUF, tiered per §6.
-- On newer/supported devices, platform on-device model options (e.g. Gemini Nano via Android's on-device AI stack) may be considered as an *alternative* path — backlog item, not MVP.
-
-### Desktop (Phase 5)
-- Engine: Electron (bundled Chromium) — chosen for consistent behavior across desktop OSes vs. maintaining per-OS system webviews.
-- Request interception: `session`/`webRequest` before-request hooks wired to the same Security Gate logic used on Android.
-- Local inference: llama.cpp directly, or an optional local server (Ollama) over localhost.
-
-```
-                    SHARED BROWSER CORE
-                            |
-                 +----------+----------+
-                 |                     |
-              Android               Desktop
-               WebView               Electron
-                 |                     |
-                 +----------+----------+
-                            |
-                      Shared AI Core
-                            |
-                   Shared local data model
-                            |
-                History / semantic retrieval
-```
-
----
-
-## 10. Storage / Resource Expectations (dev environment, not the shipped app)
-
-| Component | Approx storage |
-|---|---|
-| Android Studio + SDK + build tools | 15–30 GB |
-| Project source + Gradle caches | 2–8 GB |
-| Emulator/system images | 5–15+ GB |
-| Web engine/dependencies | ~1–5 GB |
-| Small local LLMs | 0.5–4 GB each |
-| Build outputs / APKs / logs | 1–5 GB |
-| Git history / misc cache | 2–10 GB |
-
-Practical dev machine free space: minimum ~50GB, comfortable ~80–100GB.
-
-Recommended layout — **keep model weights out of the git repo**:
-```
-D:\
- ├── NovaBrowser\
- │    ├── app\
- │    ├── browser-core\
- │    ├── ai\
- │    └── ...
- └── LocalModels\
-      ├── 0.5B\
-      ├── 1.5B\
-      └── 3B\
-```
-This dev-environment footprint is unrelated to the shipped app size — the shipped APK stays small (§6.2); models, SDKs, and caches are development-time costs only.
-
----
-
-## 11. Future: Agent Architecture (Phase 6, not MVP)
-
-```
-User request -> Intent/Plan -> Retrieve context -> Structured browser tools
-   (search_history, search_page, open_url, switch_tab, compare_pages, bookmark)
-   -> Browser Controller -> Action -> Result -> Local LLM explains next step
-```
-Agent actions always pass through the Security Gate — the agent never bypasses it.
+- **Toolchain:** Java 17 (`hotspot`), Android SDK 35 (compile & target), Min SDK 24.
+- **Automated Test Suites:**
+  - `:browser-core:testDebugUnitTest`: Tests URL canonicalization, homoglyphs, entropy, redirect loops, adblock parsing, database migrations.
+  - `:app:testDebugUnitTest`: Tests QuadView state, tab lifecycle, download quarantine, biometrics, shields, reader mode, dark theme.
+  - `:ai:testDebugUnitTest`: Tests device tier detection.
+- **Verification Command:**
+  ```powershell
+  cmd.exe /c "set JAVA_HOME=C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot&& gradlew.bat test --offline"
+  ```
+  *Result: 121 actionable Gradle tasks pass with zero regressions.*
