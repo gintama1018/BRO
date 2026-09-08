@@ -17,7 +17,8 @@ class TabsAdapter(
     private var tabs: List<BrowserTab>,
     private var activeTabId: String?,
     private val onTabClick: (BrowserTab) -> Unit,
-    private val onTabClose: (BrowserTab) -> Unit
+    private val onTabClose: (BrowserTab) -> Unit,
+    var onTabLongClick: ((BrowserTab) -> Unit)? = null
 ) : RecyclerView.Adapter<TabsAdapter.TabViewHolder>() {
 
     fun updateTabs(newTabs: List<BrowserTab>, activeId: String?) {
@@ -117,6 +118,10 @@ class TabsAdapter(
                 NovaMotion.pulseCardSelection(cardTab) {
                     onTabClick(tab)
                 }
+            }
+            cardTab.setOnLongClickListener {
+                onTabLongClick?.invoke(tab)
+                true
             }
             btnClose.setOnClickListener { onTabClose(tab) }
         }

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutQuadWorkspaceRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas_base"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <!-- Top QuadView Workspace Status Bar -->
+    <LinearLayout
+        android:id="@+id/layoutQuadWorkspaceBar"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/bg_glass_pill"
+        android:elevation="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10dp">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:contentDescription="QuadView"
+            android:src="@drawable/ic_tabs"
+            app:tint="@color/horizon_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="QUADVIEW"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="4dp"
+            android:layout_height="4dp"
+            android:layout_marginHorizontal="6dp"
+            android:background="@drawable/bg_dot_emerald" />
+
+        <TextView
+            android:id="@+id/tvQuadWorkspaceActiveLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Active: Slot A"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnExitQuadView"
+            android:layout_width="wrap_content"
+            android:layout_height="28dp"
+            android:background="@drawable/bg_pill_subtle"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="2dp"
+            android:text="Exit QuadView"
+            android:textAllCaps="false"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            app:backgroundTint="@null" />
+    </LinearLayout>
+
+    <!-- Main Dynamic Quad Grid / Focus Container -->
+    <LinearLayout
+        android:id="@+id/quadGridHost"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Row 1: Slots A & B (or Primary Focus Container) -->
+        <LinearLayout
+            android:id="@+id/rowTopQuad"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <com.gintama.novabrowser.ui.quad.QuadPaneView
+                android:id="@+id/paneSlotA"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1" />
+
+            <com.gintama.novabrowser.ui.quad.QuadPaneView
+                android:id="@+id/paneSlotB"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <!-- Row 2: Slots C & D (or Compact Mini-Panes Strip) -->
+        <LinearLayout
+            android:id="@+id/rowBottomQuad"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="6dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <com.gintama.novabrowser.ui.quad.QuadPaneView
+                android:id="@+id/paneSlotC"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1" />
+
+            <com.gintama.novabrowser.ui.quad.QuadPaneView
+                android:id="@+id/paneSlotD"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="3dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

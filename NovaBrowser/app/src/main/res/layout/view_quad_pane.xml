@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutPaneRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_quad_pane_inactive"
+    android:elevation="2dp"
+    android:orientation="vertical">
+
+    <!-- Pane Header Bar (Tap to select, Double-tap to focus, Long-press for menu) -->
+    <LinearLayout
+        android:id="@+id/layoutPaneHeader"
+        android:layout_width="match_parent"
+        android:layout_height="34dp"
+        android:background="@drawable/bg_quad_pane_header"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp">
+
+        <!-- Slot Letter Badge (A, B, C, D) -->
+        <FrameLayout
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:background="@drawable/bg_squircle_tab_count">
+
+            <TextView
+                android:id="@+id/tvPaneSlotBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="A"
+                android:textColor="@color/text_primary"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <!-- Truncated Tab Title & Origin -->
+        <TextView
+            android:id="@+id/tvPaneTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Empty Slot"
+            android:textColor="@color/text_primary"
+            android:textSize="11.5sp"
+            android:textStyle="bold" />
+
+        <!-- Focus Mode Toggle Action -->
+        <ImageButton
+            android:id="@+id/btnPaneFocus"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Focus Pane"
+            android:padding="5dp"
+            android:src="@drawable/ic_laptop"
+            app:tint="@color/text_secondary" />
+
+        <!-- Pane Options Context Menu -->
+        <ImageButton
+            android:id="@+id/btnPaneMenu"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Pane Actions"
+            android:padding="5dp"
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/text_secondary" />
+
+        <!-- Close Tab Action -->
+        <ImageButton
+            android:id="@+id/btnPaneClose"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Close Tab"
+            android:padding="5dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_secondary" />
+    </LinearLayout>
+
+    <!-- Pane Content Host -->
+    <FrameLayout
+        android:id="@+id/paneContentHost"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Live WebView Parent Container -->
+        <FrameLayout
+            android:id="@+id/paneWebContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false" />
+
+        <!-- Empty State Container ("+" Button) -->
+        <LinearLayout
+            android:id="@+id/paneEmptyContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_squircle_tile_horizon"
+                android:elevation="2dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="Open Tab"
+                    android:src="@drawable/ic_add"
+                    app:tint="@color/text_primary" />
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Open Tab"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>

@@ -25,6 +25,7 @@ data class BrowserTab(
 interface TabChangeListener {
     fun onActiveTabChanged(tab: BrowserTab)
     fun onTabsUpdated(tabs: List<BrowserTab>)
+    fun onTabStateUpdated(tab: BrowserTab) {}
     fun onPageProgress(progress: Int)
     fun onPageCommitVisible(tab: BrowserTab) {}
     fun onPageLoadError(tab: BrowserTab, url: String, errorCode: Int, description: String) {}
@@ -157,6 +158,7 @@ class TabManager(
                 tab.url = url
                 if (!title.isNullOrBlank()) tab.title = title
                 controller.onPageVisited(url, title, tab.isPrivate)
+                listener.onTabStateUpdated(tab)
                 if (tab.id == activeTabId) {
                     listener.onActiveTabChanged(tab)
                 }
@@ -183,6 +185,7 @@ class TabManager(
 
             override fun onTitleReceived(title: String) {
                 tab.title = title
+                listener.onTabStateUpdated(tab)
                 if (tab.id == activeTabId) {
                     listener.onActiveTabChanged(tab)
                 }
@@ -429,6 +432,12 @@ class TabManager(
             listener.onRendererRecovered(tab)
         } finally {
             recoveringTabIds.remove(tab.id)
+        }
+    }
+
+    fun setActiveTabIdSilently(tabId: String) {
+        if (tabs.any { it.id == tabId }) {
+            activeTabId = tabId
         }
     }
 

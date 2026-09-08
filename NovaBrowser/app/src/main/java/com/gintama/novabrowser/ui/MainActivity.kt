@@ -97,6 +97,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var controller: BrowserController
     private lateinit var downloadHandler: DownloadHandler
     private lateinit var tabManager: TabManager
+    private lateinit var quadViewManager: com.gintama.novabrowser.ui.quad.QuadViewManager
 
     // Top Header & Address Bar Views
     private lateinit var topChromeHeader: LinearLayout
@@ -484,6 +485,26 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             listener = this
         )
 
+        quadViewManager = com.gintama.novabrowser.ui.quad.QuadViewManager(
+            context = this,
+            tabManager = tabManager,
+            workspaceRoot = findViewById(R.id.layoutQuadWorkspace),
+            onExitQuadView = { activeTab ->
+                swipeRefreshLayout.isEnabled = true
+                webViewContainer.visibility = View.VISIBLE
+                val target = activeTab ?: tabManager.activeTab
+                if (target != null) {
+                    tabManager.switchTab(target.id)
+                    onActiveTabChanged(target)
+                } else {
+                    showStartCanvas()
+                }
+            },
+            onActiveTabChanged = { activeTab ->
+                onActiveTabChanged(activeTab)
+            }
+        )
+
         lifecycleScope.launch {
             val savedSessions = controller.restoreSessions()
             if (savedSessions.isNotEmpty()) {
@@ -497,6 +518,22 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 tabManager.createTab("about:blank", isPrivate = false)
             }
         }
+    }
+
+    fun enterQuadView(selectedTab: BrowserTab) {
+        layoutPageErrorRecovery.visibility = View.GONE
+        layoutOmniboxSuggestions.visibility = View.GONE
+        layoutNewTabCanvas.visibility = View.GONE
+        layoutPrivateCanvas.visibility = View.GONE
+        ivStartCanvasWallpaper.visibility = View.GONE
+        viewWallpaperDimmer.visibility = View.GONE
+        swipeRefreshLayout.isEnabled = false
+        webViewContainer.visibility = View.GONE
+
+        // Safe reparenting: detach from single viewport container without resetting session
+        (selectedTab.webView.parent as? ViewGroup)?.removeView(selectedTab.webView)
+
+        quadViewManager.enterQuadView(selectedTab)
     }
 
     private fun setupListeners() {
@@ -635,6 +672,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         // Navigation Back & In-Pill Quick Reload
         NovaMotion.attachThrottledClick(btnNavBack, 300L) {
+            if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+                quadViewManager.onBackPressed()
+                return@attachThrottledClick
+            }
             val webView = tabManager.activeTab?.webView
             if (webView?.canGoBack() == true) {
                 webView.goBack()
@@ -666,6 +707,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         // Horizon Adaptive Dock Interactions (with rapid-tap protection)
         NovaMotion.attachThrottledClick(btnDockBack, 300L) {
+            if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+                quadViewManager.onBackPressed()
+                return@attachThrottledClick
+            }
             val webView = tabManager.activeTab?.webView
             if (webView?.canGoBack() == true) {
                 webView.goBack()
@@ -1107,18 +1152,27 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         val (sanitizedUrl, decision) = controller.evaluateNavigation(rawInput, searchEngineTemplate = searchTemplate)
         updateSecurityIndicator(decision.riskState)
 
+        val targetTab = if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+            quadViewManager.getActiveTab() ?: tabManager.activeTab
+        } else {
+            tabManager.activeTab
+        }
+
         if (decision.action == GateAction.BLOCK || decision.action == GateAction.WARN) {
             onSecurityIntervention(decision, sanitizedUrl) {
-                tabManager.activeTab?.webView?.loadUrl(sanitizedUrl)
+                targetTab?.webView?.loadUrl(sanitizedUrl)
                 etUrlInput.setText(sanitizedUrl)
-                showWebView()
+                if (::quadViewManager.isInitialized && !quadViewManager.state.isQuadActive) {
+                    showWebView()
+                }
             }
         } else {
-            val tab = tabManager.activeTab
-            if (tab != null) {
-                tab.webView.loadUrl(sanitizedUrl)
+            if (targetTab != null) {
+                targetTab.webView.loadUrl(sanitizedUrl)
                 etUrlInput.setText(sanitizedUrl)
-                showWebView()
+                if (::quadViewManager.isInitialized && !quadViewManager.state.isQuadActive) {
+                    showWebView()
+                }
             }
         }
     }
@@ -1865,10 +1919,16 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             tabs = emptyList(),
             activeTabId = tabManager.activeTab?.id,
             onTabClick = { clickedTab ->
+                if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+                    quadViewManager.exitQuadView()
+                }
                 tabManager.switchTab(clickedTab.id)
                 dialog.dismiss()
             },
             onTabClose = { closedTab ->
+                if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+                    quadViewManager.onTabClosed(closedTab.id)
+                }
                 tabManager.closeTab(closedTab.id)
                 if (tabManager.tabCount == 0) {
                     tabManager.createTab("about:blank")
@@ -1878,7 +1938,46 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                     refreshTabList()
                 }
             }
-        )
+        ).apply {
+            onTabLongClick = { clickedTab ->
+                val popup = PopupMenu(this@MainActivity, rvTabs)
+                popup.menu.add(0, 1, 0, "Open in QuadView")
+                popup.menu.add(0, 2, 1, "Close Tab")
+                popup.menu.add(0, 3, 2, "Copy URL")
+                popup.setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        1 -> {
+                            dialog.dismiss()
+                            enterQuadView(clickedTab)
+                            true
+                        }
+                        2 -> {
+                            if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+                                quadViewManager.onTabClosed(clickedTab.id)
+                            }
+                            tabManager.closeTab(clickedTab.id)
+                            if (tabManager.tabCount == 0) {
+                                tabManager.createTab("about:blank")
+                                showStartCanvas()
+                                dialog.dismiss()
+                            } else {
+                                refreshTabList()
+                            }
+                            true
+                        }
+                        3 -> {
+                            val clip = ClipData.newPlainText("URL", clickedTab.url)
+                            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(this@MainActivity, "URL copied", Toast.LENGTH_SHORT).show()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                popup.show()
+            }
+        }
         rvTabs.adapter = adapter
 
         refreshTabList = {
@@ -2002,6 +2101,18 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             btnAddNewTab.performClick()
         }
 
+        val btnOpenQuadView = view.findViewById<Button>(R.id.btnOpenQuadView)
+        btnOpenQuadView?.setOnClickListener {
+            val tabsList = if (showPrivateOnly) tabManager.getPrivateTabs() else tabManager.getStandardTabs()
+            val target = tabManager.activeTab?.takeIf { tabsList.contains(it) } ?: tabsList.firstOrNull()
+            if (target != null) {
+                dialog.dismiss()
+                enterQuadView(target)
+            } else {
+                Toast.makeText(this, "No tabs available for QuadView", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         btnDone.setOnClickListener { dialog.dismiss() }
 
         refreshTabList()
@@ -2072,6 +2183,17 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         layoutOmniboxSuggestions.visibility = View.GONE
         tab.webView.onScrollDeltaListener = { deltaY, scrollY ->
             handleWebScrollDelta(deltaY, scrollY)
+        }
+
+        if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+            val isBlank = tab.url.isBlank() || tab.url == "about:blank"
+            if (omniboxState != OmniboxState.EDITING && !etUrlInput.hasFocus()) {
+                etUrlInput.setText(if (isBlank) "" else tab.url)
+            }
+            updateNavigationButtons()
+            updateShieldBadgeCount(tab.blockedAdsCount)
+            quadViewManager.onTabUpdated(tab)
+            return
         }
 
         val isBlank = tab.url.isBlank() || tab.url == "about:blank"
@@ -2152,6 +2274,12 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         tvTabCount.text = tabs.size.toString()
         tvDockTabCount.text = tabs.size.toString()
         updateNavigationButtons()
+    }
+
+    override fun onTabStateUpdated(tab: BrowserTab) {
+        if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+            quadViewManager.onTabUpdated(tab)
+        }
     }
 
     override fun onPageProgress(progress: Int) {
@@ -2462,6 +2590,11 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             closeFindInPage()
             return
         }
+        if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+            if (quadViewManager.onBackPressed()) {
+                return
+            }
+        }
         if (layoutOmniboxSuggestions.visibility == View.VISIBLE || etUrlInput.hasFocus()) {
             layoutOmniboxSuggestions.visibility = View.GONE
             etUrlInput.clearFocus()
@@ -2681,6 +2814,36 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         fileUploadCallback?.onReceiveValue(null)
         fileUploadCallback = null
         super.onDestroy()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_MODERATE) {
+            for (tab in tabManager.getTabsList()) {
+                val isQuadTab = ::quadViewManager.isInitialized && quadViewManager.state.getAllAssignedTabIds().contains(tab.id)
+                if (tab.id != tabManager.activeTab?.id && !isQuadTab) {
+                    tab.thumbnail?.recycle()
+                    tab.thumbnail = null
+                }
+            }
+        }
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        for (tab in tabManager.getTabsList()) {
+            if (tab.id != tabManager.activeTab?.id) {
+                tab.thumbnail?.recycle()
+                tab.thumbnail = null
+            }
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::quadViewManager.isInitialized && quadViewManager.state.isQuadActive) {
+            quadViewManager.onConfigurationChanged(newConfig)
+        }
     }
 
     private fun handleIntent(intent: Intent?) {

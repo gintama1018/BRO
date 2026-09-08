@@ -1434,6 +1434,14 @@
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
+
+        <!-- STATE D: NOVA QUADVIEW WORKSPACE (4 Live Concurrent Browser Panes) -->
+        <include
+            android:id="@+id/layoutQuadWorkspace"
+            layout="@layout/layout_quad_workspace"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
     </FrameLayout>
 
     <!-- 3. BOTTOM FLOATING COMMAND DOCK (Horizon-Adapted Navigation Dock) -->
