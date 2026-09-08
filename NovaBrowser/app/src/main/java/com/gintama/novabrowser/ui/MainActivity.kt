@@ -288,9 +288,13 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         com.gintama.novabrowser.shields.SiteShieldManager.init(this)
         com.gintama.novabrowser.notifications.NovaNotificationHelper.initChannels(this)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+        // Security: Disable WebView debugging in production releases
+        WebView.setWebContentsDebuggingEnabled(com.gintama.novabrowser.BuildConfig.DEBUG)
+
+        // Initialize Google Safe Browsing provider
+        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.START_SAFE_BROWSING)) {
+            androidx.webkit.WebViewCompat.startSafeBrowsing(applicationContext) { _ ->
+                // Safe browsing service initialized
             }
         }
 

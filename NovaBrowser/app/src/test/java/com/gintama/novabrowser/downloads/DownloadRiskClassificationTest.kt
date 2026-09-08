@@ -41,4 +41,28 @@ class DownloadRiskClassificationTest {
         val secondHash = secondDigest.joinToString("") { "%02x".format(it) }
         assertEquals(hashHex, secondHash)
     }
+
+    @Test
+    fun testFilenameSanitizationStripsPathTraversalAndNullBytes() {
+        val traversalInput = "../../etc/passwd\u0000.pdf"
+        val sanitized = DownloadHandler.sanitizeFilename(traversalInput)
+        assertFalse(sanitized.contains(".."))
+        assertFalse(sanitized.contains("/"))
+        assertFalse(sanitized.contains("\u0000"))
+        assertTrue(sanitized.endsWith(".pdf"))
+
+        val backslashInput = "..\\..\\Windows\\System32\\calc.exe"
+        val sanitizedBackslash = DownloadHandler.sanitizeFilename(backslashInput)
+        assertFalse(sanitizedBackslash.contains(".."))
+        assertFalse(sanitizedBackslash.contains("\\"))
+    }
+
+    @Test
+    fun testDoubleExtensionDetection() {
+        assertTrue(DownloadHandler.hasDangerousDoubleExtension("invoice.pdf.apk"))
+        assertTrue(DownloadHandler.hasDangerousDoubleExtension("report.doc.exe"))
+        assertTrue(DownloadHandler.hasDangerousDoubleExtension("script.txt.js"))
+        assertFalse(DownloadHandler.hasDangerousDoubleExtension("document.pdf"))
+        assertFalse(DownloadHandler.hasDangerousDoubleExtension("archive.tar.gz"))
+    }
 }

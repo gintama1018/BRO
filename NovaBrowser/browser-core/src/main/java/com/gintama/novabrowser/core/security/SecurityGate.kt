@@ -67,6 +67,21 @@ class DeterministicSecurityGate(
     override fun getRedirectTracker(): RedirectTracker = redirectTracker
 
     override fun evaluate(url: String, isRedirect: Boolean): SecurityDecision {
+        val trimmed = url.trim()
+        val lower = trimmed.lowercase()
+
+        // P0 Gate Authority: Intercept and block dangerous local and script schemes
+        if (lower.startsWith("file:") || lower.startsWith("content:") || (lower.startsWith("javascript:") && !lower.startsWith("javascript:void"))) {
+            return SecurityDecision(
+                action = GateAction.BLOCK,
+                riskState = RiskState.BLOCKED,
+                targetUrl = url,
+                canonicalUrl = url,
+                reasons = listOf("Access to unauthorized or dangerous URI scheme '${trimmed.substringBefore(':')}' is blocked"),
+                riskScore = 1.0
+            )
+        }
+
         val reasons = mutableListOf<String>()
 
         // Stage 1: URL Canonicalization & Normalization

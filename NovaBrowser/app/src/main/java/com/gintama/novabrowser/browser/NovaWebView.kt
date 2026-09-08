@@ -50,8 +50,15 @@ class NovaWebView(
             builtInZoomControls = true
             displayZoomControls = false
             setSupportZoom(true)
-            allowFileAccess = true
-            allowContentAccess = true
+            allowFileAccess = false
+            allowContentAccess = false
+
+            // Safe Browsing Protection
+            if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.SAFE_BROWSING_ENABLE)) {
+                androidx.webkit.WebSettingsCompat.setSafeBrowsingEnabled(this, true)
+            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                safeBrowsingEnabled = true
+            }
 
             // Web Compatibility: Support OAuth popups and multi-window logins
             setSupportMultipleWindows(true)
@@ -90,6 +97,7 @@ class NovaWebView(
             settings.apply {
                 cacheMode = WebSettings.LOAD_NO_CACHE
                 saveFormData = false
+                setGeolocationEnabled(false)
             }
             val cookieManager = CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
@@ -142,6 +150,11 @@ class NovaWebView(
             clearFormData()
             clearSslPreferences()
             android.webkit.WebStorage.getInstance().deleteAllData()
+            try {
+                android.webkit.GeolocationPermissions.getInstance().clearAll()
+            } catch (e: Exception) {
+                // Ignore if unavailable
+            }
         }
         destroy()
     }

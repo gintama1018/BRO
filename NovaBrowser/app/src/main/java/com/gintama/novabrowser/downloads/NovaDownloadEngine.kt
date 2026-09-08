@@ -78,17 +78,24 @@ object NovaDownloadEngine {
         filename: String,
         mimeType: String?,
         userAgent: String?,
-        isQuarantine: Boolean
+        isQuarantine: Boolean,
+        isPrivate: Boolean = false
     ): Long {
         val db = NovaDatabaseHelper.getInstance(context)
         val initialStatus = if (isQuarantine) DownloadStatus.QUARANTINED else DownloadStatus.DOWNLOADING
-        val downloadId = db.recordDownload(
-            url = url,
-            filename = filename,
-            mimeType = mimeType,
-            status = initialStatus,
-            riskReason = if (isQuarantine) "Isolated in quarantine" else null
-        )
+        
+        // Privacy Invariant: Private downloads must NOT be recorded in the persistent SQLite database
+        val downloadId = if (isPrivate) {
+            -System.currentTimeMillis()
+        } else {
+            db.recordDownload(
+                url = url,
+                filename = filename,
+                mimeType = mimeType,
+                status = initialStatus,
+                riskReason = if (isQuarantine) "Isolated in quarantine" else null
+            )
+        }
 
         val targetDir = if (isQuarantine) {
             File(context.cacheDir, "quarantine").apply { mkdirs() }
@@ -134,7 +141,9 @@ object NovaDownloadEngine {
         activeSnapshots[downloadId] = paused
         _downloadsFlow.value = activeSnapshots.toMap()
 
-        NovaDatabaseHelper.getInstance(context).updateDownloadStatus(downloadId, DownloadStatus.PAUSED)
+        if (downloadId > 0) {
+            NovaDatabaseHelper.getInstance(context).updateDownloadStatus(downloadId, DownloadStatus.PAUSED)
+        }
         NovaNotificationHelper.showDownloadProgress(
             context,
             downloadId.toInt(),
@@ -277,7 +286,9 @@ object NovaDownloadEngine {
             // Completed!
             activeJobs.remove(downloadId)
             val finalStatus = if (isQuarantine) DownloadStatus.QUARANTINED else DownloadStatus.COMPLETED
-            db.updateDownloadStatus(downloadId, finalStatus)
+            if (downloadId > 0) {
+                db.updateDownloadStatus(downloadId, finalStatus)
+            }
 
             val completedSnapshot = DownloadSnapshot(
                 id = downloadId,
@@ -315,7 +326,14 @@ object NovaDownloadEngine {
         } catch (e: Exception) {
             Log.e(TAG, "Download failed or interrupted: ${e.message}", e)
             activeJobs.remove(downloadId)
-            db.updateDownloadStatus(downloadId, DownloadStatus.FAILED, e.message)
+            if (downloadId > 0) {
+                db.updateDownloadStatus(downloadId, DownloadStatus.FAILED, e.message)
+            }
+            com.gintama.novabrowser.diagnostics.NovaDiagnostics.log(
+                com.gintama.novabrowser.diagnostics.DiagnosticType.DOWNLOAD_FAILURE,
+                urlStr,
+                e.message ?: "Download failed"
+            )
 
             val current = activeSnapshots[downloadId]
             if (current != null) {

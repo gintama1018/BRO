@@ -63,6 +63,7 @@ class TabManager(
 ) {
     private val tabs = mutableListOf<BrowserTab>()
     private var activeTabId: String? = null
+    private val recoveringTabIds = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     val activeTab: BrowserTab?
         get() = tabs.firstOrNull { it.id == activeTabId }
@@ -103,7 +104,9 @@ class TabManager(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            setDownloadListener(downloadHandler)
+            setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                downloadHandler.handleDownload(url, userAgent, contentDisposition, mimetype, contentLength, isPrivate = isPrivate)
+            }
         }
 
         val tab = BrowserTab(
@@ -382,37 +385,51 @@ class TabManager(
     }
 
     fun recoverDeadTab(tab: BrowserTab) {
-        val lastUrl = tab.url
+        if (!recoveringTabIds.add(tab.id)) {
+            return
+        }
         try {
-            webViewContainer.removeView(tab.webView)
-            tab.webView.cleanUp()
-        } catch (e: Exception) {
-            // Suppress errors cleaning up dead WebView
-        }
-
-        val freshWebView = NovaWebView(context, tab.id, tab.isPrivate).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
+            com.gintama.novabrowser.diagnostics.NovaDiagnostics.log(
+                com.gintama.novabrowser.diagnostics.DiagnosticType.RENDERER_CRASH,
+                tab.url,
+                "Tab renderer crashed, recovering fresh isolated tab instance"
             )
-            setDownloadListener(downloadHandler)
-        }
-
-        tab.webView = freshWebView
-        setupClientsForTab(tab)
-
-        if (tab.id == activeTabId) {
-            if (freshWebView.parent == null) {
-                webViewContainer.addView(freshWebView)
+            val lastUrl = tab.url
+            try {
+                webViewContainer.removeView(tab.webView)
+                tab.webView.cleanUp()
+            } catch (e: Exception) {
+                // Suppress errors cleaning up dead WebView
             }
-            freshWebView.bringToFront()
-            listener.onActiveTabChanged(tab)
-        }
 
-        if (lastUrl.isNotBlank() && lastUrl != "about:blank") {
-            freshWebView.loadUrl(lastUrl)
+            val freshWebView = NovaWebView(context, tab.id, tab.isPrivate).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                    downloadHandler.handleDownload(url, userAgent, contentDisposition, mimetype, contentLength, isPrivate = tab.isPrivate)
+                }
+            }
+
+            tab.webView = freshWebView
+            setupClientsForTab(tab)
+
+            if (tab.id == activeTabId) {
+                if (freshWebView.parent == null) {
+                    webViewContainer.addView(freshWebView)
+                }
+                freshWebView.bringToFront()
+                listener.onActiveTabChanged(tab)
+            }
+
+            if (lastUrl.isNotBlank() && lastUrl != "about:blank") {
+                freshWebView.loadUrl(lastUrl)
+            }
+            listener.onRendererRecovered(tab)
+        } finally {
+            recoveringTabIds.remove(tab.id)
         }
-        listener.onRendererRecovered(tab)
     }
 
     fun switchTab(tabId: String) {
@@ -448,6 +465,16 @@ class TabManager(
         tabToRemove.thumbnail = null
         tabToRemove.webView.cleanUp()
 
+        // Privacy Invariant: If last private tab was closed, purge session cookies immediately
+        if (tabToRemove.isPrivate && tabs.none { it.isPrivate }) {
+            try {
+                android.webkit.CookieManager.getInstance().removeSessionCookies(null)
+                android.webkit.CookieManager.getInstance().flush()
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+
         if (tabs.isEmpty()) {
             // Open a fresh tab if all closed
             createTab()
@@ -473,6 +500,16 @@ class TabManager(
             tab.thumbnail = null
             tab.webView.cleanUp()
             tabs.remove(tab)
+        }
+
+        // Privacy Invariant: If no private tabs remain, purge session cookies
+        if (tabs.none { it.isPrivate }) {
+            try {
+                android.webkit.CookieManager.getInstance().removeSessionCookies(null)
+                android.webkit.CookieManager.getInstance().flush()
+            } catch (e: Exception) {
+                // Ignore
+            }
         }
 
         if (tabs.isEmpty()) {

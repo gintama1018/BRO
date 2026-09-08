@@ -37,7 +37,40 @@ class DownloadHandler(private val context: Context) : DownloadListener {
         fun isRiskyExtension(extension: String): Boolean {
             return RISKY_EXTENSIONS.contains(extension.lowercase().trim().removePrefix("."))
         }
+
+        fun sanitizeFilename(rawFilename: String): String {
+            // Strip null bytes, path traversal sequences, and directory slashes
+            var cleaned = rawFilename
+                .replace("\u0000", "")
+                .replace("..", "")
+                .replace("/", "_")
+                .replace("\\", "_")
+                .trim()
+
+            while (cleaned.startsWith(".")) {
+                cleaned = cleaned.removePrefix(".")
+            }
+
+            if (cleaned.isBlank()) {
+                cleaned = "download_${System.currentTimeMillis()}"
+            }
+            return cleaned
+        }
+
+        fun hasDangerousDoubleExtension(filename: String): Boolean {
+            val parts = filename.split(".")
+            if (parts.size > 2) {
+                for (i in 1 until parts.size) {
+                    if (isRiskyExtension(parts[i])) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
     }
+
+    private val securityGate = com.gintama.novabrowser.core.security.DeterministicSecurityGate(context)
 
     override fun onDownloadStart(
         url: String?,
@@ -46,18 +79,43 @@ class DownloadHandler(private val context: Context) : DownloadListener {
         mimetype: String?,
         contentLength: Long
     ) {
+        handleDownload(url, userAgent, contentDisposition, mimetype, contentLength, isPrivate = false)
+    }
+
+    fun handleDownload(
+        url: String?,
+        userAgent: String?,
+        contentDisposition: String?,
+        mimetype: String?,
+        contentLength: Long,
+        isPrivate: Boolean = false
+    ) {
         if (url.isNullOrBlank()) return
 
-        val filename = URLUtil.guessFileName(url, contentDisposition, mimetype)
+        // 1. SecurityGate Pre-evaluation
+        val decision = securityGate.evaluate(url)
+        if (decision.action == com.gintama.novabrowser.core.security.GateAction.BLOCK) {
+            com.gintama.novabrowser.diagnostics.NovaDiagnostics.log(
+                com.gintama.novabrowser.diagnostics.DiagnosticType.SECURITY_BLOCK,
+                url,
+                "Blocked malicious download target: ${decision.reasons.joinToString("; ")}"
+            )
+            Toast.makeText(context, "🛑 Download blocked by Security Gate (Threat Detected)", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        // 2. Filename Sanitization & Path Traversal Protection
+        val rawFilename = URLUtil.guessFileName(url, contentDisposition, mimetype)
+        val filename = sanitizeFilename(rawFilename)
         val extension = filename.substringAfterLast(".", "").lowercase()
-        val isRisky = RISKY_EXTENSIONS.contains(extension)
+        val isRisky = isRiskyExtension(extension) || hasDangerousDoubleExtension(filename)
 
         if (isRisky) {
             Toast.makeText(context, "Isolating file in app-private quarantine...", Toast.LENGTH_SHORT).show()
-            NovaDownloadEngine.startDownload(context, url, filename, mimetype, userAgent, isQuarantine = true)
+            NovaDownloadEngine.startDownload(context, url, filename, mimetype, userAgent, isQuarantine = true, isPrivate = isPrivate)
         } else {
             Toast.makeText(context, "Download Started: $filename", Toast.LENGTH_SHORT).show()
-            NovaDownloadEngine.startDownload(context, url, filename, mimetype, userAgent, isQuarantine = false)
+            NovaDownloadEngine.startDownload(context, url, filename, mimetype, userAgent, isQuarantine = false, isPrivate = isPrivate)
         }
     }
 

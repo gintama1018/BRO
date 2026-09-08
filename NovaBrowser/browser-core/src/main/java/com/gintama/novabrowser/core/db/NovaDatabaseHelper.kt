@@ -18,7 +18,7 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
     companion object {
         const val DATABASE_NAME = "nova_browser.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
 
         @Volatile
         private var instance: NovaDatabaseHelper? = null
@@ -33,7 +33,7 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     override fun onCreate(db: SQLiteDatabase) {
         // 1. History Table
         db.execSQL("""
-            CREATE TABLE history (
+            CREATE TABLE IF NOT EXISTS history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url TEXT NOT NULL,
                 title TEXT,
@@ -44,13 +44,13 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 extracted_text_meta TEXT
             );
         """.trimIndent())
-        db.execSQL("CREATE INDEX idx_history_domain ON history(domain);")
-        db.execSQL("CREATE INDEX idx_history_visited_at ON history(visited_at);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_history_domain ON history(domain);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_history_visited_at ON history(visited_at);")
 
         // Try creating FTS5 for history lexical search (fallback gracefully if FTS5 is not compiled into sqlite)
         try {
             db.execSQL("""
-                CREATE VIRTUAL TABLE history_fts USING fts5(
+                CREATE VIRTUAL TABLE IF NOT EXISTS history_fts USING fts5(
                     title, url, summary, content='history', content_rowid='id'
                 );
             """.trimIndent())
@@ -60,7 +60,7 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
         // 2. Bookmarks Table
         db.execSQL("""
-            CREATE TABLE bookmarks (
+            CREATE TABLE IF NOT EXISTS bookmarks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url TEXT NOT NULL,
                 title TEXT,
@@ -71,7 +71,7 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
         // 3. Sessions (Tabs) Table
         db.execSQL("""
-            CREATE TABLE sessions (
+            CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tab_id TEXT NOT NULL,
                 url TEXT,
@@ -83,7 +83,7 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
         // 4. Downloads Table
         db.execSQL("""
-            CREATE TABLE downloads (
+            CREATE TABLE IF NOT EXISTS downloads (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 url TEXT NOT NULL,
                 filename TEXT,
@@ -96,7 +96,7 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
         // 5. Security Rules Table (Ready for Phase 2)
         db.execSQL("""
-            CREATE TABLE security_rules (
+            CREATE TABLE IF NOT EXISTS security_rules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 rule_type TEXT CHECK(rule_type IN ('domain','url','tracker','malware')),
                 pattern TEXT NOT NULL,
@@ -105,11 +105,11 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 updated_at INTEGER NOT NULL
             );
         """.trimIndent())
-        db.execSQL("CREATE INDEX idx_security_pattern ON security_rules(pattern);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_security_pattern ON security_rules(pattern);")
 
         // 6. Snapshot Meta Table
         db.execSQL("""
-            CREATE TABLE snapshot_meta (
+            CREATE TABLE IF NOT EXISTS snapshot_meta (
                 feed_source TEXT PRIMARY KEY,
                 last_updated_at INTEGER NOT NULL,
                 rule_count INTEGER
@@ -118,7 +118,7 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
         // 7. AI Page Index Table (Nullable embeddings for low-memory tiers)
         db.execSQL("""
-            CREATE TABLE ai_page_index (
+            CREATE TABLE IF NOT EXISTS ai_page_index (
                 history_id INTEGER NOT NULL REFERENCES history(id) ON DELETE CASCADE,
                 chunk_index INTEGER NOT NULL,
                 chunk_text TEXT NOT NULL,
@@ -174,6 +174,20 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
     override fun onOpen(db: SQLiteDatabase) {
         super.onOpen(db)
+        migrateV1ToV2(db)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        // Non-destructive sequential migrations preserving all user bookmarks, history, and settings
+        var currentVersion = oldVersion
+        if (currentVersion < 2) {
+            migrateV1ToV2(db)
+            currentVersion = 2
+        }
+    }
+
+    private fun migrateV1ToV2(db: SQLiteDatabase) {
+        // Ensure tables from newer features exist without touching existing history or bookmarks
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS adblock_site_rules (
                 domain TEXT PRIMARY KEY,
@@ -210,22 +224,9 @@ class NovaDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 updated_at INTEGER NOT NULL
             );
         """.trimIndent())
-    }
-
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // For development / early phases:
-        db.execSQL("DROP TABLE IF EXISTS site_permissions")
-        db.execSQL("DROP TABLE IF EXISTS broken_site_reports")
-        db.execSQL("DROP TABLE IF EXISTS adblock_site_rules")
-        db.execSQL("DROP TABLE IF EXISTS ai_page_index")
-        db.execSQL("DROP TABLE IF EXISTS snapshot_meta")
-        db.execSQL("DROP TABLE IF EXISTS security_rules")
-        db.execSQL("DROP TABLE IF EXISTS downloads")
-        db.execSQL("DROP TABLE IF EXISTS sessions")
-        db.execSQL("DROP TABLE IF EXISTS bookmarks")
-        db.execSQL("DROP TABLE IF EXISTS history_fts")
-        db.execSQL("DROP TABLE IF EXISTS history")
-        onCreate(db)
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_history_domain ON history(domain);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_history_visited_at ON history(visited_at);")
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_security_pattern ON security_rules(pattern);")
     }
 
     // ==========================================

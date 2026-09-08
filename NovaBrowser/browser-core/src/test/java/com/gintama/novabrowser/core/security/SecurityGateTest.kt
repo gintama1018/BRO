@@ -101,4 +101,21 @@ class SecurityGateTest {
         assertEquals(RiskState.SUSPICIOUS, decision.riskState)
         assertTrue(decision.reasons.any { it.contains("unencrypted", ignoreCase = true) })
     }
+
+    @Test
+    fun testUnauthorizedSchemesBlocked() {
+        val gate = createGateWithMockRules(emptyList())
+
+        val fileDecision = gate.evaluate("file:///etc/hosts")
+        assertEquals(GateAction.BLOCK, fileDecision.action)
+        assertEquals(RiskState.BLOCKED, fileDecision.riskState)
+
+        val contentDecision = gate.evaluate("content://com.android.contacts/contacts")
+        assertEquals(GateAction.BLOCK, contentDecision.action)
+        assertEquals(RiskState.BLOCKED, contentDecision.riskState)
+
+        val jsDecision = gate.evaluate("javascript:alert(document.cookie)")
+        assertEquals(GateAction.BLOCK, jsDecision.action)
+        assertEquals(RiskState.BLOCKED, jsDecision.riskState)
+    }
 }

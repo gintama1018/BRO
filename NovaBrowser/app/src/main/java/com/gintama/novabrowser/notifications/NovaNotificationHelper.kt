@@ -84,7 +84,7 @@ object NovaNotificationHelper {
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
 
-        manager.notify(notificationId, builder.build())
+        safeNotify(manager, notificationId, builder.build())
     }
 
     fun showDownloadComplete(
@@ -122,7 +122,7 @@ object NovaNotificationHelper {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
 
-        manager.notify(notificationId, builder.build())
+        safeNotify(manager, notificationId, builder.build())
     }
 
     fun showQuarantineAlert(
@@ -153,7 +153,7 @@ object NovaNotificationHelper {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
 
-        manager.notify(notificationId, builder.build())
+        safeNotify(manager, notificationId, builder.build())
     }
 
     fun showPageSaved(
@@ -194,6 +194,14 @@ object NovaNotificationHelper {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
-        manager.notify(notificationId, builder.build())
+        safeNotify(manager, notificationId, builder.build())
+    }
+
+    private fun safeNotify(manager: NotificationManager, id: Int, notification: android.app.Notification) {
+        try {
+            manager.notify(id, notification)
+        } catch (e: SecurityException) {
+            // Suppress missing POST_NOTIFICATIONS permission safely
+        }
     }
 }

@@ -115,6 +115,16 @@ class NovaWebViewClient(
             handler?.cancel()
         }
     }
+
+    @android.annotation.TargetApi(android.os.Build.VERSION_CODES.O_MR1)
+    override fun onSafeBrowsingHit(
+        view: WebView?,
+        request: WebResourceRequest?,
+        threatType: Int,
+        callback: android.webkit.SafeBrowsingResponse?
+    ) {
+        callback?.backToSafety(true)
+    }
 }
 
 object SitePermissionType {
