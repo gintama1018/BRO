@@ -461,12 +461,81 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
+                <!-- Horizon Quick-Action Subheader: Private Mode Quick-Toggle Capsule -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <!-- Private Browsing Toggle Capsule -->
+                    <LinearLayout
+                        android:id="@+id/btnStartPrivateToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_pill_subtle"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <ImageView
+                            android:id="@+id/ivStartPrivateIcon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="Private"
+                            android:src="@drawable/ic_incognito"
+                            app:tint="@color/text_secondary" />
+
+                        <TextView
+                            android:id="@+id/tvStartPrivateLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="Private"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <!-- Bookmarks Quick Action -->
+                    <ImageButton
+                        android:id="@+id/btnStartBookmarks"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_pill_subtle"
+                        android:contentDescription="Bookmarks"
+                        android:padding="7dp"
+                        android:src="@drawable/ic_bookmark_border"
+                        app:tint="@color/text_secondary" />
+
+                    <!-- History Quick Action -->
+                    <ImageButton
+                        android:id="@+id/btnStartHistory"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_pill_subtle"
+                        android:contentDescription="History"
+                        android:padding="7dp"
+                        android:src="@drawable/ic_history"
+                        app:tint="@color/text_secondary" />
+                </LinearLayout>
+
                 <!-- Active Glass Omnibox Search Field -->
                 <LinearLayout
                     android:id="@+id/omniboxContainer"
                     android:layout_width="match_parent"
                     android:layout_height="50dp"
-                    android:layout_marginTop="18dp"
+                    android:layout_marginTop="14dp"
                     android:background="@drawable/bg_omnibox"
                     android:elevation="2dp"
                     android:gravity="center_vertical"
@@ -546,47 +615,151 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Live Neutralized Ads & Trackers Banner -->
+                <!-- Horizon Intelligent Shielding Summary Card -->
                 <LinearLayout
                     android:id="@+id/layoutCanvasBlockedStats"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:background="@drawable/bg_glass_card"
-                    android:elevation="1dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:elevation="2dp"
+                    android:orientation="vertical"
+                    android:padding="14dp">
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_shield_verified"
-                        app:tint="@color/accent_emerald" />
-
+                    <!-- Top Row: Shield Icon + Status Dot + Titles + Insights Action -->
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <FrameLayout
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_squircle_tab_count">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_shield_verified"
+                                app:tint="@color/horizon_primary" />
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <View
+                                    android:layout_width="7dp"
+                                    android:layout_height="7dp"
+                                    android:background="@drawable/bg_dot_emerald" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:text="Privacy Protection Active"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Horizon Intelligent Shielding"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <ImageButton
+                            android:id="@+id/btnShieldInsights"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Shield Insights"
+                            android:padding="5dp"
+                            android:src="@drawable/ic_arrow_forward"
+                            app:tint="@color/text_secondary" />
+                    </LinearLayout>
+
+                    <!-- Middle Row: Blocked Counter + Report Action -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
                         <TextView
                             android:id="@+id/tvCanvasBlockedCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0 Ads &amp; Trackers Neutralized"
+                            android:text="0"
                             android:textColor="@color/text_primary"
-                            android:textSize="13sp"
+                            android:textSize="24sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:text="trackers neutralized this week"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/btnShieldReport"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="1dp"
-                            android:text="Local ad &amp; tracker engine • On-device ruleset"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="10sp" />
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:padding="4dp"
+                            android:text="Report"
+                            android:textColor="@color/horizon_primary"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Bottom Row: Dual-Color Spark Bar (68% Primary + 22% Tertiary) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="5dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_pill_subtle"
+                        android:orientation="horizontal"
+                        android:weightSum="100">
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="68"
+                            android:background="@drawable/bg_spark_primary" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="22"
+                            android:background="@drawable/bg_spark_tertiary" />
+
+                        <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="10"
+                            android:background="@android:color/transparent" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -903,6 +1076,47 @@
                             android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <!-- Frequently Visited Section Header -->
+                <LinearLayout
+                    android:id="@+id/layoutFrequentlyVisitedHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="FREQUENTLY VISITED"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btnFrequentlyVisitedClear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
+                        android:padding="4dp"
+                        android:text="Clear"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Frequently Visited Horizontal Snap Carousel -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvFrequentlyVisited"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:clipToPadding="false"
+                    android:orientation="horizontal"
+                    android:overScrollMode="never" />
 
                 <!-- Quick Synthesis Card -->
                 <LinearLayout

@@ -779,6 +779,165 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         findViewById<View>(R.id.chipCustomizeWallpaper)?.setOnClickListener {
             showWallpaperPickerDialog()
         }
+
+        setupStartPageActions()
+        setupFrequentlyVisited()
+    }
+
+    private fun setupStartPageActions() {
+        val btnStartPrivateToggle = findViewById<View>(R.id.btnStartPrivateToggle)
+        val btnStartBookmarks = findViewById<View>(R.id.btnStartBookmarks)
+        val btnStartHistory = findViewById<View>(R.id.btnStartHistory)
+        val btnShieldReport = findViewById<View>(R.id.btnShieldReport)
+        val btnShieldInsights = findViewById<View>(R.id.btnShieldInsights)
+
+        btnStartPrivateToggle?.setOnClickListener {
+            val active = tabManager.activeTab
+            if (active?.isPrivate == true) {
+                val standardTab = tabManager.getStandardTabs().firstOrNull()
+                if (standardTab != null) {
+                    tabManager.switchTab(standardTab.id)
+                } else {
+                    tabManager.createTab("about:blank", isPrivate = false)
+                }
+            } else {
+                val privateTab = tabManager.getPrivateTabs().firstOrNull()
+                if (privateTab != null) {
+                    tabManager.switchTab(privateTab.id)
+                } else {
+                    tabManager.createTab("about:blank", isPrivate = true)
+                }
+            }
+        }
+
+        btnStartBookmarks?.setOnClickListener {
+            val intent = Intent(this, BookmarksActivity::class.java)
+            contentLauncher.launch(intent)
+        }
+
+        btnStartHistory?.setOnClickListener {
+            val intent = Intent(this, HistoryActivity::class.java)
+            contentLauncher.launch(intent)
+        }
+
+        btnShieldReport?.setOnClickListener {
+            showSiteShieldsBottomSheet()
+        }
+
+        btnShieldInsights?.setOnClickListener {
+            showSiteShieldsBottomSheet()
+        }
+    }
+
+    private fun updateStartPagePrivateCapsule(isPrivate: Boolean) {
+        val btnStartPrivateToggle = findViewById<View>(R.id.btnStartPrivateToggle) ?: return
+        val ivStartPrivateIcon = findViewById<ImageView>(R.id.ivStartPrivateIcon)
+        val tvStartPrivateLabel = findViewById<TextView>(R.id.tvStartPrivateLabel)
+
+        if (isPrivate) {
+            btnStartPrivateToggle.setBackgroundResource(R.drawable.bg_pill_private_active)
+            ivStartPrivateIcon?.setColorFilter(ContextCompat.getColor(this, R.color.incognito_accent))
+            tvStartPrivateLabel?.setTextColor(ContextCompat.getColor(this, R.color.incognito_text))
+            tvStartPrivateLabel?.text = "Private On"
+        } else {
+            btnStartPrivateToggle.setBackgroundResource(R.drawable.bg_pill_subtle)
+            ivStartPrivateIcon?.setColorFilter(ContextCompat.getColor(this, R.color.text_secondary))
+            tvStartPrivateLabel?.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+            tvStartPrivateLabel?.text = "Private"
+        }
+    }
+
+    private fun setupFrequentlyVisited() {
+        val rvFrequentlyVisited = findViewById<RecyclerView>(R.id.rvFrequentlyVisited) ?: return
+        val layoutFrequentlyVisitedHeader = findViewById<View>(R.id.layoutFrequentlyVisitedHeader)
+        val btnFrequentlyVisitedClear = findViewById<View>(R.id.btnFrequentlyVisitedClear)
+
+        rvFrequentlyVisited.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+
+        val sampleItems = listOf(
+            FrequentlyVisitedItem(
+                title = "Design Systems Repo",
+                domain = "designsystemsrepo.com",
+                url = "https://designsystemsrepo.com",
+                relativeTime = "2 hours ago",
+                monogram = "D"
+            ),
+            FrequentlyVisitedItem(
+                title = "Hacker News — Best",
+                domain = "news.ycombinator.com",
+                url = "https://news.ycombinator.com",
+                relativeTime = "Yesterday",
+                monogram = "Y"
+            ),
+            FrequentlyVisitedItem(
+                title = "Stripe Docs — API",
+                domain = "docs.stripe.com",
+                url = "https://docs.stripe.com",
+                relativeTime = "3 days ago",
+                monogram = "S"
+            ),
+            FrequentlyVisitedItem(
+                title = "ArXiv Computer Science",
+                domain = "arxiv.org",
+                url = "https://arxiv.org",
+                relativeTime = "This week",
+                monogram = "A"
+            ),
+            FrequentlyVisitedItem(
+                title = "Wikipedia Articles",
+                domain = "wikipedia.org",
+                url = "https://wikipedia.org",
+                relativeTime = "Last week",
+                monogram = "W"
+            )
+        )
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = NovaDatabaseHelper.getInstance(this@MainActivity)
+            val history = db.getRecentHistory(15)
+            val visitedItems = ArrayList<FrequentlyVisitedItem>()
+            val seenDomains = HashSet<String>()
+
+            for (h in history) {
+                val host = try {
+                    java.net.URI(h.url).host?.removePrefix("www.")
+                } catch (_: Exception) { null }
+                if (!host.isNullOrBlank() && !seenDomains.contains(host)) {
+                    seenDomains.add(host)
+                    val mono = host.firstOrNull()?.uppercaseChar()?.toString() ?: "W"
+                    val relativeSpan = android.text.format.DateUtils.getRelativeTimeSpanString(
+                        h.visitedAt,
+                        System.currentTimeMillis(),
+                        android.text.format.DateUtils.MINUTE_IN_MILLIS
+                    ).toString()
+                    visitedItems.add(
+                        FrequentlyVisitedItem(
+                            title = h.title?.ifBlank { host } ?: host,
+                            domain = host,
+                            url = h.url,
+                            relativeTime = relativeSpan,
+                            monogram = mono
+                        )
+                    )
+                }
+                if (visitedItems.size >= 5) break
+            }
+
+            val finalItems = if (visitedItems.size >= 3) visitedItems else sampleItems
+
+            withContext(Dispatchers.Main) {
+                val adapter = FrequentlyVisitedAdapter(finalItems) { item ->
+                    loadUrlInActiveTab(item.url)
+                }
+                rvFrequentlyVisited.adapter = adapter
+            }
+        }
+
+        btnFrequentlyVisitedClear?.setOnClickListener {
+            rvFrequentlyVisited.visibility = View.GONE
+            layoutFrequentlyVisitedHeader?.visibility = View.GONE
+            Toast.makeText(this, "Frequently visited cleared", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun bindEditableTile(viewId: Int, prefKey: String, defaultName: String, defaultUrl: String) {
@@ -818,6 +977,10 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             btnTabs, btnMenu, btnNavBack, btnReloadPage, layoutShieldBadge,
             btnSearchEnginePicker, btnOmniboxMic
         )
+        findViewById<View>(R.id.btnStartPrivateToggle)?.let { NovaMotion.attachSpringTouchFeedback(it) }
+        findViewById<View>(R.id.btnStartBookmarks)?.let { NovaMotion.attachSpringTouchFeedback(it) }
+        findViewById<View>(R.id.btnStartHistory)?.let { NovaMotion.attachSpringTouchFeedback(it) }
+        findViewById<View>(R.id.btnShieldReport)?.let { NovaMotion.attachSpringTouchFeedback(it) }
     }
 
     private fun showEditTileDialog(prefKey: String, curName: String, curUrl: String, onUpdated: () -> Unit) {
@@ -965,6 +1128,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         layoutOmniboxSuggestions.visibility = View.GONE
         showDockIsland()
         val isPrivate = tabManager.activeTab?.isPrivate == true
+        updateStartPagePrivateCapsule(isPrivate)
         if (isPrivate) {
             NovaMotion.crossFade(swipeRefreshLayout, layoutPrivateCanvas)
             layoutNewTabCanvas.visibility = View.GONE
@@ -983,8 +1147,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         if (!isPrivate) {
             NovaMotion.animateCountUp(
                 tvCanvasBlockedCount,
-                AdBlockEngine.getLifetimeBlockedCount(),
-                "Ads & Trackers Neutralized"
+                AdBlockEngine.getLifetimeBlockedCount()
             )
         }
     }
@@ -1951,6 +2114,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
                 updateSecurityIndicator(decision.riskState)
             }
         }
+        updateStartPagePrivateCapsule(tab.isPrivate)
 
         // Auto-dismiss URL input focus when touching the web page
         tab.webView.setOnTouchListener { _, _ ->
