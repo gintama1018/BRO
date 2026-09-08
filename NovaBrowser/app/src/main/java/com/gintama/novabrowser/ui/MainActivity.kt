@@ -199,12 +199,15 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private lateinit var btnFindNext: ImageButton
     private lateinit var btnFindClose: ImageButton
 
-    // Bottom Floating Island Bar
+    // Horizon Adaptive Navigation Dock
     private lateinit var bottomFloatingIsland: LinearLayout
-    private lateinit var btnIslandBrowse: LinearLayout
-    private lateinit var btnIslandAsk: LinearLayout
-    private lateinit var btnIslandShield: ImageButton
-    private lateinit var btnIslandBookmarks: ImageButton
+    private lateinit var btnDockBack: ImageButton
+    private lateinit var btnDockForward: ImageButton
+    private lateinit var btnDockTabs: FrameLayout
+    private lateinit var viewDockTabSquircle: View
+    private lateinit var tvDockTabCount: TextView
+    private lateinit var btnDockShare: ImageButton
+    private lateinit var btnDockMenu: ImageButton
 
     // Activity Result Launcher for History/Bookmarks navigation
     private val contentLauncher = registerForActivityResult(
@@ -347,10 +350,13 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         btnFindClose = findViewById(R.id.btnFindClose)
 
         bottomFloatingIsland = findViewById(R.id.bottomFloatingIsland)
-        btnIslandBrowse = findViewById(R.id.btnIslandBrowse)
-        btnIslandAsk = findViewById(R.id.btnIslandAsk)
-        btnIslandShield = findViewById(R.id.btnIslandShield)
-        btnIslandBookmarks = findViewById(R.id.btnIslandBookmarks)
+        btnDockBack = findViewById(R.id.btnDockBack)
+        btnDockForward = findViewById(R.id.btnDockForward)
+        btnDockTabs = findViewById(R.id.btnDockTabs)
+        viewDockTabSquircle = findViewById(R.id.viewDockTabSquircle)
+        tvDockTabCount = findViewById(R.id.tvDockTabCount)
+        btnDockShare = findViewById(R.id.btnDockShare)
+        btnDockMenu = findViewById(R.id.btnDockMenu)
 
         // Standalone PWA views
         layoutStandaloneHeader = findViewById(R.id.layoutStandaloneHeader)
@@ -597,42 +603,48 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             toggleActiveTabMute()
         }
 
-        // Options Menu
-        btnMenu.setOnClickListener { view ->
-            showOptionsMenu(view)
-        }
-
-        // Bottom Island Interactions
-        btnIslandBrowse.setOnClickListener {
-            val tab = tabManager.activeTab
-            if (tab == null || tab.url == "about:blank" || tab.url.isBlank()) {
-                showStartCanvas()
+        // Horizon Adaptive Dock Interactions
+        btnDockBack.setOnClickListener {
+            val webView = tabManager.activeTab?.webView
+            if (webView?.canGoBack() == true) {
+                webView.goBack()
             } else {
-                showWebView()
+                showStartCanvas()
             }
         }
 
-        btnIslandAsk.setOnClickListener {
-            contentLauncher.launch(Intent(this, HistoryActivity::class.java))
+        btnDockForward.setOnClickListener {
+            val webView = tabManager.activeTab?.webView
+            if (webView?.canGoForward() == true) {
+                webView.goForward()
+            }
         }
 
-        btnIslandAsk.setOnLongClickListener {
-            AlertDialog.Builder(this)
-                .setTitle("Quick Clear History")
-                .setMessage("Clear browsing history and cached sessions?")
-                .setPositiveButton("Clear") { _, _ ->
-                    lifecycleScope.launch {
-                        controller.clearHistory()
-                        Toast.makeText(this@MainActivity, "History cleared", Toast.LENGTH_SHORT).show()
-                    }
+        btnDockTabs.setOnClickListener {
+            showTabsDialog()
+        }
+
+        btnDockShare.setOnClickListener {
+            val tab = tabManager.activeTab
+            val url = tab?.url.orEmpty()
+            if (url.isNotBlank() && url != "about:blank") {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, url)
                 }
-                .setNegativeButton("Cancel", null)
-                .show()
-            true
+                startActivity(Intent.createChooser(shareIntent, "Share Link"))
+            } else {
+                Toast.makeText(this, "Open a website to share", Toast.LENGTH_SHORT).show()
+            }
         }
 
-        btnIslandShield.setOnClickListener {
-            showSiteShieldsBottomSheet()
+        btnDockMenu.setOnClickListener {
+            showPageActionsSheet()
+        }
+
+        // Top Chrome & Indicator interactions
+        btnMenu.setOnClickListener {
+            showPageActionsSheet()
         }
 
         layoutShieldBadge.setOnClickListener {
@@ -641,21 +653,6 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
         ivSecurityIndicator.setOnClickListener {
             showSiteShieldsBottomSheet()
-        }
-
-        btnIslandBookmarks.setOnClickListener {
-            contentLauncher.launch(Intent(this, BookmarksActivity::class.java))
-        }
-
-        btnIslandBookmarks.setOnLongClickListener {
-            val tab = tabManager.activeTab
-            if (tab != null && tab.url.isNotBlank() && tab.url != "about:blank") {
-                controller.toggleBookmark(tab.url, tab.title) { isAdded ->
-                    val msg = if (isAdded) "Quick-bookmarked: ${tab.title}" else "Removed bookmark: ${tab.title}"
-                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-                }
-            }
-            true
         }
 
         // Pull to refresh
@@ -756,7 +753,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private fun setupMotionGraphics() {
         NovaMotion.startHeroBreathingAnimation(ivHeroLogo, ivHeroGlow)
         NovaMotion.attachSpringTouchFeedback(
-            btnIslandBrowse, btnIslandAsk, btnIslandShield, btnIslandBookmarks,
+            btnDockBack, btnDockForward, btnDockTabs, btnDockShare, btnDockMenu,
             btnTabs, btnMenu, btnNavBack, btnReloadPage, layoutShieldBadge,
             btnSearchEnginePicker, btnOmniboxMic
         )
@@ -1257,6 +1254,157 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
             .show()
     }
 
+    private fun getDisplayHost(url: String): String {
+        return try {
+            val uri = Uri.parse(url)
+            uri.host?.removePrefix("www.") ?: url
+        } catch (e: Exception) {
+            url
+        }
+    }
+
+    private fun showPageActionsSheet() {
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.sheet_page_actions, null)
+        dialog.setContentView(view)
+
+        val activeTab = tabManager.activeTab
+        val activeWebView = activeTab?.webView
+        val currentUrl = activeTab?.url.orEmpty()
+        val isBrowsing = currentUrl.isNotBlank() && currentUrl != "about:blank"
+
+        val tvSheetPageTitle = view.findViewById<TextView>(R.id.tvSheetPageTitle)
+        val tvSheetPageDomain = view.findViewById<TextView>(R.id.tvSheetPageDomain)
+        val btnSheetClose = view.findViewById<ImageButton>(R.id.btnSheetClose)
+
+        if (isBrowsing) {
+            tvSheetPageTitle?.text = activeTab?.title?.takeIf { it.isNotBlank() } ?: getDisplayHost(currentUrl)
+            tvSheetPageDomain?.text = getDisplayHost(currentUrl)
+        } else {
+            tvSheetPageTitle?.text = "NovaBrowser"
+            tvSheetPageDomain?.text = "Horizon Start Canvas"
+        }
+
+        btnSheetClose?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        // 4 Tools Squircle Grid
+        val btnToolReader = view.findViewById<View>(R.id.btnToolReader)
+        val btnToolShare = view.findViewById<View>(R.id.btnToolShare)
+        val btnToolDesktop = view.findViewById<View>(R.id.btnToolDesktop)
+        val btnToolForceDark = view.findViewById<View>(R.id.btnToolForceDark)
+
+        btnToolReader?.setOnClickListener {
+            dialog.dismiss()
+            launchReaderMode()
+        }
+
+        btnToolShare?.setOnClickListener {
+            dialog.dismiss()
+            if (isBrowsing) {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, currentUrl)
+                }
+                startActivity(Intent.createChooser(shareIntent, "Share Link"))
+            } else {
+                Toast.makeText(this, "Open a website to share", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnToolDesktop?.setOnClickListener {
+            dialog.dismiss()
+            if (activeWebView != null) {
+                val newMode = !activeWebView.isDesktopMode
+                activeWebView.setDesktopMode(newMode)
+                val msg = if (newMode) "Desktop mode enabled" else "Mobile mode restored"
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnToolForceDark?.setOnClickListener {
+            dialog.dismiss()
+            if (activeWebView != null) {
+                val newMode = !activeWebView.isForceDarkMode
+                activeWebView.setForceDarkMode(newMode)
+                val msg = if (newMode) "Force dark web enabled" else "Default web styling restored"
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Privacy Report Card - Strictly REAL data (User Rule #6)
+        val layoutSheetPrivacyReport = view.findViewById<View>(R.id.layoutSheetPrivacyReport)
+        val tvSheetTrackerStats = view.findViewById<TextView>(R.id.tvSheetTrackerStats)
+
+        val blockedCount = activeTab?.blockedAdsCount ?: 0
+        if (activeTab?.isPrivate == true) {
+            tvSheetTrackerStats?.text = "$blockedCount trackers prevented • Strict Private Canvas"
+        } else {
+            tvSheetTrackerStats?.text = "$blockedCount trackers prevented • Advanced Shield Active"
+        }
+
+        layoutSheetPrivacyReport?.setOnClickListener {
+            dialog.dismiss()
+            showSiteShieldsBottomSheet()
+        }
+
+        // Grouped List Actions
+        view.findViewById<View>(R.id.rowSheetBookmark)?.setOnClickListener {
+            dialog.dismiss()
+            if (isBrowsing) {
+                controller.toggleBookmark(currentUrl, activeTab?.title.orEmpty()) { isAdded ->
+                    val msg = if (isAdded) getString(R.string.bookmark_added) else getString(R.string.bookmark_removed)
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "Open a website to bookmark", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        view.findViewById<View>(R.id.rowSheetAddToHome)?.setOnClickListener {
+            dialog.dismiss()
+            if (isBrowsing) {
+                com.gintama.novabrowser.browser.PwaShortcutManager.showAddToHomeDialog(
+                    this,
+                    currentUrl,
+                    activeTab?.title.takeIf { !it.isNullOrBlank() } ?: "Web App",
+                    activeWebView?.favicon
+                )
+            } else {
+                Toast.makeText(this, "Open a website first to add to home screen", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        view.findViewById<View>(R.id.rowSheetCopyLink)?.setOnClickListener {
+            dialog.dismiss()
+            if (isBrowsing) {
+                copyCleanLink(currentUrl)
+            } else {
+                Toast.makeText(this, "No URL to copy", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        view.findViewById<View>(R.id.rowSheetSavePage)?.setOnClickListener {
+            dialog.dismiss()
+            if (isBrowsing) {
+                showSavePageDialog()
+            }
+        }
+
+        view.findViewById<View>(R.id.rowSheetFindInPage)?.setOnClickListener {
+            dialog.dismiss()
+            showFindInPage()
+        }
+
+        view.findViewById<View>(R.id.rowSheetSettings)?.setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        dialog.show()
+    }
+
     private fun showOptionsMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
         popup.menuInflater.inflate(R.menu.main_menu, popup.menu)
@@ -1695,14 +1843,18 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
         if (tab.isPrivate) {
             ivPrivateBadge.visibility = View.VISIBLE
             headerCapsulePill.setBackgroundResource(R.drawable.bg_glass_pill_incognito)
-            bottomFloatingIsland.setBackgroundResource(R.drawable.bg_nav_island_incognito)
+            bottomFloatingIsland.setBackgroundResource(R.drawable.bg_nav_dock_horizon_private)
             viewTabCountSquircle.setBackgroundResource(R.drawable.bg_squircle_tab_count_incognito)
-            ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.incognito_accent))
+            viewDockTabSquircle.setBackgroundResource(R.drawable.bg_squircle_tab_count_incognito)
+            ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.horizon_private))
+            val currentEngine = SearchEngineManager.getActiveEngine(this)
+            etPrivateSearchInput.hint = "${currentEngine.displayName} private search or enter URL..."
         } else {
             ivPrivateBadge.visibility = View.GONE
             headerCapsulePill.setBackgroundResource(R.drawable.bg_glass_pill)
-            bottomFloatingIsland.setBackgroundResource(R.drawable.bg_nav_island)
+            bottomFloatingIsland.setBackgroundResource(R.drawable.bg_nav_dock_horizon)
             viewTabCountSquircle.setBackgroundResource(R.drawable.bg_squircle_tab_count)
+            viewDockTabSquircle.setBackgroundResource(R.drawable.bg_squircle_tab_count)
             val shield = com.gintama.novabrowser.shields.SiteShieldManager.getSettingsForSite(tab.url)
             if (!shield.shieldsEnabled) {
                 ivSecurityIndicator.setColorFilter(ContextCompat.getColor(this, R.color.risk_suspicious))
@@ -1745,6 +1897,7 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
 
     override fun onTabsUpdated(tabs: List<BrowserTab>) {
         tvTabCount.text = tabs.size.toString()
+        tvDockTabCount.text = tabs.size.toString()
         updateNavigationButtons()
     }
 
@@ -2033,11 +2186,17 @@ class MainActivity : AppCompatActivity(), TabChangeListener {
     private fun updateNavigationButtons() {
         val webView = tabManager.activeTab?.webView
         val canBack = webView?.canGoBack() == true
+        val canForward = webView?.canGoForward() == true
         val isBrowsing = layoutNewTabCanvas.visibility != View.VISIBLE
 
         btnNavBack.visibility = if (isBrowsing || canBack) View.VISIBLE else View.GONE
         btnNavBack.alpha = if (canBack || isBrowsing) 1.0f else 0.4f
         btnReloadPage.visibility = if (isBrowsing) View.VISIBLE else View.GONE
+
+        btnDockBack.isEnabled = canBack || isBrowsing
+        btnDockBack.alpha = if (canBack || isBrowsing) 1.0f else 0.35f
+        btnDockForward.isEnabled = canForward
+        btnDockForward.alpha = if (canForward) 1.0f else 0.35f
     }
 
     override fun onBackPressed() {

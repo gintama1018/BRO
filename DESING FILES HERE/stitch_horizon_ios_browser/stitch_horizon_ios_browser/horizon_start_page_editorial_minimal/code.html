@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "canvas": "#F7F7F8",
+            "ink": "#111111",
+            "ink-muted": "#6E6E73",
+            "ink-subtle": "#86868B",
+            "surface-glass": "rgba(255, 255, 255, 0.72)",
+            "surface-elevated": "#FFFFFF",
+            "border-hairline": "rgba(0, 0, 0, 0.06)",
+            "primary": "#0058bc",
+          },
+          fontFamily: {
+            sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"],
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background-color: #F7F7F8;
+        color: #111111;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 24px);
+      }
+      .pt-safe {
+        padding-top: env(safe-area-inset-top, 47px);
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="bg-canvas text-ink flex flex-col min-h-screen selection:bg-black/10">
+<!-- iOS Status Bar & Minimalist Horizon Header -->
+<header class="fixed top-0 inset-x-0 z-50 bg-[#F7F7F8]/80 backdrop-blur-xl border-b border-border-hairline">
+<!-- Status Bar Row -->
+<div class="w-full flex items-center justify-between px-6 pt-3 pb-1 text-ink">
+<span class="text-[14px] font-semibold tracking-tight">9:41</span>
+<!-- Dynamic Island Indicator -->
+<div class="h-6 w-28 bg-ink rounded-full flex items-center justify-end px-2">
+<div class="w-2 h-2 rounded-full bg-white/20"></div>
+</div>
+<div class="flex items-center gap-1.5 text-ink">
+<span class="material-symbols-outlined text-[15px] font-medium">signal_cellular_alt</span>
+<span class="text-[11px] font-semibold tracking-wider">5G</span>
+<span class="material-symbols-outlined text-[17px]">battery_full</span>
+</div>
+</div>
+<!-- Editorial Header Navigation -->
+<div class="h-12 px-6 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="text-[17px] font-semibold tracking-[-0.03em] text-ink">Horizon</span>
+<!-- iCloud Sync subtle badge -->
+<div class="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/[0.04]">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span class="text-[10px] font-medium tracking-tight text-ink-muted">iCloud</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<!-- Private Pill Indicator -->
+<button class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium text-ink-muted hover:text-ink bg-black/[0.03] active:bg-black/[0.08] transition-colors" id="private-toggle-btn">
+<span class="material-symbols-outlined text-[14px]">shield</span>
+<span>Private</span>
+</button>
+<!-- Subtle Avatar -->
+<button aria-label="Account Settings" class="w-7 h-7 rounded-full overflow-hidden ring-1 ring-black/10 active:scale-95 transition-transform">
+<img alt="User" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9MRaiVPHGglf0jdMDUcP1eicN781wp1gJWoOvLay8Bcd1Um1P0khEHP__LmH8NwT2ksElE06LbDQuaF5OhJ65qAJ39FGquIZvmab5BvQOrOAjWwGrX9i-XJPlC57ADVQdtLh3bTOLVC-dP-1hM96P-VfMWOni0cB-Bk7pXlS7NM5Wc9PCrWzukApxNpNSJD3PnGQdIFuHGBnzrUABSemHoYGFzHJxb1rx7MUEH3XE1nM-2rMfeTVr"/>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Start Page Content -->
+<main class="flex-1 flex flex-col pt-24 pb-32 px-5 max-w-lg mx-auto w-full">
+<!-- Typographic Welcome & Editorial Subtext -->
+<section class="pt-6 pb-5 flex flex-col">
+<div class="flex items-baseline justify-between">
+<h1 class="text-[28px] font-bold tracking-[-0.035em] text-ink leading-tight">Start Page</h1>
+<span class="text-[13px] font-medium text-ink-subtle">Tuesday, May 14</span>
+</div>
+<p class="text-[13px] text-ink-muted tracking-tight mt-0.5 font-normal">Curated spaces, reading lists &amp; quiet browsing</p>
+</section>
+<!-- Expansive Minimalist Thumb-Zone Search Pill -->
+<section class="my-2">
+<div class="relative w-full rounded-full bg-surface-elevated shadow-[0_2px_12px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.06] p-1 flex items-center transition-all duration-200 focus-within:ring-black/20 focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+<div class="flex items-center w-full px-3.5 py-2 gap-3">
+<span class="material-symbols-outlined text-[19px] text-ink-subtle shrink-0">search</span>
+<input class="w-full bg-transparent text-[15px] text-ink placeholder:text-ink-subtle/80 font-normal focus:outline-none tracking-tight truncate border-0 p-0" placeholder="Search the web or type a URL" type="text"/>
+<div class="flex items-center gap-1 shrink-0 text-ink-muted">
+<button aria-label="Dictate or Voice Search" class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/[0.04] active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[18px]">mic</span>
+</button>
+<button aria-label="Scan QR Code" class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/[0.04] active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[18px]">qr_code_scanner</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Links: Compact Pill Chips with Subtle Dot Favicons -->
+<section class="mt-7">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-subtle">Favorites</span>
+<button class="text-[12px] font-medium text-ink-muted hover:text-ink transition-colors">Edit</button>
+</div>
+<!-- Horizontal Scrollable Pill List -->
+<div class="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar -mx-5 px-5">
+<!-- Pill 1: Apple -->
+<a class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-surface-elevated ring-1 ring-black/[0.05] shadow-[0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all shrink-0 hover:bg-black/[0.02]" href="#">
+<span class="w-4 h-4 rounded-full bg-black flex items-center justify-center text-white shrink-0">
+<svg class="w-2.5 h-2.5 fill-current" viewbox="0 0 24 24">
+<path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.87-.9.04-2 .6-2.65 1.36-.58.67-1.09 1.74-.95 2.78 1.01.08 2.05-.52 2.68-1.27z"></path>
+</svg>
+</span>
+<span class="text-[13px] font-medium text-ink tracking-tight">Apple</span>
+</a>
+<!-- Pill 2: GitHub -->
+<a class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-surface-elevated ring-1 ring-black/[0.05] shadow-[0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all shrink-0 hover:bg-black/[0.02]" href="#">
+<span class="w-4 h-4 rounded-full bg-[#24292F] flex items-center justify-center text-white shrink-0">
+<svg class="w-2.5 h-2.5 fill-current" viewbox="0 0 24 24">
+<path clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" fill-rule="evenodd"></path>
+</svg>
+</span>
+<span class="text-[13px] font-medium text-ink tracking-tight">GitHub</span>
+</a>
+<!-- Pill 3: Linear -->
+<a class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-surface-elevated ring-1 ring-black/[0.05] shadow-[0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all shrink-0 hover:bg-black/[0.02]" href="#">
+<span class="w-4 h-4 rounded-full bg-[#5E6AD2] flex items-center justify-center text-white text-[9px] font-bold shrink-0">L</span>
+<span class="text-[13px] font-medium text-ink tracking-tight">Linear</span>
+</a>
+<!-- Pill 4: Figma -->
+<a class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-surface-elevated ring-1 ring-black/[0.05] shadow-[0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all shrink-0 hover:bg-black/[0.02]" href="#">
+<span class="w-4 h-4 rounded-full bg-black flex items-center justify-center shrink-0">
+<span class="w-2 h-2 rounded-full bg-[#F24E1E]"></span>
+</span>
+<span class="text-[13px] font-medium text-ink tracking-tight">Figma</span>
+</a>
+<!-- Pill 5: Reading List -->
+<a class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-surface-elevated ring-1 ring-black/[0.05] shadow-[0_1px_4px_rgba(0,0,0,0.02)] active:scale-95 transition-all shrink-0 hover:bg-black/[0.02]" href="#">
+<span class="material-symbols-outlined text-[14px] text-ink-muted">eyeglasses</span>
+<span class="text-[13px] font-medium text-ink tracking-tight">Reading List</span>
+</a>
+<!-- Pill 6: Add (+) -->
+<button aria-label="Add new link" class="w-8 h-8 rounded-full bg-black/[0.03] hover:bg-black/[0.06] flex items-center justify-center text-ink-muted active:scale-90 transition-transform shrink-0">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</section>
+<!-- "Focus & Recents" Curated List (Editorial Two-Item Minimalist Preview) -->
+<section class="mt-8">
+<div class="flex items-center justify-between mb-3 px-1">
+<span class="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-subtle">Focus &amp; Recents</span>
+<button class="text-[12px] font-medium text-ink-muted hover:text-ink transition-colors">Clear All</button>
+</div>
+<div class="rounded-2xl bg-surface-elevated ring-1 ring-black/[0.05] shadow-[0_2px_8px_rgba(0,0,0,0.02)] divide-y divide-border-hairline overflow-hidden">
+<!-- Item 1: Design Systems Repo -->
+<a class="flex items-center justify-between p-3.5 group hover:bg-black/[0.015] active:bg-black/[0.03] transition-colors" href="#">
+<div class="flex items-center gap-3.5 min-w-0">
+<!-- Small Monochrome/Desaturated Square Thumbnail -->
+<div class="w-12 h-12 rounded-xl bg-canvas overflow-hidden ring-1 ring-black/[0.06] shrink-0 relative">
+<div class="w-full h-full bg-cover bg-center grayscale contrast-125 opacity-90 transition-transform duration-300 group-hover:scale-105" data-alt="Design Systems documentation typography and clean layout" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBEmE5uMhPcDgQQwC2Hy2tQaGzmikCADPu-I0_uDcqhD4C0eNcq3iI1M6Fsdfb121IG3ffk0OKOU-S0UJ8WRLiU15Fl2VF78E9R2CcwkbJZUNCeGOQj2eCPI8XHg2uAECDijVxH1-cad4CxRWF7HrcZpk5vebmYSkmaLCwh2elsudSqmFLOY1Tcz8U721tRLIfbghRE3Q6Cu__1PO9fIpS5AYVmCmc5hWA6rOsVf0gEtkvUz1oE0D_x')"></div>
+</div>
+<div class="flex flex-col min-w-0 pr-2">
+<h3 class="text-[14px] font-semibold text-ink tracking-tight truncate group-hover:text-black">Design Systems Architecture</h3>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="text-[12px] text-ink-muted truncate">designsystemsrepo.com</span>
+<span class="text-ink-subtle/50 text-[10px]">•</span>
+<span class="text-[11px] font-medium text-ink-subtle">2h ago</span>
+</div>
+</div>
+</div>
+<!-- Estimated read badge -->
+<div class="shrink-0 flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-md bg-black/[0.03] text-[11px] font-medium text-ink-muted tracking-tight">4 min read</span>
+<span class="material-symbols-outlined text-[16px] text-ink-subtle/60 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+</div>
+</a>
+<!-- Item 2: Hacker News Best -->
+<a class="flex items-center justify-between p-3.5 group hover:bg-black/[0.015] active:bg-black/[0.03] transition-colors" href="#">
+<div class="flex items-center gap-3.5 min-w-0">
+<!-- Small Monochrome/Desaturated Square Thumbnail -->
+<div class="w-12 h-12 rounded-xl bg-canvas overflow-hidden ring-1 ring-black/[0.06] shrink-0 relative">
+<div class="w-full h-full bg-cover bg-center grayscale contrast-125 opacity-90 transition-transform duration-300 group-hover:scale-105" data-alt="Monochrome editor code screen minimal setup" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCeH5Dpm4_ODBDY-tY7qrwSpa7F7L4xswpuwG_pqa7JD3ZYUB02ssr-6bzZsgL7Jugtu1O6vy3kcLlnM7UsN5CdWWeeBjd0d_ToHuX3B0x-r3k2SNnfTgTvn5AN9FW8sQSmlc7RycLG8VkFt9L2UagnlU4VMi2LikftX06icMct9jhHc_ojSD2bpSLoUSi433HHg9JW-2jAp0MJXKiPcPrAFVwH-GSGUGGmO90q21HvfmBB7BGEtpJA')"></div>
+</div>
+<div class="flex flex-col min-w-0 pr-2">
+<h3 class="text-[14px] font-semibold text-ink tracking-tight truncate group-hover:text-black">Algorithmic Tradeoffs in Compilers</h3>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="text-[12px] text-ink-muted truncate">news.ycombinator.com</span>
+<span class="text-ink-subtle/50 text-[10px]">•</span>
+<span class="text-[11px] font-medium text-ink-subtle">Yesterday</span>
+</div>
+</div>
+</div>
+<!-- Estimated read badge -->
+<div class="shrink-0 flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-md bg-black/[0.03] text-[11px] font-medium text-ink-muted tracking-tight">8 min read</span>
+<span class="material-symbols-outlined text-[16px] text-ink-subtle/60 group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+</div>
+</a>
+</div>
+</section>
+<!-- Privacy & Shielding Discrete Row -->
+<section class="mt-7">
+<div class="rounded-2xl bg-surface-elevated/70 backdrop-blur-md ring-1 ring-black/[0.05] p-3.5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-black/[0.04] flex items-center justify-center text-ink">
+<span class="material-symbols-outlined text-[17px]">security</span>
+</div>
+<div>
+<span class="text-[13px] font-semibold text-ink block tracking-tight">Horizon Shield Active</span>
+<span class="text-[11px] text-ink-subtle tracking-tight">42 trackers blocked on network this week</span>
+</div>
+</div>
+<button class="text-[12px] font-medium text-ink-muted hover:text-ink px-2.5 py-1 rounded-full bg-black/[0.03]">Report</button>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar: Floating Translucent Dock (iOS 18 Style) -->
+<nav class="fixed bottom-0 inset-x-0 z-50 pointer-events-none pb-safe">
+<div class="max-w-md mx-auto px-5 mb-2 pointer-events-auto">
+<div class="h-14 rounded-full bg-[#FFFFFF]/80 backdrop-blur-2xl ring-1 ring-black/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.03)] px-6 flex items-center justify-between text-ink">
+<a aria-label="Previous Page" class="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined text-[20px]">arrow_back_ios</span>
+</a>
+<a aria-label="Forward Page" class="w-9 h-9 flex items-center justify-center text-ink-subtle/40 pointer-events-none" href="#">
+<span class="material-symbols-outlined text-[20px]">arrow_forward_ios</span>
+</a>
+<a aria-label="Share Content" class="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined text-[22px]">ios_share</span>
+</a>
+<a aria-label="Open Tabs" class="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink active:scale-90 transition-transform" href="#">
+<div class="w-5 h-5 rounded-[6px] border-[1.5px] border-ink flex items-center justify-center text-[10px] font-semibold tracking-tighter">
+            3
+          </div>
+</a>
+<a aria-label="Menu" class="w-9 h-9 flex items-center justify-center text-ink-muted hover:text-ink active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined text-[22px]">more_horiz</span>
+</a>
+</div>
+</div>
+<!-- Seamless iOS Home Indicator Bar -->
+<div class="w-full flex justify-center pb-2 pointer-events-none">
+<div class="w-32 h-1 bg-ink/20 rounded-full"></div>
+</div>
+</nav>
+<script>
+    // Private Mode Toggle micro-interaction
+    document.getElementById('private-toggle-btn')?.addEventListener('click', function() {
+      const isPrivate = this.getAttribute('data-private') === 'true';
+      if (!isPrivate) {
+        this.setAttribute('data-private', 'true');
+        this.classList.remove('bg-black/[0.03]', 'text-ink-muted');
+        this.classList.add('bg-ink', 'text-white');
+        this.querySelector('span:last-child').textContent = 'Private On';
+      } else {
+        this.setAttribute('data-private', 'false');
+        this.classList.add('bg-black/[0.03]', 'text-ink-muted');
+        this.classList.remove('bg-ink', 'text-white');
+        this.querySelector('span:last-child').textContent = 'Private';
+      }
+    });
+  </script>
+</body></html>

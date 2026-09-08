@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Deep Ambient Glow -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="999dp" />
+            <solid android:color="#20AF52DE" />
+        </shape>
+    </item>
+    <!-- Dark Liquid Glass Surface with Violet Rim -->
+    <item
+        android:bottom="1dp"
+        android:left="0.5dp"
+        android:right="0.5dp"
+        android:top="0.5dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="999dp" />
+            <solid android:color="@color/horizon_glass_fill_dark" />
+            <stroke
+                android:width="1dp"
+                android:color="#40AF52DE" />
+        </shape>
+    </item>
+</layer-list>

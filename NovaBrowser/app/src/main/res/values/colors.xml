@@ -61,4 +61,23 @@
     <color name="risk_blocked_dark">#BA1A1A</color>
     <color name="risk_blocked_container">#FEE2E2</color>
     <color name="risk_blocked_on_container">#991B1B</color>
+
+    <!-- Horizon Glass & Precision Palette (Android 8-Digit ARGB) -->
+    <color name="horizon_primary">#0A84FF</color>
+    <color name="horizon_primary_variant">#007AFF</color>
+    <color name="horizon_private">#AF52DE</color>
+    <color name="horizon_safe">#34C759</color>
+    <color name="horizon_warning">#FF9500</color>
+    <color name="horizon_danger">#FF3B30</color>
+    <color name="horizon_glass_fill">#B8FFFFFF</color>
+    <color name="horizon_glass_fill_elevated">#CCFFFFFF</color>
+    <color name="horizon_glass_fill_dark">#C01C1C1E</color>
+    <color name="horizon_glass_border">#D1FFFFFF</color>
+    <color name="horizon_glass_border_dark">#1FFFFFFF</color>
+    <color name="horizon_glass_rim">#E6FFFFFF</color>
+    <color name="horizon_surface_subtle">#F5F5F7</color>
+    <color name="horizon_surface_card">#FFFFFF</color>
+    <color name="horizon_surface_card_dark">#1C1C1E</color>
+    <color name="horizon_divider">#2E3C3C43</color>
+    <color name="horizon_divider_dark">#5C545458</color>
 </resources>

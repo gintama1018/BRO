@@ -58,6 +58,27 @@
                 android:src="@drawable/ic_shield_verified"
                 app:tint="@color/risk_safe" />
 
+            <LinearLayout
+                android:id="@+id/layoutShieldBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="18dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_badge_emerald"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="5dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvShieldBadgeCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/risk_safe_on_container"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <ImageView
                 android:id="@+id/ivPrivateBadge"
                 android:layout_width="16dp"
@@ -595,7 +616,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <!-- 8 App Tiles Grid (Row 1) -->
+                <!-- 8 App Tiles Grid (Row 1) - 60x60dp Horizon Squircle -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -612,10 +633,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -623,14 +644,14 @@
                                 android:layout_gravity="center"
                                 android:text="GH"
                                 android:textColor="@color/text_primary"
-                                android:textSize="14sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="GitHub"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -646,10 +667,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -657,14 +678,14 @@
                                 android:layout_gravity="center"
                                 android:text="arXiv"
                                 android:textColor="@color/text_primary"
-                                android:textSize="11sp"
+                                android:textSize="12sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="ArXiv"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -680,10 +701,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -691,14 +712,14 @@
                                 android:layout_gravity="center"
                                 android:text="W"
                                 android:textColor="@color/text_primary"
-                                android:textSize="15sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold|italic" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="Wikipedia"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -714,10 +735,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -725,25 +746,25 @@
                                 android:layout_gravity="center"
                                 android:text="Y"
                                 android:textColor="@color/risk_suspicious"
-                                android:textSize="14sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="HN"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- 8 App Tiles Grid (Row 2) -->
+                <!-- 8 App Tiles Grid (Row 2) - 60x60dp Horizon Squircle -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="14dp"
                     android:orientation="horizontal">
 
                     <!-- Linear -->
@@ -756,10 +777,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -767,14 +788,14 @@
                                 android:layout_gravity="center"
                                 android:text="L"
                                 android:textColor="@color/text_primary"
-                                android:textSize="14sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="Linear"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -790,10 +811,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -801,14 +822,14 @@
                                 android:layout_gravity="center"
                                 android:text="N"
                                 android:textColor="@color/text_primary"
-                                android:textSize="14sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="Notion"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -824,10 +845,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -835,14 +856,14 @@
                                 android:layout_gravity="center"
                                 android:text="Doc"
                                 android:textColor="@color/text_primary"
-                                android:textSize="11sp"
+                                android:textSize="12sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="Docs"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -858,10 +879,10 @@
                         android:orientation="vertical">
 
                         <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_glass_card"
-                            android:elevation="1dp">
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:background="@drawable/bg_squircle_tile_horizon"
+                            android:elevation="2dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -869,14 +890,14 @@
                                 android:layout_gravity="center"
                                 android:text="F"
                                 android:textColor="@color/text_primary"
-                                android:textSize="14sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
                         </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
+                            android:layout_marginTop="6dp"
                             android:text="Figma"
                             android:textColor="@color/text_primary"
                             android:textSize="11sp" />
@@ -1117,128 +1138,95 @@
         </ScrollView>
     </FrameLayout>
 
-    <!-- 3. BOTTOM FLOATING ISLAND NAVIGATION (Anchored comfortably with safe area) -->
+    <!-- 3. BOTTOM FLOATING COMMAND DOCK (Horizon-Adapted Navigation Dock) -->
     <LinearLayout
         android:id="@+id/bottomFloatingIsland"
         android:layout_width="wrap_content"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:layout_marginBottom="12dp"
-        android:background="@drawable/bg_nav_island"
-        android:elevation="6dp"
+        android:background="@drawable/bg_nav_dock_horizon"
+        android:elevation="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="6dp"
+        android:paddingHorizontal="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <!-- Browse Action Pill -->
-        <LinearLayout
-            android:id="@+id/btnIslandBrowse"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_glass_pill_dark"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingHorizontal="12dp">
+        <!-- Back Button -->
+        <ImageButton
+            android:id="@+id/btnDockBack"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back"
+            android:padding="10dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_primary" />
 
-            <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:contentDescription="Browse"
-                android:src="@drawable/ic_globe"
-                app:tint="@color/text_on_primary" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="5dp"
-                android:text="Browse"
-                android:textColor="@color/text_on_primary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Ask Browser Pill Button -->
-        <LinearLayout
-            android:id="@+id/btnIslandAsk"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
+        <!-- Forward Button -->
+        <ImageButton
+            android:id="@+id/btnDockForward"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:contentDescription="Forward"
+            android:padding="10dp"
+            android:src="@drawable/ic_arrow_forward"
+            app:tint="@color/text_secondary" />
 
-            <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:contentDescription="Ask Browser"
-                android:src="@drawable/ic_auto_awesome"
-                app:tint="@color/risk_safe" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="5dp"
-                android:text="Ask Browser"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+        <!-- Tab Overview Squircle Badge -->
+        <FrameLayout
+            android:id="@+id/btnDockTabs"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
 
             <View
-                android:layout_width="5dp"
-                android:layout_height="5dp"
-                android:layout_marginStart="5dp"
-                android:background="@drawable/bg_dot_emerald" />
-        </LinearLayout>
-
-        <!-- Privacy Vault / Shield Button with Live Counter Badge -->
-        <FrameLayout
-            android:id="@+id/layoutShieldBadge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="2dp">
-
-            <ImageButton
-                android:id="@+id/btnIslandShield"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Privacy Vault"
-                android:padding="8dp"
-                android:src="@drawable/ic_security"
-                app:tint="@color/text_secondary" />
+                android:id="@+id/viewDockTabSquircle"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_squircle_tab_count" />
 
             <TextView
-                android:id="@+id/tvShieldBadgeCount"
+                android:id="@+id/tvDockTabCount"
                 android:layout_width="wrap_content"
-                android:layout_height="15dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="2dp"
-                android:layout_marginEnd="2dp"
-                android:background="@drawable/bg_badge_emerald"
-                android:gravity="center"
-                android:minWidth="15dp"
-                android:paddingHorizontal="4dp"
-                android:text="0"
-                android:textColor="@color/risk_safe_on_container"
-                android:textSize="9sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="1"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </FrameLayout>
 
-        <!-- Bookmarks / Library Button -->
+        <!-- Contextual Quick Share -->
         <ImageButton
-            android:id="@+id/btnIslandBookmarks"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:layout_marginStart="2dp"
+            android:id="@+id/btnDockShare"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Bookmarks"
-            android:padding="8dp"
-            android:src="@drawable/ic_bookmark_border"
+            android:contentDescription="Share"
+            android:padding="10dp"
+            android:src="@drawable/ic_share"
             app:tint="@color/text_secondary" />
+
+        <!-- Page Actions / Tools Sheet Menu Button -->
+        <ImageButton
+            android:id="@+id/btnDockMenu"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Page Tools and Menu"
+            android:padding="10dp"
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/text_primary" />
     </LinearLayout>
 
     <!-- 4. FULLSCREEN VIDEO / CUSTOM VIEW OVERLAY CONTAINER -->

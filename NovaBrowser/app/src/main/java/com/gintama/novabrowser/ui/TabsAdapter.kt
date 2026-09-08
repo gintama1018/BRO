@@ -102,7 +102,7 @@ class TabsAdapter(
                 tvActiveText.setTextColor(ContextCompat.getColor(itemView.context, R.color.accent_emerald))
 
                 if (isActive) {
-                    cardTab.setBackgroundResource(R.drawable.bg_glass_card_active)
+                    cardTab.setBackgroundResource(R.drawable.bg_card_tab_active_horizon)
                     cardTab.elevation = 6f
                 } else {
                     cardTab.setBackgroundResource(R.drawable.bg_glass_card)

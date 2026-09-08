@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;450;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#0A84FF",
+            "primary-container": "#0070eb",
+            "accent-violet": "#5E5CE6",
+            "surface": "#fcfbfe",
+            "on-surface": "#121316",
+            "on-surface-variant": "#5f636e",
+            "glass-fill": "rgba(255, 255, 255, 0.72)",
+            "glass-border": "rgba(255, 255, 255, 0.75)",
+            "glass-rim": "rgba(255, 255, 255, 0.9)",
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'SF Pro Text', 'system-ui', 'sans-serif'],
+            display: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'SF Pro Display', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background-color: #fbfbfd;
+        color: #121316;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+      }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom, 24px); }
+      .pt-safe { padding-top: env(safe-area-inset-top, 47px); }
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    .liquid-glass {
+      background: rgba(255, 255, 255, 0.68);
+      backdrop-filter: blur(32px) saturate(190%);
+      -webkit-backdrop-filter: blur(32px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      box-shadow: 
+        inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 1px 0 rgba(0, 0, 0, 0.03),
+        0 8px 32px -4px rgba(10, 20, 40, 0.08),
+        0 2px 8px -2px rgba(10, 20, 40, 0.04);
+    }
+
+    .liquid-glass-subtle {
+      background: rgba(255, 255, 255, 0.58);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 
+        inset 0 1px 1px rgba(255, 255, 255, 0.85),
+        0 4px 16px -2px rgba(15, 23, 42, 0.05);
+    }
+
+    .liquid-specular-capsule {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(36px) saturate(200%);
+      -webkit-backdrop-filter: blur(36px) saturate(200%);
+      border: 1px solid rgba(255, 255, 255, 0.88);
+      box-shadow: 
+        inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04),
+        0 14px 38px -6px rgba(15, 23, 42, 0.12),
+        0 4px 12px -2px rgba(15, 23, 42, 0.05);
+    }
+
+    .water-pill-btn {
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .water-pill-btn:active {
+      transform: scale(0.92);
+      background: rgba(0, 0, 0, 0.06);
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen relative font-sans overflow-x-hidden selection:bg-primary/20">
+<!-- Ambient Fluid Light Refraction in Canvas Background -->
+<div class="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-60">
+<div class="absolute -top-24 -left-20 w-80 h-80 rounded-full bg-gradient-to-br from-primary/15 via-accent-violet/10 to-transparent blur-3xl"></div>
+<div class="absolute top-[40%] -right-28 w-96 h-96 rounded-full bg-gradient-to-bl from-sky-400/10 via-primary/5 to-transparent blur-3xl"></div>
+<div class="absolute bottom-10 left-1/4 w-80 h-72 rounded-full bg-gradient-to-tr from-accent-violet/10 via-primary/10 to-transparent blur-3xl"></div>
+</div>
+<!-- FLOATING LIQUID GLASS TOP BAR & DYNAMIC ISLAND -->
+<header class="fixed top-0 inset-x-0 z-50 pointer-events-none">
+<!-- iOS Status Bar & Dynamic Island Container -->
+<div class="w-full pt-safe px-6 pb-2 pointer-events-auto flex items-center justify-between">
+<!-- Time -->
+<span class="text-[15px] font-semibold tracking-tight text-on-surface/90 drop-shadow-xs">9:41</span>
+<!-- Apple Dynamic Island Simulation -->
+<div class="h-[30px] w-[122px] bg-black/90 rounded-full shadow-lg flex items-center justify-end px-2.5 transition-all">
+<div class="w-2.5 h-2.5 rounded-full bg-[#121820]/90 border border-neutral-700/50 flex items-center justify-center">
+<div class="w-1 h-1 rounded-full bg-primary/80 animate-pulse"></div>
+</div>
+</div>
+<!-- System Status Icons -->
+<div class="flex items-center gap-1.5 text-on-surface/90">
+<span class="material-symbols-outlined text-[16px]">signal_cellular_alt</span>
+<span class="text-[11px] font-semibold tracking-wider">5G</span>
+<span class="material-symbols-outlined text-[19px]">battery_full</span>
+</div>
+</div>
+<!-- Floating Liquid Glass Header Navigation Bar -->
+<div class="px-4 pt-1 pointer-events-auto">
+<div class="liquid-glass h-12 rounded-full px-2.5 flex items-center justify-between transition-all">
+<!-- Brand & Active Page Pill -->
+<div class="flex items-center gap-2 min-w-0">
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-accent-violet p-[1.5px] shadow-sm flex-shrink-0 flex items-center justify-center">
+<div class="w-full h-full rounded-full bg-white/95 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[18px]">travel_explore</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0 pr-1">
+<div class="flex items-center gap-1.5">
+<span class="text-[13px] font-semibold text-on-surface tracking-tight truncate max-w-[150px]">Lake Como Pavilion</span>
+<span class="inline-flex items-center px-1.5 py-0.2 rounded-full bg-primary/10 text-primary text-[9.5px] font-semibold tracking-wide uppercase">Reading</span>
+</div>
+</div>
+</div>
+<!-- Right Quick Controls: Typography / Reader & Profile Avatar -->
+<div class="flex items-center gap-1 flex-shrink-0">
+<!-- Tactile Reader Format Pill Button -->
+<button aria-label="Reading Appearance" class="water-pill-btn w-8 h-8 rounded-full flex items-center justify-center text-on-surface/75 hover:text-on-surface hover:bg-black/5">
+<span class="material-symbols-outlined text-[19px]">text_fields</span>
+</button>
+<!-- iCloud Profile Avatar with Specular Liquid Rim -->
+<div class="relative p-[1.5px] rounded-full bg-gradient-to-b from-white via-white/80 to-white/30 shadow-xs cursor-pointer active:scale-95 transition-transform">
+<img alt="Apple ID Sync Avatar" class="w-7 h-7 rounded-full object-cover ring-1 ring-black/5" src="https://lh3.googleusercontent.com/aida/AEtjO1XVHwAT40gt3aotcGUjBa-wCbbYyrsECJ6HyXVNB5cK6VkfPWU3RT-J7dAlZoOURNRv6LtIj7zjoCnI35IaS1woo81hrDrpR2oX7LtIPd7503vtA8VhYGjpAT29ZL-2eQdAPX1x0p_pfELA_Mv-6n8mQCiFtcY5RuwhM52q89Q2LSBOBUl4IViAXHClKCPIqQIpxIf5q2kQlfJg_u9qs6LeYcCZM84agCsu_FLiy85hW1RY424e5DL03JE"/>
+<div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Liquid Scroll Progress Bar -->
+<div class="px-7 pt-1.5">
+<div class="w-full h-[2.5px] rounded-full bg-black/[0.04] overflow-hidden backdrop-blur-sm">
+<div class="h-full bg-gradient-to-r from-primary via-accent-violet to-primary rounded-full transition-all duration-200 shadow-[0_0_8px_rgba(10,132,255,0.6)]" id="readProgress" style="width: 44%;"></div>
+</div>
+</div>
+</header>
+<!-- MAIN SCROLLABLE ARTICLE VIEWPORT -->
+<main class="flex-1 w-full pt-[114px] pb-44 px-4 sm:px-6 relative z-10 max-w-xl mx-auto flex flex-col">
+<article class="w-full flex flex-col">
+<!-- Article Category & Reading Time Badge -->
+<div class="flex items-center justify-between pt-2 pb-3">
+<div class="inline-flex items-center gap-2">
+<span class="text-[11px] font-semibold tracking-widest text-primary uppercase">Architecture</span>
+<span class="w-1 h-1 rounded-full bg-neutral-300"></span>
+<span class="text-[12px] font-medium text-on-surface-variant">Design Monograph</span>
+</div>
+<div class="flex items-center gap-1 text-[12px] font-medium text-neutral-400">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>5 min read</span>
+</div>
+</div>
+<!-- Headline -->
+<h1 class="font-display text-[29px] leading-[35px] font-bold tracking-tight text-on-surface mb-3">
+        The Minimalist Pavilion at Lake Como
+      </h1>
+<!-- Subtitle -->
+<p class="text-[16px] leading-[23px] text-on-surface-variant font-normal tracking-[-0.01em] mb-4">
+        A masterclass in cantilevered glass, warm Italian limestone, and reflective water courts nestled into the Lombardy cliffs.
+      </p>
+<!-- Author Byline Bar (Distilled Glass Card) -->
+<div class="liquid-glass-subtle rounded-2xl p-2.5 flex items-center justify-between mb-5">
+<div class="flex items-center gap-2.5">
+<img alt="Matteo Santoro author portrait" class="w-9 h-9 rounded-full object-cover shadow-sm ring-1 ring-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARiFr9yCyRDBIZglDdvMaY6rLxrqxQo7y1wjA8XYmIVMEve223QrleNoACU5SaC4EvUUndoPo40fURYn9jsE0d24pyFvDoO3IcL6chu32vDt13uYZ3vqoAnE8jpKZovAosbxq3fP6ZL2nQ7uw2mxXOWqaQiJWJC4zorUbYELpqk51ThpHKg0CI5N3x3LEw1OGePZ30ewgby5fu8njuBkxNuBPTMW-EEv04Uuwc6W1OkT7uUVS49uAQ"/>
+<div class="flex flex-col">
+<span class="text-[13.5px] font-semibold text-on-surface tracking-tight leading-snug">Matteo Santoro</span>
+<span class="text-[11.5px] text-neutral-500 font-normal">Milan Bureau · Oct 14, 2024</span>
+</div>
+</div>
+<div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-semibold">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span>Curated</span>
+</div>
+</div>
+<!-- Editorial Hero Visual Frame -->
+<div class="relative w-full rounded-3xl overflow-hidden mb-6 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.12)] border border-white/60 bg-neutral-100 aspect-[4/3]">
+<img alt="Lake Como minimalist pavilion at sunset" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1NI_F4Lqc61uwGGAMoTZsvUGOjPB-KDTBPD81p1llrrjlrBqB-NaWmARglb48XY4Wgonc4xv2bf3cqnRd09_tVd4eGgrmBBSe5uSSt03Fo6SISlQutEEq4tCTnOaVdrIHN9DT-TJFa6XRcJt2PqvZGnOkser27AYK7prUi7_atUtSsr1lzptZIdnReWnY8a5c1hCr-8msjG7ZAIABzvugN1laS1sitdY4aUHoa85b6jKBZTH32uE1"/>
+<!-- Liquid Glass Editorial Caption Pill Overlay -->
+<div class="absolute bottom-3 inset-x-3 liquid-glass-subtle rounded-2xl p-2.5 px-3.5 flex items-center justify-between backdrop-blur-xl border border-white/80 shadow-md">
+<p class="text-[11.5px] font-medium text-neutral-800 tracking-tight truncate mr-2">
+            Photography by Hélène Binet / AD Archive
+          </p>
+<span class="px-2 py-0.5 rounded-full bg-black/10 text-neutral-800 text-[10.5px] font-semibold tracking-wide flex-shrink-0">
+            1 of 8
+          </span>
+</div>
+</div>
+<!-- Editorial Typography Body -->
+<div class="flex flex-col gap-4 text-[16.5px] leading-[27px] text-neutral-800 font-normal">
+<p class="first-letter:text-[48px] first-letter:leading-[40px] first-letter:font-bold first-letter:font-display first-letter:text-primary first-letter:float-left first-letter:mr-2.5 first-letter:pt-1">
+          Perched along the precipitous slate rock face near Bellagio, the glass and travertine structure appears less built than exhaled into the natural landscape. Commissioned as an archival sanctum for contemporary sculpture, the pavilion abandons decorative excess in favor of pure panoramic clarity.
+        </p>
+<!-- Liquid Glass Quote Callout -->
+<div class="relative liquid-glass rounded-2xl p-4 my-2 overflow-hidden">
+<div class="absolute -right-3 -bottom-5 opacity-10 pointer-events-none text-primary">
+<span class="material-symbols-outlined text-[100px]">format_quote</span>
+</div>
+<div class="relative z-10 flex flex-col gap-1.5">
+<span class="material-symbols-outlined text-primary text-[22px]">format_quote</span>
+<blockquote class="font-display text-[16px] leading-[23px] text-on-surface font-medium italic">
+              “We did not want an interruption in the horizon. We wanted the lake to step inside, greet the marble floors, and dissolve the threshold.”
+            </blockquote>
+<span class="text-[12px] font-semibold text-neutral-500 pt-0.5 tracking-wide">
+              — Studio Bellotti &amp; Associati
+            </span>
+</div>
+</div>
+<!-- Refined Dual Visual Grid -->
+<div class="grid grid-cols-2 gap-3 my-2">
+<div class="flex flex-col gap-1.5">
+<div class="aspect-[3/4] rounded-2xl overflow-hidden shadow-sm border border-white/70 bg-neutral-100">
+<img alt="Travertine colonnade detail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxgXVue9C-I142ogOalIhBeAMzsKDLpFvoIjcxhDnSRIzdoajZf2uTLvMSyGA0A-MoabEetqs6m_gPSnK5x154NxYnkxEF9tU1FVn4yp3Ly7Ion89Z8QS0q43skRT3L2HDTuKtsjrShI8bjguYwg_iCc16ec2Y7-9xhnvDQrgxUa_0A6Mx5XHtzldvUlRU6F2V7u09tVXlRF1Qwgt4wWKZpN8DyeONF93s4wK3RcdO3baC0qAIgeOs"/>
+</div>
+<span class="text-[11px] font-medium text-neutral-500 text-center tracking-tight truncate">Bespoke Travertine Colonnade</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="aspect-[3/4] rounded-2xl overflow-hidden shadow-sm border border-white/70 bg-neutral-100">
+<img alt="Viewing lounge with view" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0okO66iXS5nTNAMlbnadPgQ_c0iNPlV-yaBFAT-zAsihvlr2VesWwbDQ_fge-D9GP64F2JnmsDzuOlMZKSMdELzB-Rcj_bixulVauLIYWbyswKYvMbSMk7Mt1PMmW6BdNT8tK-POUMkpHpxvCsX_tUhDoyZR08NWxh7zmrn5h8RuDioN2eSrnVBL3om0s9niLSIxJKbgTjX5JsQITeXgZ3bMGfw84Z3qtxia6oJ1-Oa3ffefBNmeb"/>
+</div>
+<span class="text-[11px] font-medium text-neutral-500 text-center tracking-tight truncate">Archival Viewing Lounge</span>
+</div>
+</div>
+<p class="text-[15.5px] leading-[25px] text-on-surface-variant">
+          The roof plane, an 80-millimeter ultra-dense prestressed concrete slab, stretches 14 meters without vertical column supports. Acoustic baffles hidden within the timber soffit suppress reflection, granting the interior the sacred silence of an alpine chapel.
+        </p>
+</div>
+<!-- Liquid Engagement Pill -->
+<div class="mt-4 mb-2 flex items-center justify-between liquid-glass-subtle rounded-full px-3 py-1.5 border border-white/80">
+<div class="flex items-center gap-1.5">
+<button class="water-pill-btn flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined text-[17px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="text-[12px] font-semibold">1.4k</span>
+</button>
+<button class="water-pill-btn flex items-center gap-1 px-2.5 py-1.5 rounded-full text-neutral-600 hover:bg-black/5">
+<span class="material-symbols-outlined text-[17px]">chat_bubble_outline</span>
+<span class="text-[12px] font-medium">82</span>
+</button>
+</div>
+<div class="flex items-center gap-1">
+<button class="water-pill-btn w-8 h-8 rounded-full flex items-center justify-center text-neutral-600 hover:bg-black/5">
+<span class="material-symbols-outlined text-[18px]">bookmark_border</span>
+</button>
+<button class="water-pill-btn w-8 h-8 rounded-full flex items-center justify-center text-neutral-600 hover:bg-black/5">
+<span class="material-symbols-outlined text-[18px]">share</span>
+</button>
+</div>
+</div>
+</article>
+</main>
+<!-- FLOATING LIQUID GLASS BOTTOM COMMAND BAR / DOCK -->
+<div class="fixed bottom-0 inset-x-0 z-50 pointer-events-none pb-safe px-3 sm:px-4 flex flex-col items-center">
+<!-- Tab Swipe Indicator Dots -->
+<div class="flex items-center gap-1 mb-2 pointer-events-auto opacity-75">
+<div class="w-1.5 h-1.5 rounded-full bg-neutral-400"></div>
+<div class="w-3.5 h-1.5 rounded-full bg-primary shadow-sm"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-neutral-400"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-neutral-400"></div>
+</div>
+<!-- Unified Liquid Glass Floating Capsule Dock -->
+<div class="pointer-events-auto w-full max-w-md liquid-specular-capsule rounded-[32px] p-2 flex flex-col gap-1.5 transition-all">
+<!-- Upper Tier: Adaptive Floating URL Pill -->
+<div class="w-full h-11 rounded-full bg-white/70 backdrop-blur-xl border border-white/90 shadow-[inset_0_1px_2px_rgba(255,255,255,0.9),0_2px_6px_rgba(0,0,0,0.03)] flex items-center justify-between px-2.5">
+<!-- Left: Quick Reader / Privacy -->
+<div class="flex items-center gap-0.5 flex-shrink-0">
+<button aria-label="Reader options" class="water-pill-btn w-7 h-7 rounded-full flex items-center justify-center text-neutral-600 hover:text-primary">
+<span class="material-symbols-outlined text-[17px]">format_size</span>
+</button>
+<div class="w-6 h-6 rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+</div>
+<!-- Center: SSL Lock & Domain -->
+<div class="flex-1 min-w-0 flex items-center justify-center px-1 cursor-pointer select-none">
+<div class="flex items-center gap-1.5 min-w-0">
+<span class="material-symbols-outlined text-[14px] text-neutral-400 flex-shrink-0">lock</span>
+<span class="text-[13.5px] font-semibold text-neutral-900 tracking-tight truncate">architecturaldigest.com</span>
+</div>
+</div>
+<!-- Right: Reload & Fluid Swipe Cue -->
+<div class="flex items-center gap-1 flex-shrink-0">
+<button aria-label="Reload" class="water-pill-btn w-7 h-7 rounded-full flex items-center justify-center text-neutral-600 hover:text-neutral-900" id="reloadButton" onclick="triggerReload(this)">
+<span class="material-symbols-outlined text-[17px] transition-transform duration-500">refresh</span>
+</button>
+<!-- Subtle swipe pill edge guide -->
+<div class="w-1 h-3.5 rounded-full bg-neutral-300/80 mx-0.5" title="Swipe to switch tab"></div>
+</div>
+</div>
+<!-- Lower Tier: 5-Key Ergonomic iOS Liquid Glass Bar -->
+<div class="w-full h-11 px-1 flex items-center justify-around">
+<!-- Back -->
+<button aria-label="Back" class="water-pill-btn w-10 h-10 rounded-full flex items-center justify-center text-neutral-700 hover:text-neutral-950">
+<span class="material-symbols-outlined text-[21px]">arrow_back_ios_new</span>
+</button>
+<!-- Forward -->
+<button aria-label="Forward" class="water-pill-btn w-10 h-10 rounded-full flex items-center justify-center text-neutral-400 cursor-not-allowed">
+<span class="material-symbols-outlined text-[21px]">arrow_forward_ios</span>
+</button>
+<!-- Share Sheet -->
+<button aria-label="Share" class="water-pill-btn w-10 h-10 rounded-full flex items-center justify-center text-neutral-700 hover:text-neutral-950">
+<span class="material-symbols-outlined text-[22px]">ios_share</span>
+</button>
+<!-- Tab Count Pill Badge -->
+<button aria-label="Tab Overview" class="water-pill-btn w-10 h-10 rounded-full flex items-center justify-center text-neutral-800">
+<div class="w-[22px] h-[22px] rounded-md border-[1.75px] border-neutral-800 flex items-center justify-center text-[11px] font-bold font-display shadow-xs">
+            3
+          </div>
+</button>
+<!-- Page / Extension Menu -->
+<button aria-label="More options" class="water-pill-btn w-10 h-10 rounded-full flex items-center justify-center text-neutral-700 hover:text-neutral-950">
+<span class="material-symbols-outlined text-[22px]">more_horiz</span>
+</button>
+</div>
+</div>
+<!-- iOS Home Indicator Pill -->
+<div class="w-full flex justify-center pt-2 pb-1 pointer-events-auto">
+<div class="w-36 h-1 bg-neutral-900/35 rounded-full"></div>
+</div>
+</div>
+<!-- Interactive script for reload micro-interaction -->
+<script>
+    function triggerReload(btn) {
+      const icon = btn.querySelector('.material-symbols-outlined');
+      icon.classList.add('rotate-180');
+      const bar = document.getElementById('readProgress');
+      if (bar) {
+        bar.style.width = '15%';
+        setTimeout(() => { bar.style.width = '70%'; }, 150);
+        setTimeout(() => { bar.style.width = '100%'; }, 350);
+        setTimeout(() => { bar.style.width = '44%'; }, 600);
+      }
+      setTimeout(() => {
+        icon.classList.remove('rotate-180');
+      }, 500);
+    }
+  </script>
+</body></html>
